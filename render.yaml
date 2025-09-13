@@ -11,7 +11,7 @@ services:
       - key: DEBUG
         value: False
       - key: DJANGO_SETTINGS_MODULE
-        value: mjolobid.settings_production
+        value: mjolobid.settings_render
     healthCheckPath: /
 
 databases:
