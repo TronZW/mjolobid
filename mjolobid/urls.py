@@ -8,7 +8,18 @@ from django.conf.urls.static import static
 from django.http import JsonResponse
 
 def health_check(request):
-    return JsonResponse({'status': 'healthy', 'message': 'MjoloBid is running!'})
+    try:
+        # Simple health check that doesn't require database
+        return JsonResponse({
+            'status': 'healthy', 
+            'message': 'MjoloBid is running!',
+            'version': '1.0.0'
+        })
+    except Exception as e:
+        return JsonResponse({
+            'status': 'unhealthy', 
+            'error': str(e)
+        }, status=500)
 
 urlpatterns = [
     path('admin/', admin.site.urls),

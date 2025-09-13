@@ -1,0 +1,1 @@
+web: DJANGO_SETTINGS_MODULE=mjolobid.settings_minimal python manage.py migrate --noinput && DJANGO_SETTINGS_MODULE=mjolobid.settings_minimal python manage.py collectstatic --noinput && DJANGO_SETTINGS_MODULE=mjolobid.settings_minimal gunicorn mjolobid.wsgi:application --bind 0.0.0.0:$PORT --workers 1 --timeout 60
