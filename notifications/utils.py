@@ -1,8 +1,14 @@
 from django.utils import timezone
-from channels.layers import get_channel_layer
-from asgiref.sync import async_to_sync
 from .models import Notification, NotificationSettings
 import json
+
+# Try to import channels, but don't fail if it's not available
+try:
+    from channels.layers import get_channel_layer
+    from asgiref.sync import async_to_sync
+    CHANNELS_AVAILABLE = True
+except ImportError:
+    CHANNELS_AVAILABLE = False
 
 
 def send_notification(user, title, message, notification_type, related_object_type='', related_object_id=None):
@@ -41,18 +47,27 @@ def send_notification(user, title, message, notification_type, related_object_ty
 
 def send_websocket_notification(user, notification):
     """Send notification via WebSocket"""
-    channel_layer = get_channel_layer()
+    if not CHANNELS_AVAILABLE:
+        # Skip WebSocket notification if channels is not available
+        return
     
-    async_to_sync(channel_layer.group_send)(
-        f'notifications_{user.id}',
-        {
-            'type': 'notification_message',
-            'message': notification.message,
-            'title': notification.title,
-            'notification_type': notification.notification_type,
-            'timestamp': timezone.now().isoformat(),
-        }
-    )
+    try:
+        channel_layer = get_channel_layer()
+        
+        async_to_sync(channel_layer.group_send)(
+            f'notifications_{user.id}',
+            {
+                'type': 'notification_message',
+                'message': notification.message,
+                'title': notification.title,
+                'notification_type': notification.notification_type,
+                'timestamp': timezone.now().isoformat(),
+            }
+        )
+    except Exception as e:
+        # Log error but don't fail the notification
+        print(f"WebSocket notification failed: {e}")
+        pass
 
 
 def send_email_notification(user, notification):
