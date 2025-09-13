@@ -1,0 +1,295 @@
+{% extends 'base.html' %}
+
+{% block title %}Admin Dashboard - MjoloBid{% endblock %}
+
+{% block content %}
+<div class="mb-8">
+    <h1 class="text-3xl font-bold text-gray-900 mb-4">Admin Dashboard</h1>
+    <p class="text-gray-600">Real-time analytics and metrics for MjoloBid</p>
+</div>
+
+<!-- Metrics Cards -->
+<div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
+    <!-- Users Online -->
+    <div class="bg-white rounded-lg shadow-lg p-6">
+        <div class="flex items-center">
+            <div class="p-3 rounded-full bg-green-100 text-green-600">
+                <i class="fas fa-users text-2xl"></i>
+            </div>
+            <div class="ml-4">
+                <p class="text-sm font-medium text-gray-600">Users Online</p>
+                <p class="text-2xl font-bold text-gray-900" id="online-users">{{ online_users }}</p>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Total Users -->
+    <div class="bg-white rounded-lg shadow-lg p-6">
+        <div class="flex items-center">
+            <div class="p-3 rounded-full bg-blue-100 text-blue-600">
+                <i class="fas fa-user-friends text-2xl"></i>
+            </div>
+            <div class="ml-4">
+                <p class="text-sm font-medium text-gray-600">Total Users</p>
+                <p class="text-2xl font-bold text-gray-900">{{ total_users }}</p>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Daily Logins -->
+    <div class="bg-white rounded-lg shadow-lg p-6">
+        <div class="flex items-center">
+            <div class="p-3 rounded-full bg-purple-100 text-purple-600">
+                <i class="fas fa-sign-in-alt text-2xl"></i>
+            </div>
+            <div class="ml-4">
+                <p class="text-sm font-medium text-gray-600">Daily Logins</p>
+                <p class="text-2xl font-bold text-gray-900" id="daily-logins">{{ daily_logins }}</p>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Weekly Revenue -->
+    <div class="bg-white rounded-lg shadow-lg p-6">
+        <div class="flex items-center">
+            <div class="p-3 rounded-full bg-yellow-100 text-yellow-600">
+                <i class="fas fa-dollar-sign text-2xl"></i>
+            </div>
+            <div class="ml-4">
+                <p class="text-sm font-medium text-gray-600">Weekly Revenue</p>
+                <p class="text-2xl font-bold text-gray-900" id="weekly-revenue">${{ weekly_revenue }}</p>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Secondary Metrics -->
+<div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-6 gap-6 mb-8">
+    <!-- Bids Today -->
+    <div class="bg-white rounded-lg shadow-lg p-4 text-center">
+        <div class="text-2xl font-bold text-indigo-600" id="bids-today">{{ bids_today }}</div>
+        <div class="text-sm text-gray-600">Bids Today</div>
+    </div>
+    
+    <!-- Matched Bids Today -->
+    <div class="bg-white rounded-lg shadow-lg p-4 text-center">
+        <div class="text-2xl font-bold text-green-600" id="matched-bids-today">{{ matched_bids_today }}</div>
+        <div class="text-sm text-gray-600">Matched Today</div>
+    </div>
+    
+    <!-- Male Users -->
+    <div class="bg-white rounded-lg shadow-lg p-4 text-center">
+        <div class="text-2xl font-bold text-blue-600">{{ male_users }}</div>
+        <div class="text-sm text-gray-600">Male Users</div>
+    </div>
+    
+    <!-- Female Users -->
+    <div class="bg-white rounded-lg shadow-lg p-4 text-center">
+        <div class="text-2xl font-bold text-pink-600">{{ female_users }}</div>
+        <div class="text-sm text-gray-600">Female Users</div>
+    </div>
+    
+    <!-- Premium Users -->
+    <div class="bg-white rounded-lg shadow-lg p-4 text-center">
+        <div class="text-2xl font-bold text-yellow-600">{{ premium_users }}</div>
+        <div class="text-sm text-gray-600">Premium Users</div>
+    </div>
+    
+    <!-- Verified Users -->
+    <div class="bg-white rounded-lg shadow-lg p-4 text-center">
+        <div class="text-2xl font-bold text-green-600">{{ verified_users }}</div>
+        <div class="text-sm text-gray-600">Verified Users</div>
+    </div>
+</div>
+
+<!-- Charts Section -->
+<div class="grid grid-cols-1 lg:grid-cols-2 gap-8 mb-8">
+    <!-- Daily Logins Chart -->
+    <div class="bg-white rounded-lg shadow-lg p-6">
+        <h3 class="text-lg font-semibold text-gray-900 mb-4">Daily Logins</h3>
+        <div class="h-64 bg-gray-100 rounded-lg flex items-center justify-center">
+            <div class="text-center text-gray-500">
+                <i class="fas fa-chart-line text-4xl mb-2"></i>
+                <p>Chart Placeholder</p>
+                <p class="text-sm">Daily login trends over time</p>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Bids Today Chart -->
+    <div class="bg-white rounded-lg shadow-lg p-6">
+        <h3 class="text-lg font-semibold text-gray-900 mb-4">Bids Today</h3>
+        <div class="h-64 bg-gray-100 rounded-lg flex items-center justify-center">
+            <div class="text-center text-gray-500">
+                <i class="fas fa-chart-bar text-4xl mb-2"></i>
+                <p>Chart Placeholder</p>
+                <p class="text-sm">Bid activity breakdown</p>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Revenue Breakdown -->
+<div class="bg-white rounded-lg shadow-lg p-6 mb-8">
+    <h3 class="text-lg font-semibold text-gray-900 mb-4">Revenue Breakdown (This Week)</h3>
+    <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
+        <div class="text-center">
+            <div class="text-2xl font-bold text-green-600">${{ commission_revenue }}</div>
+            <div class="text-sm text-gray-600">Commission Revenue</div>
+        </div>
+        <div class="text-center">
+            <div class="text-2xl font-bold text-blue-600">${{ subscription_revenue }}</div>
+            <div class="text-sm text-gray-600">Subscription Revenue</div>
+        </div>
+        <div class="text-center">
+            <div class="text-2xl font-bold text-purple-600">${{ premium_revenue }}</div>
+            <div class="text-sm text-gray-600">Premium Revenue</div>
+        </div>
+    </div>
+</div>
+
+<!-- Recent Activity -->
+<div class="grid grid-cols-1 lg:grid-cols-3 gap-8">
+    <!-- Recent Bids -->
+    <div class="bg-white rounded-lg shadow-lg p-6">
+        <h3 class="text-lg font-semibold text-gray-900 mb-4">Recent Bids</h3>
+        <div class="space-y-3">
+            {% for bid in recent_bids %}
+                <div class="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
+                    <div>
+                        <p class="font-medium text-gray-900">{{ bid.title }}</p>
+                        <p class="text-sm text-gray-600">${{ bid.bid_amount }} • {{ bid.user.username }}</p>
+                    </div>
+                    <span class="px-2 py-1 text-xs font-medium rounded-full 
+                        {% if bid.status == 'PENDING' %}bg-yellow-100 text-yellow-800
+                        {% elif bid.status == 'ACCEPTED' %}bg-green-100 text-green-800
+                        {% elif bid.status == 'COMPLETED' %}bg-blue-100 text-blue-800
+                        {% else %}bg-gray-100 text-gray-800{% endif %}">
+                        {{ bid.get_status_display }}
+                    </span>
+                </div>
+            {% empty %}
+                <p class="text-gray-500 text-center py-4">No recent bids</p>
+            {% endfor %}
+        </div>
+    </div>
+    
+    <!-- Recent Users -->
+    <div class="bg-white rounded-lg shadow-lg p-6">
+        <h3 class="text-lg font-semibold text-gray-900 mb-4">Recent Users</h3>
+        <div class="space-y-3">
+            {% for user in recent_users %}
+                <div class="flex items-center p-3 bg-gray-50 rounded-lg">
+                    <div class="w-10 h-10 bg-primary rounded-full flex items-center justify-center text-white font-bold mr-3">
+                        {{ user.username|first|upper }}
+                    </div>
+                    <div>
+                        <p class="font-medium text-gray-900">{{ user.username }}</p>
+                        <p class="text-sm text-gray-600">{{ user.get_user_type_display }} • {{ user.city }}</p>
+                    </div>
+                </div>
+            {% empty %}
+                <p class="text-gray-500 text-center py-4">No recent users</p>
+            {% endfor %}
+        </div>
+    </div>
+    
+    <!-- Recent Transactions -->
+    <div class="bg-white rounded-lg shadow-lg p-6">
+        <h3 class="text-lg font-semibold text-gray-900 mb-4">Recent Transactions</h3>
+        <div class="space-y-3">
+            {% for transaction in recent_transactions %}
+                <div class="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
+                    <div>
+                        <p class="font-medium text-gray-900">{{ transaction.get_transaction_type_display }}</p>
+                        <p class="text-sm text-gray-600">{{ transaction.user.username }}</p>
+                    </div>
+                    <div class="text-right">
+                        <p class="font-medium text-green-600">${{ transaction.amount }}</p>
+                        <p class="text-xs text-gray-500">{{ transaction.created_at|date:"M d" }}</p>
+                    </div>
+                </div>
+            {% empty %}
+                <p class="text-gray-500 text-center py-4">No recent transactions</p>
+            {% endfor %}
+        </div>
+    </div>
+</div>
+
+<!-- Top Users Section -->
+<div class="grid grid-cols-1 lg:grid-cols-2 gap-8 mt-8">
+    <!-- Top Bidders -->
+    <div class="bg-white rounded-lg shadow-lg p-6">
+        <h3 class="text-lg font-semibold text-gray-900 mb-4">Top Bidders</h3>
+        <div class="space-y-3">
+            {% for user in top_bidders %}
+                <div class="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
+                    <div class="flex items-center">
+                        <div class="w-10 h-10 bg-blue-100 rounded-full flex items-center justify-center text-blue-600 font-bold mr-3">
+                            {{ user.username|first|upper }}
+                        </div>
+                        <div>
+                            <p class="font-medium text-gray-900">{{ user.username }}</p>
+                            <p class="text-sm text-gray-600">{{ user.city }}</p>
+                        </div>
+                    </div>
+                    <div class="text-right">
+                        <p class="font-medium text-blue-600">{{ user.bid_count }} bids</p>
+                        <p class="text-sm text-gray-600">${{ user.total_spent }}</p>
+                    </div>
+                </div>
+            {% empty %}
+                <p class="text-gray-500 text-center py-4">No top bidders</p>
+            {% endfor %}
+        </div>
+    </div>
+    
+    <!-- Top Earners -->
+    <div class="bg-white rounded-lg shadow-lg p-6">
+        <h3 class="text-lg font-semibold text-gray-900 mb-4">Top Earners</h3>
+        <div class="space-y-3">
+            {% for user in top_earners %}
+                <div class="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
+                    <div class="flex items-center">
+                        <div class="w-10 h-10 bg-pink-100 rounded-full flex items-center justify-center text-pink-600 font-bold mr-3">
+                            {{ user.username|first|upper }}
+                        </div>
+                        <div>
+                            <p class="font-medium text-gray-900">{{ user.username }}</p>
+                            <p class="text-sm text-gray-600">{{ user.city }}</p>
+                        </div>
+                    </div>
+                    <div class="text-right">
+                        <p class="font-medium text-green-600">${{ user.total_earned }}</p>
+                        <p class="text-sm text-gray-600">{{ user.bids_accepted.count }} accepted</p>
+                    </div>
+                </div>
+            {% empty %}
+                <p class="text-gray-500 text-center py-4">No top earners</p>
+            {% endfor %}
+        </div>
+    </div>
+</div>
+
+<script>
+    // Real-time metrics update
+    function updateMetrics() {
+        fetch('{% url "admin_dashboard:api_metrics" %}')
+            .then(response => response.json())
+            .then(data => {
+                document.getElementById('online-users').textContent = data.online_users;
+                document.getElementById('daily-logins').textContent = data.daily_logins;
+                document.getElementById('bids-today').textContent = data.bids_today;
+                document.getElementById('matched-bids-today').textContent = data.matched_bids_today;
+                document.getElementById('weekly-revenue').textContent = '$' + data.weekly_revenue.toFixed(2);
+            })
+            .catch(error => console.error('Error updating metrics:', error));
+    }
+    
+    // Update metrics every 30 seconds
+    setInterval(updateMetrics, 30000);
+    
+    // Initial update
+    updateMetrics();
+</script>
+{% endblock %}

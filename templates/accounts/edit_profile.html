@@ -1,0 +1,79 @@
+{% extends 'base.html' %}
+
+{% block title %}Edit Profile - MjoloBid{% endblock %}
+
+{% block content %}
+<div class="max-w-2xl mx-auto">
+    <div class="mb-8">
+        <h1 class="text-3xl font-bold text-gray-900 mb-4">Edit Profile</h1>
+        <p class="text-gray-600">Update your profile information</p>
+    </div>
+
+    <div class="bg-white rounded-lg shadow-lg p-8">
+        <form method="POST" enctype="multipart/form-data">
+            {% csrf_token %}
+            
+            <div class="space-y-6">
+                <div>
+                    <label for="{{ form.email.id_for_label }}" class="form-label">Email</label>
+                    {{ form.email }}
+                    {% if form.email.errors %}
+                        <div class="form-error">{{ form.email.errors.0 }}</div>
+                    {% endif %}
+                </div>
+                
+                <div>
+                    <label for="{{ form.phone_number.id_for_label }}" class="form-label">Phone Number</label>
+                    {{ form.phone_number }}
+                    {% if form.phone_number.errors %}
+                        <div class="form-error">{{ form.phone_number.errors.0 }}</div>
+                    {% endif %}
+                </div>
+                
+                <div>
+                    <label for="{{ form.bio.id_for_label }}" class="form-label">Bio</label>
+                    {{ form.bio }}
+                    {% if form.bio.errors %}
+                        <div class="form-error">{{ form.bio.errors.0 }}</div>
+                    {% endif %}
+                </div>
+                
+                <div>
+                    <label for="{{ form.profile_picture.id_for_label }}" class="form-label">Profile Picture</label>
+                    {{ form.profile_picture }}
+                    {% if form.profile_picture.errors %}
+                        <div class="form-error">{{ form.profile_picture.errors.0 }}</div>
+                    {% endif %}
+                </div>
+                
+                <div>
+                    <label for="{{ form.city.id_for_label }}" class="form-label">City</label>
+                    {{ form.city }}
+                    {% if form.city.errors %}
+                        <div class="form-error">{{ form.city.errors.0 }}</div>
+                    {% endif %}
+                </div>
+                
+                <div>
+                    <label for="{{ form.location.id_for_label }}" class="form-label">Location</label>
+                    {{ form.location }}
+                    {% if form.location.errors %}
+                        <div class="form-error">{{ form.location.errors.0 }}</div>
+                    {% endif %}
+                </div>
+            </div>
+            
+            <!-- Submit Button -->
+            <div class="mt-8 flex justify-end space-x-4">
+                <a href="{% url 'accounts:profile' %}" class="btn-secondary">
+                    Cancel
+                </a>
+                <button type="submit" class="btn-primary">
+                    <i class="fas fa-save mr-2"></i>Save Changes
+                </button>
+            </div>
+        </form>
+    </div>
+</div>
+{% endblock %}
+

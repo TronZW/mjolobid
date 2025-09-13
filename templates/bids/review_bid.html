@@ -1,0 +1,213 @@
+{% extends 'base.html' %}
+
+{% block title %}Review Bid - MjoloBid{% endblock %}
+
+{% block content %}
+<div class="max-w-2xl mx-auto">
+    <div class="mb-8">
+        <h1 class="text-3xl font-bold text-gray-900 mb-4">Review Bid</h1>
+        <p class="text-gray-600">Share your experience with this completed bid</p>
+    </div>
+
+    <!-- Bid Info Card -->
+    <div class="bg-white rounded-lg shadow-lg p-6 mb-6">
+        <div class="flex items-center mb-4">
+            <span class="text-2xl mr-3">{{ bid.event_category.icon }}</span>
+            <div>
+                <h3 class="font-semibold text-gray-900">{{ bid.title }}</h3>
+                <p class="text-sm text-gray-600">{{ bid.event_category.name }}</p>
+            </div>
+        </div>
+        
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-4 text-sm text-gray-600 mb-4">
+            <div class="flex items-center">
+                <i class="fas fa-calendar-alt mr-2 text-primary"></i>
+                <span>{{ bid.event_date|date:"M d, Y g:i A" }}</span>
+            </div>
+            <div class="flex items-center">
+                <i class="fas fa-map-marker-alt mr-2 text-primary"></i>
+                <span>{{ bid.event_location }}</span>
+            </div>
+            <div class="flex items-center">
+                <i class="fas fa-dollar-sign mr-2 text-primary"></i>
+                <span>${{ bid.bid_amount }}</span>
+            </div>
+            <div class="flex items-center">
+                <i class="fas fa-flag-checkered mr-2 text-primary"></i>
+                <span>Completed</span>
+            </div>
+        </div>
+        
+        <div class="bg-green-50 border border-green-200 rounded-lg p-4">
+            <div class="flex items-center">
+                <i class="fas fa-check-circle text-green-500 mr-2"></i>
+                <span class="text-green-800 font-medium">This bid has been completed successfully!</span>
+            </div>
+        </div>
+    </div>
+
+    <!-- User Being Reviewed -->
+    <div class="bg-white rounded-lg shadow-lg p-6 mb-6">
+        <h3 class="font-semibold text-gray-900 mb-4">Reviewing</h3>
+        <div class="flex items-center">
+            <div class="w-12 h-12 bg-gradient-to-r from-primary to-secondary rounded-full flex items-center justify-center mr-4">
+                <i class="fas fa-user text-white"></i>
+            </div>
+            <div>
+                <h4 class="font-semibold text-gray-900">{{ reviewed_user.username }}</h4>
+                <p class="text-sm text-gray-600">{{ reviewed_user.age }} years old</p>
+            </div>
+        </div>
+    </div>
+
+    <!-- Review Form -->
+    <div class="bg-white rounded-lg shadow-lg p-6">
+        <form method="POST">
+            {% csrf_token %}
+            
+            <!-- Rating -->
+            <div class="mb-6">
+                <label class="block text-sm font-medium text-gray-700 mb-3">
+                    Overall Rating
+                </label>
+                <div class="flex space-x-2" id="rating-stars">
+                    {% for choice in form.rating.field.choices %}
+                        <button type="button" 
+                                class="star-rating text-3xl text-gray-300 hover:text-yellow-400 transition-colors"
+                                data-rating="{{ choice.0 }}">
+                            <i class="fas fa-star"></i>
+                        </button>
+                    {% endfor %}
+                </div>
+                {{ form.rating }}
+                {% if form.rating.errors %}
+                    <div class="text-red-600 text-sm mt-1">
+                        {% for error in form.rating.errors %}
+                            <p>{{ error }}</p>
+                        {% endfor %}
+                    </div>
+                {% endif %}
+            </div>
+            
+            <!-- Review Text -->
+            <div class="mb-6">
+                <label for="{{ form.review_text.id_for_label }}" class="block text-sm font-medium text-gray-700 mb-2">
+                    Your Review
+                </label>
+                {{ form.review_text }}
+                {% if form.review_text.errors %}
+                    <div class="text-red-600 text-sm mt-1">
+                        {% for error in form.review_text.errors %}
+                            <p>{{ error }}</p>
+                        {% endfor %}
+                    </div>
+                {% endif %}
+                <p class="text-sm text-gray-500 mt-1">Share your experience (optional, max 500 characters)</p>
+            </div>
+            
+            <div class="flex justify-end space-x-4">
+                <a href="{% url 'bids:bid_detail' bid.id %}" 
+                   class="bg-gray-500 text-white px-6 py-3 rounded-lg hover:bg-gray-600 transition-colors">
+                    <i class="fas fa-arrow-left mr-2"></i>Back to Bid
+                </a>
+                <button type="submit" 
+                        class="bg-primary text-white px-6 py-3 rounded-lg hover:bg-purple-700 transition-colors">
+                    <i class="fas fa-star mr-2"></i>Submit Review
+                </button>
+            </div>
+        </form>
+    </div>
+
+    <!-- Review Guidelines -->
+    <div class="mt-6 bg-blue-50 border border-blue-200 rounded-lg p-4">
+        <h4 class="font-semibold text-blue-900 mb-2">
+            <i class="fas fa-info-circle mr-2"></i>Review Guidelines
+        </h4>
+        <ul class="text-sm text-blue-800 space-y-1">
+            <li>• Be honest and constructive in your feedback</li>
+            <li>• Focus on the experience, communication, and professionalism</li>
+            <li>• Avoid personal attacks or inappropriate language</li>
+            <li>• Your review helps other users make informed decisions</li>
+        </ul>
+    </div>
+</div>
+
+<style>
+/* Custom styling for form fields */
+#{{ form.rating.id_for_label }} {
+    display: none;
+}
+
+#{{ form.review_text.id_for_label }} {
+    width: 100%;
+    min-height: 120px;
+    border: 1px solid #d1d5db;
+    border-radius: 0.5rem;
+    padding: 0.75rem;
+    font-size: 0.875rem;
+    line-height: 1.5;
+    resize: vertical;
+    transition: border-color 0.15s ease-in-out, box-shadow 0.15s ease-in-out;
+}
+
+#{{ form.review_text.id_for_label }}:focus {
+    outline: none;
+    border-color: #8b5cf6;
+    box-shadow: 0 0 0 3px rgba(139, 92, 246, 0.1);
+}
+
+.star-rating.selected {
+    color: #fbbf24 !important;
+}
+
+.star-rating:hover ~ .star-rating {
+    color: #d1d5db !important;
+}
+</style>
+
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    const stars = document.querySelectorAll('.star-rating');
+    const ratingInput = document.getElementById('{{ form.rating.id_for_label }}');
+    
+    stars.forEach((star, index) => {
+        star.addEventListener('click', function() {
+            const rating = this.dataset.rating;
+            ratingInput.value = rating;
+            
+            // Update star display
+            stars.forEach((s, i) => {
+                if (i < rating) {
+                    s.classList.add('selected');
+                } else {
+                    s.classList.remove('selected');
+                }
+            });
+        });
+        
+        star.addEventListener('mouseenter', function() {
+            const rating = this.dataset.rating;
+            stars.forEach((s, i) => {
+                if (i < rating) {
+                    s.style.color = '#fbbf24';
+                } else {
+                    s.style.color = '#d1d5db';
+                }
+            });
+        });
+    });
+    
+    // Reset stars on mouse leave
+    document.getElementById('rating-stars').addEventListener('mouseleave', function() {
+        const currentRating = ratingInput.value;
+        stars.forEach((s, i) => {
+            if (i < currentRating) {
+                s.style.color = '#fbbf24';
+            } else {
+                s.style.color = '#d1d5db';
+            }
+        });
+    });
+});
+</script>
+{% endblock %}

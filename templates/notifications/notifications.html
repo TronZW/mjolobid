@@ -1,0 +1,110 @@
+{% extends 'base.html' %}
+
+{% block title %}Notifications - MjoloBid{% endblock %}
+
+{% block content %}
+<div class="max-w-4xl mx-auto">
+    <div class="mb-8">
+        <div class="flex items-center justify-between">
+            <div>
+                <h1 class="text-3xl font-bold text-gray-900 mb-2">Notifications</h1>
+                <p class="text-gray-600">Stay updated with your latest activities</p>
+            </div>
+            {% if unread_count > 0 %}
+                <form method="POST" class="inline">
+                    {% csrf_token %}
+                    <button type="submit" class="bg-primary text-white px-4 py-2 rounded-lg hover:bg-purple-700 transition-colors">
+                        <i class="fas fa-check mr-2"></i>Mark All Read
+                    </button>
+                </form>
+            {% endif %}
+        </div>
+    </div>
+
+    {% if page_obj %}
+        <div class="space-y-4">
+            {% for notification in page_obj %}
+                <div class="bg-white rounded-lg shadow-lg p-6 {% if not notification.is_read %}border-l-4 border-primary{% endif %}">
+                    <div class="flex items-start justify-between">
+                        <div class="flex-1">
+                            <div class="flex items-center mb-2">
+                                <h3 class="font-semibold text-gray-900 mr-2">{{ notification.title }}</h3>
+                                {% if not notification.is_read %}
+                                    <span class="w-2 h-2 bg-primary rounded-full"></span>
+                                {% endif %}
+                            </div>
+                            <p class="text-gray-700 mb-2">{{ notification.message }}</p>
+                            <div class="flex items-center text-sm text-gray-500">
+                                <i class="fas fa-clock mr-1"></i>
+                                {{ notification.created_at|timesince }} ago
+                                <span class="mx-2">•</span>
+                                <span class="px-2 py-1 bg-gray-100 text-gray-600 rounded-full text-xs">
+                                    {{ notification.get_notification_type_display }}
+                                </span>
+                            </div>
+                        </div>
+                        {% if not notification.is_read %}
+                            <button onclick="markAsRead({{ notification.id }})" class="ml-4 text-gray-400 hover:text-primary">
+                                <i class="fas fa-check"></i>
+                            </button>
+                        {% endif %}
+                    </div>
+                </div>
+            {% endfor %}
+        </div>
+        
+        <!-- Pagination -->
+        {% if page_obj.has_other_pages %}
+            <div class="mt-8 flex justify-center">
+                <nav class="flex space-x-2">
+                    {% if page_obj.has_previous %}
+                        <a href="?page={{ page_obj.previous_page_number }}" class="px-3 py-2 border border-gray-300 rounded-lg text-gray-700 hover:bg-gray-50">
+                            <i class="fas fa-chevron-left"></i>
+                        </a>
+                    {% endif %}
+                    
+                    {% for num in page_obj.paginator.page_range %}
+                        {% if page_obj.number == num %}
+                            <span class="px-3 py-2 bg-primary text-white rounded-lg">{{ num }}</span>
+                        {% elif num > page_obj.number|add:'-3' and num < page_obj.number|add:'3' %}
+                            <a href="?page={{ num }}" class="px-3 py-2 border border-gray-300 rounded-lg text-gray-700 hover:bg-gray-50">{{ num }}</a>
+                        {% endif %}
+                    {% endfor %}
+                    
+                    {% if page_obj.has_next %}
+                        <a href="?page={{ page_obj.next_page_number }}" class="px-3 py-2 border border-gray-300 rounded-lg text-gray-700 hover:bg-gray-50">
+                            <i class="fas fa-chevron-right"></i>
+                        </a>
+                    {% endif %}
+                </nav>
+            </div>
+        {% endif %}
+    {% else %}
+        <div class="text-center py-12">
+            <div class="text-6xl text-gray-300 mb-4">🔔</div>
+            <h3 class="text-xl font-semibold text-gray-600 mb-2">No notifications yet</h3>
+            <p class="text-gray-500">You'll receive notifications about bids, messages, and account updates here</p>
+        </div>
+    {% endif %}
+</div>
+
+<script>
+    function markAsRead(notificationId) {
+        fetch(`/notifications/mark-read/${notificationId}/`, {
+            method: 'POST',
+            headers: {
+                'X-CSRFToken': document.querySelector('[name=csrfmiddlewaretoken]').value,
+                'Content-Type': 'application/json',
+            },
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.status === 'success') {
+                location.reload();
+            }
+        })
+        .catch(error => console.error('Error:', error));
+    }
+</script>
+{% endblock %}
+

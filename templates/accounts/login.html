@@ -1,0 +1,179 @@
+{% extends 'base.html' %}
+
+{% block title %}Login - MjoloBid{% endblock %}
+
+{% block content %}
+<div class="min-h-screen flex items-center justify-center bg-gradient-to-br from-purple-50 to-pink-50 py-12 px-4 sm:px-6 lg:px-8">
+    <div class="max-w-md w-full space-y-8">
+        <!-- Header -->
+        <div class="text-center">
+            <div class="mx-auto h-16 w-16 bg-gradient-to-r from-primary to-secondary rounded-full flex items-center justify-center mb-4">
+                <i class="fas fa-heart text-white text-2xl"></i>
+            </div>
+            <h1 class="text-3xl font-bold text-gray-900 mb-2">Welcome Back</h1>
+            <p class="text-gray-600">Sign in to continue your MjoloBid journey</p>
+        </div>
+
+        <!-- Login Form -->
+        <div class="bg-white rounded-2xl shadow-xl p-8 border border-gray-100">
+            <form method="POST" class="space-y-6">
+                {% csrf_token %}
+                
+                <!-- Username Field -->
+                <div class="space-y-2">
+                    <label for="{{ form.username.id_for_label }}" class="block text-sm font-semibold text-gray-700">
+                        <i class="fas fa-user mr-2 text-primary"></i>Username
+                    </label>
+                    <div class="relative">
+                        <input type="text" 
+                               name="{{ form.username.name }}" 
+                               id="{{ form.username.id_for_label }}"
+                               value="{{ form.username.value|default:'' }}"
+                               class="w-full px-4 py-3 pl-12 border border-gray-300 rounded-xl focus:ring-2 focus:ring-primary focus:border-transparent transition-all duration-200 bg-gray-50 focus:bg-white"
+                               placeholder="Enter your username"
+                               required>
+                        <div class="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none">
+                            <i class="fas fa-user text-gray-400"></i>
+                        </div>
+                    </div>
+                    {% if form.username.errors %}
+                        <div class="text-red-600 text-sm flex items-center">
+                            <i class="fas fa-exclamation-circle mr-1"></i>
+                            {{ form.username.errors.0 }}
+                        </div>
+                    {% endif %}
+                </div>
+                
+                <!-- Password Field -->
+                <div class="space-y-2">
+                    <label for="{{ form.password.id_for_label }}" class="block text-sm font-semibold text-gray-700">
+                        <i class="fas fa-lock mr-2 text-primary"></i>Password
+                    </label>
+                    <div class="relative">
+                        <input type="password" 
+                               name="{{ form.password.name }}" 
+                               id="{{ form.password.id_for_label }}"
+                               class="w-full px-4 py-3 pl-12 pr-12 border border-gray-300 rounded-xl focus:ring-2 focus:ring-primary focus:border-transparent transition-all duration-200 bg-gray-50 focus:bg-white"
+                               placeholder="Enter your password"
+                               required>
+                        <div class="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none">
+                            <i class="fas fa-lock text-gray-400"></i>
+                        </div>
+                        <button type="button" 
+                                class="absolute inset-y-0 right-0 pr-4 flex items-center"
+                                onclick="togglePassword('{{ form.password.id_for_label }}')">
+                            <i class="fas fa-eye text-gray-400 hover:text-gray-600" id="toggle-icon"></i>
+                        </button>
+                    </div>
+                    {% if form.password.errors %}
+                        <div class="text-red-600 text-sm flex items-center">
+                            <i class="fas fa-exclamation-circle mr-1"></i>
+                            {{ form.password.errors.0 }}
+                        </div>
+                    {% endif %}
+                </div>
+                
+                <!-- Remember Me & Forgot Password -->
+                <div class="flex items-center justify-between">
+                    <div class="flex items-center">
+                        <input id="remember-me" name="remember-me" type="checkbox" 
+                               class="h-4 w-4 text-primary focus:ring-primary border-gray-300 rounded">
+                        <label for="remember-me" class="ml-2 block text-sm text-gray-700">
+                            Remember me
+                        </label>
+                    </div>
+                    <div class="text-sm">
+                        <a href="#" class="font-medium text-primary hover:text-purple-700 transition-colors">
+                            Forgot password?
+                        </a>
+                    </div>
+                </div>
+                
+                <!-- Submit Button -->
+                <button type="submit" 
+                        class="w-full bg-gradient-to-r from-primary to-secondary text-white py-3 px-4 rounded-xl font-semibold hover:shadow-lg hover:scale-[1.02] transform transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-primary focus:ring-offset-2">
+                    <i class="fas fa-sign-in-alt mr-2"></i>Sign In
+                </button>
+            </form>
+            
+            <!-- Divider -->
+            <div class="mt-6">
+                <div class="relative">
+                    <div class="absolute inset-0 flex items-center">
+                        <div class="w-full border-t border-gray-300"></div>
+                    </div>
+                    <div class="relative flex justify-center text-sm">
+                        <span class="px-2 bg-white text-gray-500">New to MjoloBid?</span>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Register Link -->
+            <div class="mt-6 text-center">
+                <a href="{% url 'accounts:register' %}" 
+                   class="inline-flex items-center px-6 py-3 border border-primary text-primary rounded-xl font-semibold hover:bg-primary hover:text-white transition-all duration-200">
+                    <i class="fas fa-user-plus mr-2"></i>Create Account
+                </a>
+            </div>
+        </div>
+        
+        <!-- Features Preview -->
+        <div class="bg-white rounded-2xl shadow-lg p-6 border border-gray-100">
+            <h3 class="text-lg font-semibold text-gray-900 mb-4 text-center">What you can do on MjoloBid</h3>
+            <div class="grid grid-cols-1 gap-4">
+                <div class="flex items-center space-x-3">
+                    <div class="w-8 h-8 bg-green-100 rounded-full flex items-center justify-center">
+                        <i class="fas fa-search text-green-600"></i>
+                    </div>
+                    <span class="text-sm text-gray-600">Browse and accept exciting social events</span>
+                </div>
+                <div class="flex items-center space-x-3">
+                    <div class="w-8 h-8 bg-blue-100 rounded-full flex items-center justify-center">
+                        <i class="fas fa-plus text-blue-600"></i>
+                    </div>
+                    <span class="text-sm text-gray-600">Post your own bids for events</span>
+                </div>
+                <div class="flex items-center space-x-3">
+                    <div class="w-8 h-8 bg-purple-100 rounded-full flex items-center justify-center">
+                        <i class="fas fa-comments text-purple-600"></i>
+                    </div>
+                    <span class="text-sm text-gray-600">Connect and chat with like-minded people</span>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+function togglePassword(inputId) {
+    const input = document.getElementById(inputId);
+    const icon = document.getElementById('toggle-icon');
+    
+    if (input.type === 'password') {
+        input.type = 'text';
+        icon.classList.remove('fa-eye');
+        icon.classList.add('fa-eye-slash');
+    } else {
+        input.type = 'password';
+        icon.classList.remove('fa-eye-slash');
+        icon.classList.add('fa-eye');
+    }
+}
+
+// Add floating label effect
+document.addEventListener('DOMContentLoaded', function() {
+    const inputs = document.querySelectorAll('input[type="text"], input[type="password"]');
+    
+    inputs.forEach(input => {
+        input.addEventListener('focus', function() {
+            this.parentElement.classList.add('ring-2', 'ring-primary');
+        });
+        
+        input.addEventListener('blur', function() {
+            this.parentElement.classList.remove('ring-2', 'ring-primary');
+        });
+    });
+});
+</script>
+{% endblock %}
+

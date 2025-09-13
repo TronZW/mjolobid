@@ -1,0 +1,208 @@
+{% extends 'base.html' %}
+
+{% block title %}Welcome to MjoloBid{% endblock %}
+
+{% block content %}
+<!-- Intro Popup -->
+<div id="intro-popup" class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+    <div class="bg-white rounded-lg p-8 max-w-md mx-4 transform transition-all">
+        <div class="text-center">
+            <div class="text-6xl mb-4">🎉</div>
+            <h2 class="text-2xl font-bold text-gray-800 mb-4">Welcome to MjoloBid!</h2>
+            <p class="text-gray-600 mb-6">
+                Tired of going to social events alone? Can't find the right company for that club night or party? 
+                <strong>MjoloBid</strong> connects you with amazing people for unforgettable social experiences in Zimbabwe.
+            </p>
+            <div class="space-y-3">
+                <a href="{% url 'accounts:register' %}" class="block w-full bg-gradient-to-r from-primary to-secondary text-white py-3 px-6 rounded-lg font-semibold hover:opacity-90 transition-opacity">
+                    Get Started Now
+                </a>
+                <button onclick="closeIntroPopup()" class="block w-full text-gray-500 py-2 px-6 rounded-lg hover:text-gray-700 transition-colors">
+                    Maybe Later
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Hero Section -->
+<div class="text-center py-16">
+    <div class="max-w-4xl mx-auto">
+        <h1 class="text-5xl font-bold text-gray-900 mb-6">
+            Connect for 
+            <span class="bg-gradient-to-r from-primary to-secondary bg-clip-text text-transparent">
+                Social Events
+            </span>
+        </h1>
+        <p class="text-xl text-gray-600 mb-8">
+            Join Zimbabwe's premier social marketplace. Find companions for clubs, parties, concerts, and more. 
+            Safe, secure, and fun experiences await.
+        </p>
+        <div class="flex flex-col sm:flex-row gap-4 justify-center">
+            <a href="{% url 'accounts:register' %}" class="bg-gradient-to-r from-primary to-secondary text-white px-8 py-4 rounded-lg text-lg font-semibold hover:opacity-90 transition-opacity">
+                <i class="fas fa-rocket mr-2"></i>Start Your Journey
+            </a>
+            <a href="#how-it-works" class="border-2 border-primary text-primary px-8 py-4 rounded-lg text-lg font-semibold hover:bg-primary hover:text-white transition-colors">
+                <i class="fas fa-play mr-2"></i>How It Works
+            </a>
+        </div>
+    </div>
+</div>
+
+<!-- Features Section -->
+<div class="py-16 bg-white rounded-lg shadow-lg mb-16">
+    <div class="max-w-6xl mx-auto px-8">
+        <h2 class="text-3xl font-bold text-center text-gray-900 mb-12">Why Choose MjoloBid?</h2>
+        <div class="grid grid-cols-1 md:grid-cols-3 gap-8">
+            <div class="text-center">
+                <div class="bg-primary bg-opacity-10 w-16 h-16 rounded-full flex items-center justify-center mx-auto mb-4">
+                    <i class="fas fa-shield-alt text-primary text-2xl"></i>
+                </div>
+                <h3 class="text-xl font-semibold text-gray-900 mb-2">Safe & Secure</h3>
+                <p class="text-gray-600">Verified profiles, secure payments, and safety features to ensure your peace of mind.</p>
+            </div>
+            <div class="text-center">
+                <div class="bg-secondary bg-opacity-10 w-16 h-16 rounded-full flex items-center justify-center mx-auto mb-4">
+                    <i class="fas fa-users text-secondary text-2xl"></i>
+                </div>
+                <h3 class="text-xl font-semibold text-gray-900 mb-2">Real Connections</h3>
+                <p class="text-gray-600">Meet genuine people who share your interests and want to have fun at social events.</p>
+            </div>
+            <div class="text-center">
+                <div class="bg-accent bg-opacity-10 w-16 h-16 rounded-full flex items-center justify-center mx-auto mb-4">
+                    <i class="fas fa-map-marker-alt text-accent text-2xl"></i>
+                </div>
+                <h3 class="text-xl font-semibold text-gray-900 mb-2">Local Events</h3>
+                <p class="text-gray-600">Discover the best clubs, parties, and social events happening in your city.</p>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- How It Works Section -->
+<div id="how-it-works" class="py-16">
+    <div class="max-w-6xl mx-auto">
+        <h2 class="text-3xl font-bold text-center text-gray-900 mb-12">How It Works</h2>
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-12">
+            <!-- For Men -->
+            <div class="bg-gradient-to-br from-primary to-purple-600 text-white p-8 rounded-lg">
+                <h3 class="text-2xl font-bold mb-6 flex items-center">
+                    <i class="fas fa-male mr-3"></i>For Men
+                </h3>
+                <div class="space-y-4">
+                    <div class="flex items-start">
+                        <div class="bg-white bg-opacity-20 w-8 h-8 rounded-full flex items-center justify-center mr-4 mt-1">
+                            <span class="text-sm font-bold">1</span>
+                        </div>
+                        <div>
+                            <h4 class="font-semibold">Post Your Bid</h4>
+                            <p class="text-sm opacity-90">Create a bid for any social event you want to attend.</p>
+                        </div>
+                    </div>
+                    <div class="flex items-start">
+                        <div class="bg-white bg-opacity-20 w-8 h-8 rounded-full flex items-center justify-center mr-4 mt-1">
+                            <span class="text-sm font-bold">2</span>
+                        </div>
+                        <div>
+                            <h4 class="font-semibold">Wait for Acceptance</h4>
+                            <p class="text-sm opacity-90">Women will browse and accept your bid if interested.</p>
+                        </div>
+                    </div>
+                    <div class="flex items-start">
+                        <div class="bg-white bg-opacity-20 w-8 h-8 rounded-full flex items-center justify-center mr-4 mt-1">
+                            <span class="text-sm font-bold">3</span>
+                        </div>
+                        <div>
+                            <h4 class="font-semibold">Enjoy the Event</h4>
+                            <p class="text-sm opacity-90">Have an amazing time with your new companion!</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- For Women -->
+            <div class="bg-gradient-to-br from-secondary to-pink-600 text-white p-8 rounded-lg">
+                <h3 class="text-2xl font-bold mb-6 flex items-center">
+                    <i class="fas fa-female mr-3"></i>For Women
+                </h3>
+                <div class="space-y-4">
+                    <div class="flex items-start">
+                        <div class="bg-white bg-opacity-20 w-8 h-8 rounded-full flex items-center justify-center mr-4 mt-1">
+                            <span class="text-sm font-bold">1</span>
+                        </div>
+                        <div>
+                            <h4 class="font-semibold">Browse Bids</h4>
+                            <p class="text-sm opacity-90">See all available bids for social events in your area.</p>
+                        </div>
+                    </div>
+                    <div class="flex items-start">
+                        <div class="bg-white bg-opacity-20 w-8 h-8 rounded-full flex items-center justify-center mr-4 mt-1">
+                            <span class="text-sm font-bold">2</span>
+                        </div>
+                        <div>
+                            <h4 class="font-semibold">Accept & Chat</h4>
+                            <p class="text-sm opacity-90">Accept bids you like and chat with the person before meeting.</p>
+                        </div>
+                    </div>
+                    <div class="flex items-start">
+                        <div class="bg-white bg-opacity-20 w-8 h-8 rounded-full flex items-center justify-center mr-4 mt-1">
+                            <span class="text-sm font-bold">3</span>
+                        </div>
+                        <div>
+                            <h4 class="font-semibold">Get Paid & Have Fun</h4>
+                            <p class="text-sm opacity-90">Earn money while enjoying amazing social experiences!</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Stats Section -->
+<div class="py-16 bg-gray-100 rounded-lg">
+    <div class="max-w-4xl mx-auto text-center">
+        <h2 class="text-3xl font-bold text-gray-900 mb-12">Join the Community</h2>
+        <div class="grid grid-cols-1 md:grid-cols-4 gap-8">
+            <div>
+                <div class="text-4xl font-bold text-primary mb-2">500+</div>
+                <div class="text-gray-600">Active Users</div>
+            </div>
+            <div>
+                <div class="text-4xl font-bold text-secondary mb-2">1,200+</div>
+                <div class="text-gray-600">Successful Matches</div>
+            </div>
+            <div>
+                <div class="text-4xl font-bold text-accent mb-2">50+</div>
+                <div class="text-gray-600">Partner Venues</div>
+            </div>
+            <div>
+                <div class="text-4xl font-bold text-purple-600 mb-2">4.8★</div>
+                <div class="text-gray-600">Average Rating</div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+    function closeIntroPopup() {
+        const popup = document.getElementById('intro-popup');
+        if (popup) {
+            popup.style.display = 'none';
+        }
+    }
+
+    // Show popup only for new users
+    document.addEventListener('DOMContentLoaded', function() {
+        const hasSeenIntro = localStorage.getItem('mjolobid_intro_seen');
+        if (hasSeenIntro) {
+            closeIntroPopup();
+        }
+    });
+
+    // Mark intro as seen when user clicks "Get Started"
+    document.querySelector('a[href="{% url "accounts:register" %}"]').addEventListener('click', function() {
+        localStorage.setItem('mjolobid_intro_seen', 'true');
+    });
+</script>
+{% endblock %}

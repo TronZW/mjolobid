@@ -1,0 +1,69 @@
+{% extends 'base.html' %}
+
+{% block title %}Complete Your Profile - MjoloBid{% endblock %}
+
+{% block content %}
+<div class="max-w-2xl mx-auto">
+    <div class="text-center mb-8">
+        <h1 class="text-3xl font-bold text-gray-900 mb-4">Complete Your Profile</h1>
+        <p class="text-gray-600">Add some details to help others get to know you</p>
+    </div>
+
+    <div class="bg-white rounded-lg shadow-lg p-8">
+        <form method="POST" enctype="multipart/form-data">
+            {% csrf_token %}
+            
+            <div class="space-y-6">
+                <div>
+                    <label for="{{ form.bio.id_for_label }}" class="form-label">Bio</label>
+                    {{ form.bio }}
+                    {% if form.bio.errors %}
+                        <div class="form-error">{{ form.bio.errors.0 }}</div>
+                    {% endif %}
+                    <p class="text-sm text-gray-500 mt-1">Tell others about yourself and what you're looking for</p>
+                </div>
+                
+                <div>
+                    <label for="{{ form.profile_picture.id_for_label }}" class="form-label">Profile Picture</label>
+                    {{ form.profile_picture }}
+                    {% if form.profile_picture.errors %}
+                        <div class="form-error">{{ form.profile_picture.errors.0 }}</div>
+                    {% endif %}
+                    <p class="text-sm text-gray-500 mt-1">Upload a clear photo of yourself</p>
+                </div>
+                
+                <div>
+                    <label for="{{ form.city.id_for_label }}" class="form-label">City</label>
+                    {{ form.city }}
+                    {% if form.city.errors %}
+                        <div class="form-error">{{ form.city.errors.0 }}</div>
+                    {% endif %}
+                </div>
+                
+                <div>
+                    <label for="{{ form.location.id_for_label }}" class="form-label">Location</label>
+                    {{ form.location }}
+                    {% if form.location.errors %}
+                        <div class="form-error">{{ form.location.errors.0 }}</div>
+                    {% endif %}
+                    <p class="text-sm text-gray-500 mt-1">Your neighborhood or area (optional)</p>
+                </div>
+            </div>
+            
+            <!-- Submit Button -->
+            <div class="mt-8">
+                <button type="submit" class="w-full btn-primary">
+                    <i class="fas fa-check mr-2"></i>Complete Profile
+                </button>
+            </div>
+        </form>
+        
+        <div class="mt-6 text-center">
+            <a href="{% url 'accounts:profile' %}" class="text-gray-500 hover:text-gray-700">
+                Skip for now
+            </a>
+        </div>
+    </div>
+</div>
+{% endblock %}
+

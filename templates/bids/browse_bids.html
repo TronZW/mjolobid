@@ -1,0 +1,192 @@
+{% extends 'base.html' %}
+
+{% block title %}Browse Bids - MjoloBid{% endblock %}
+
+{% block content %}
+<div class="mb-8">
+    <h1 class="text-3xl font-bold text-gray-900 mb-4">Browse Available Bids</h1>
+    <p class="text-gray-600">Find the perfect social event companion opportunity</p>
+    
+</div>
+
+<!-- Filters -->
+<div class="bg-white rounded-lg shadow-lg p-6 mb-8">
+    <form method="GET" class="grid grid-cols-1 md:grid-cols-5 gap-4" id="filter-form">
+        <div>
+            <label class="block text-sm font-medium text-gray-700 mb-2">Event Category</label>
+            <select name="category" class="w-full border border-gray-300 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-primary">
+                <option value="">All Categories</option>
+                {% for category in categories %}
+                    <option value="{{ category.name }}" {% if current_filters.category == category.name %}selected{% endif %}>
+                        {{ category.icon }} {{ category.name }}
+                    </option>
+                {% endfor %}
+            </select>
+        </div>
+        
+        <div>
+            <label class="block text-sm font-medium text-gray-700 mb-2">Min Amount</label>
+            <input type="number" name="min_amount" value="{{ current_filters.min_amount }}" 
+                   class="w-full border border-gray-300 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-primary"
+                   placeholder="$5">
+        </div>
+        
+        <div>
+            <label class="block text-sm font-medium text-gray-700 mb-2">Max Amount</label>
+            <input type="number" name="max_amount" value="{{ current_filters.max_amount }}" 
+                   class="w-full border border-gray-300 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-primary"
+                   placeholder="$500">
+        </div>
+        
+        <div>
+            <label class="block text-sm font-medium text-gray-700 mb-2">Location</label>
+            <input type="text" name="location" value="{{ current_filters.location }}" 
+                   class="w-full border border-gray-300 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-primary"
+                   placeholder="Harare, Bulawayo...">
+        </div>
+        
+        <div>
+            <label class="block text-sm font-medium text-gray-700 mb-2">Sort By</label>
+            <select name="sort_by" class="w-full border border-gray-300 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-primary">
+                <option value="created_at" {% if current_filters.sort_by == 'created_at' %}selected{% endif %}>Newest First</option>
+                <option value="amount" {% if current_filters.sort_by == 'amount' %}selected{% endif %}>Highest Amount</option>
+                <option value="date" {% if current_filters.sort_by == 'date' %}selected{% endif %}>Event Date</option>
+            </select>
+        </div>
+        
+        <div class="md:col-span-5 flex justify-end">
+            <button type="submit" class="bg-primary text-white px-6 py-2 rounded-lg hover:bg-purple-700 transition-colors">
+                <i class="fas fa-search mr-2"></i>Apply Filters
+            </button>
+        </div>
+    </form>
+</div>
+
+<!-- Bid Cards Grid -->
+<div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+    {% for bid in page_obj %}
+        <div class="bg-white rounded-lg shadow-lg overflow-hidden hover:shadow-xl transition-shadow">
+            <!-- Bid Header -->
+            <div class="bg-gradient-to-r from-primary to-secondary p-4 text-white">
+                <div class="flex items-center justify-between">
+                    <div class="flex items-center">
+                        <div class="w-10 h-10 bg-white bg-opacity-20 rounded-full flex items-center justify-center mr-3">
+                            <i class="fas fa-user text-lg"></i>
+                        </div>
+                        <div>
+                            <h3 class="font-semibold">{{ bid.user.username }}</h3>
+                            <p class="text-sm opacity-90">{{ bid.user.age }} years old</p>
+                        </div>
+                    </div>
+                    {% if bid.is_boosted %}
+                        <div class="bg-yellow-400 text-yellow-900 px-2 py-1 rounded-full text-xs font-bold">
+                            <i class="fas fa-bolt mr-1"></i>BOOSTED
+                        </div>
+                    {% endif %}
+                </div>
+            </div>
+            
+            <!-- Event Info -->
+            <div class="p-4">
+                <div class="flex items-center mb-3">
+                    <span class="text-2xl mr-2">{{ bid.event_category.icon }}</span>
+                    <div>
+                        <h4 class="font-semibold text-gray-900">{{ bid.title }}</h4>
+                        <p class="text-sm text-gray-600">{{ bid.event_category.name }}</p>
+                    </div>
+                </div>
+                
+                <p class="text-gray-700 mb-4">{{ bid.description|truncatewords:20 }}</p>
+                
+                <!-- Event Details -->
+                <div class="space-y-2 mb-4">
+                    <div class="flex items-center text-sm text-gray-600">
+                        <i class="fas fa-calendar-alt mr-2 text-primary"></i>
+                        {{ bid.event_date|date:"M d, Y g:i A" }}
+                    </div>
+                    <div class="flex items-center text-sm text-gray-600">
+                        <i class="fas fa-map-marker-alt mr-2 text-primary"></i>
+                        {{ bid.event_location }}
+                    </div>
+                    {% if bid.distance %}
+                        <div class="flex items-center text-sm text-gray-600">
+                            <i class="fas fa-route mr-2 text-primary"></i>
+                            {{ bid.distance }} km away
+                        </div>
+                    {% endif %}
+                </div>
+                
+                <!-- Bid Amount -->
+                <div class="bg-green-50 border border-green-200 rounded-lg p-3 mb-4">
+                    <div class="flex items-center justify-between">
+                        <span class="text-sm text-green-700">Bid Amount</span>
+                        <span class="text-2xl font-bold text-green-600">${{ bid.bid_amount }}</span>
+                    </div>
+                </div>
+                
+                <!-- Action Button -->
+                <a href="{% url 'bids:bid_detail' bid.id %}" 
+                   class="block w-full bg-gradient-to-r from-primary to-secondary text-white text-center py-3 rounded-lg font-semibold hover:opacity-90 transition-opacity">
+                    <i class="fas fa-eye mr-2"></i>View Details
+                </a>
+            </div>
+        </div>
+    {% empty %}
+        <div class="col-span-full text-center py-12">
+            <div class="text-6xl text-gray-300 mb-4">🔍</div>
+            <h3 class="text-xl font-semibold text-gray-600 mb-2">No bids found</h3>
+            <p class="text-gray-500">Try adjusting your filters or check back later for new opportunities.</p>
+        </div>
+    {% endfor %}
+</div>
+
+<!-- Pagination -->
+{% if page_obj.has_other_pages %}
+    <div class="mt-8 flex justify-center">
+        <nav class="flex space-x-2">
+            {% if page_obj.has_previous %}
+                <a href="?page={{ page_obj.previous_page_number }}{% for key, value in current_filters.items %}{% if value %}&{{ key }}={{ value }}{% endif %}{% endfor %}" 
+                   class="px-3 py-2 border border-gray-300 rounded-lg text-gray-700 hover:bg-gray-50">
+                    <i class="fas fa-chevron-left"></i>
+                </a>
+            {% endif %}
+            
+            {% for num in page_obj.paginator.page_range %}
+                {% if page_obj.number == num %}
+                    <span class="px-3 py-2 bg-primary text-white rounded-lg">{{ num }}</span>
+                {% elif num > page_obj.number|add:'-3' and num < page_obj.number|add:'3' %}
+                    <a href="?page={{ num }}{% for key, value in current_filters.items %}{% if value %}&{{ key }}={{ value }}{% endif %}{% endfor %}" 
+                       class="px-3 py-2 border border-gray-300 rounded-lg text-gray-700 hover:bg-gray-50">{{ num }}</a>
+                {% endif %}
+            {% endfor %}
+            
+            {% if page_obj.has_next %}
+                <a href="?page={{ page_obj.next_page_number }}{% for key, value in current_filters.items %}{% if value %}&{{ key }}={{ value }}{% endif %}{% endfor %}" 
+                   class="px-3 py-2 border border-gray-300 rounded-lg text-gray-700 hover:bg-gray-50">
+                    <i class="fas fa-chevron-right"></i>
+                </a>
+            {% endif %}
+        </nav>
+    </div>
+{% endif %}
+
+<!-- Real-time notification for new bids -->
+<script>
+
+    // Simulate new bid notification (in real app, this would come from WebSocket)
+    function simulateNewBid() {
+        const messages = [
+            "New $25 bid for Club Havana tonight!",
+            "Fresh $40 bid for Jazz Night available!",
+            "New $30 bid for Pool Party this weekend!",
+            "Hot $50 bid for VIP Club access!",
+        ];
+        
+        const randomMessage = messages[Math.floor(Math.random() * messages.length)];
+        showNotification(randomMessage);
+    }
+    
+    // Show notification every 30 seconds (for demo purposes)
+    setInterval(simulateNewBid, 30000);
+</script>
+{% endblock %}

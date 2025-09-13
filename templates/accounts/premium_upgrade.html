@@ -1,0 +1,210 @@
+{% extends 'base.html' %}
+
+{% block title %}Premium Upgrade - MjoloBid{% endblock %}
+
+{% block content %}
+<div class="max-w-4xl mx-auto">
+    <div class="text-center mb-12">
+        <h1 class="text-4xl font-bold text-gray-900 mb-4">Upgrade to Premium</h1>
+        <p class="text-xl text-gray-600">Unlock exclusive features and boost your success on MjoloBid</p>
+    </div>
+
+    <div class="grid grid-cols-1 lg:grid-cols-2 gap-12">
+        <!-- Premium Features for Men -->
+        {% if user.user_type == 'M' %}
+            <div class="bg-gradient-to-br from-primary to-purple-600 text-white rounded-lg p-8">
+                <h2 class="text-2xl font-bold mb-6 flex items-center">
+                    <i class="fas fa-crown mr-3"></i>Premium for Men
+                </h2>
+                
+                <div class="space-y-6">
+                    <div class="flex items-start">
+                        <div class="bg-white bg-opacity-20 w-8 h-8 rounded-full flex items-center justify-center mr-4 mt-1">
+                            <i class="fas fa-bolt text-sm"></i>
+                        </div>
+                        <div>
+                            <h3 class="font-semibold text-lg">Bid Boosts</h3>
+                            <p class="text-sm opacity-90">Push your bids to the top of the list for maximum visibility</p>
+                        </div>
+                    </div>
+                    
+                    <div class="flex items-start">
+                        <div class="bg-white bg-opacity-20 w-8 h-8 rounded-full flex items-center justify-center mr-4 mt-1">
+                            <i class="fas fa-star text-sm"></i>
+                        </div>
+                        <div>
+                            <h3 class="font-semibold text-lg">Super Bids</h3>
+                            <p class="text-sm opacity-90">Create eye-catching bids with special animations and colors</p>
+                        </div>
+                    </div>
+                    
+                    <div class="flex items-start">
+                        <div class="bg-white bg-opacity-20 w-8 h-8 rounded-full flex items-center justify-center mr-4 mt-1">
+                            <i class="fas fa-eye text-sm"></i>
+                        </div>
+                        <div>
+                            <h3 class="font-semibold text-lg">Read Receipts</h3>
+                            <p class="text-sm opacity-90">See when women have viewed your bids</p>
+                        </div>
+                    </div>
+                    
+                    <div class="flex items-start">
+                        <div class="bg-white bg-opacity-20 w-8 h-8 rounded-full flex items-center justify-center mr-4 mt-1">
+                            <i class="fas fa-infinity text-sm"></i>
+                        </div>
+                        <div>
+                            <h3 class="font-semibold text-lg">Unlimited Bids</h3>
+                            <p class="text-sm opacity-90">Post as many bids as you want without restrictions</p>
+                        </div>
+                    </div>
+                    
+                    <div class="flex items-start">
+                        <div class="bg-white bg-opacity-20 w-8 h-8 rounded-full flex items-center justify-center mr-4 mt-1">
+                            <i class="fas fa-bell text-sm"></i>
+                        </div>
+                        <div>
+                            <h3 class="font-semibold text-lg">Priority Notifications</h3>
+                            <p class="text-sm opacity-90">Get priority alerts when women view your bids</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        {% endif %}
+
+        <!-- Premium Features for Women -->
+        {% if user.user_type == 'F' %}
+            <div class="bg-gradient-to-br from-secondary to-pink-600 text-white rounded-lg p-8">
+                <h2 class="text-2xl font-bold mb-6 flex items-center">
+                    <i class="fas fa-crown mr-3"></i>Premium for Women
+                </h2>
+                
+                <div class="space-y-6">
+                    <div class="flex items-start">
+                        <div class="bg-white bg-opacity-20 w-8 h-8 rounded-full flex items-center justify-center mr-4 mt-1">
+                            <i class="fas fa-percentage text-sm"></i>
+                        </div>
+                        <div>
+                            <h3 class="font-semibold text-lg">Zero Commission</h3>
+                            <p class="text-sm opacity-90">Keep 100% of your earnings - no platform fees</p>
+                        </div>
+                    </div>
+                    
+                    <div class="flex items-start">
+                        <div class="bg-white bg-opacity-20 w-8 h-8 rounded-full flex items-center justify-center mr-4 mt-1">
+                            <i class="fas fa-bolt text-sm"></i>
+                        </div>
+                        <div>
+                            <h3 class="font-semibold text-lg">Instant Payouts</h3>
+                            <p class="text-sm opacity-90">Withdraw your earnings immediately</p>
+                        </div>
+                    </div>
+                    
+                    <div class="flex items-start">
+                        <div class="bg-white bg-opacity-20 w-8 h-8 rounded-full flex items-center justify-center mr-4 mt-1">
+                            <i class="fas fa-search text-sm"></i>
+                        </div>
+                        <div>
+                            <h3 class="font-semibold text-lg">Bid Previews</h3>
+                            <p class="text-sm opacity-90">See detailed bid information before accepting</p>
+                        </div>
+                    </div>
+                    
+                    <div class="flex items-start">
+                        <div class="bg-white bg-opacity-20 w-8 h-8 rounded-full flex items-center justify-center mr-4 mt-1">
+                            <i class="fas fa-shield-alt text-sm"></i>
+                        </div>
+                        <div>
+                            <h3 class="font-semibold text-lg">Enhanced Safety</h3>
+                            <p class="text-sm opacity-90">Priority verification and safety features</p>
+                        </div>
+                    </div>
+                    
+                    <div class="flex items-start">
+                        <div class="bg-white bg-opacity-20 w-8 h-8 rounded-full flex items-center justify-center mr-4 mt-1">
+                            <i class="fas fa-map-marker-alt text-sm"></i>
+                        </div>
+                        <div>
+                            <h3 class="font-semibold text-lg">Location Control</h3>
+                            <p class="text-sm opacity-90">Set precise location preferences and radius</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        {% endif %}
+
+        <!-- Pricing Card -->
+        <div class="bg-white rounded-lg shadow-lg p-8">
+            <div class="text-center mb-8">
+                <h2 class="text-2xl font-bold text-gray-900 mb-2">Premium Membership</h2>
+                <div class="text-4xl font-bold text-primary mb-2">$20<span class="text-lg text-gray-600">/month</span></div>
+                <p class="text-gray-600">Cancel anytime</p>
+            </div>
+            
+            <div class="space-y-4 mb-8">
+                <div class="flex items-center text-green-600">
+                    <i class="fas fa-check mr-3"></i>
+                    <span>All premium features included</span>
+                </div>
+                <div class="flex items-center text-green-600">
+                    <i class="fas fa-check mr-3"></i>
+                    <span>Priority customer support</span>
+                </div>
+                <div class="flex items-center text-green-600">
+                    <i class="fas fa-check mr-3"></i>
+                    <span>Exclusive events access</span>
+                </div>
+                <div class="flex items-center text-green-600">
+                    <i class="fas fa-check mr-3"></i>
+                    <span>Advanced analytics</span>
+                </div>
+            </div>
+            
+            {% if not user.is_premium %}
+                <form method="POST" class="space-y-4">
+                    {% csrf_token %}
+                    <button type="submit" class="w-full bg-gradient-to-r from-primary to-secondary text-white py-4 px-6 rounded-lg font-semibold text-lg hover:opacity-90 transition-opacity">
+                        <i class="fas fa-crown mr-2"></i>Upgrade Now
+                    </button>
+                </form>
+            {% else %}
+                <div class="text-center">
+                    <div class="bg-green-100 border border-green-400 text-green-700 px-4 py-3 rounded-lg">
+                        <i class="fas fa-check-circle mr-2"></i>
+                        You already have premium access!
+                    </div>
+                    <p class="text-sm text-gray-600 mt-2">
+                        Expires: {{ user.premium_expires|date:"M d, Y" }}
+                    </p>
+                </div>
+            {% endif %}
+        </div>
+    </div>
+
+    <!-- FAQ Section -->
+    <div class="mt-16 bg-gray-50 rounded-lg p-8">
+        <h2 class="text-2xl font-bold text-gray-900 mb-6 text-center">Frequently Asked Questions</h2>
+        
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-8">
+            <div>
+                <h3 class="font-semibold text-gray-900 mb-2">What happens if I cancel?</h3>
+                <p class="text-gray-600 text-sm">You'll keep premium features until your current billing period ends. No hidden fees or penalties.</p>
+            </div>
+            
+            <div>
+                <h3 class="font-semibold text-gray-900 mb-2">Can I upgrade anytime?</h3>
+                <p class="text-gray-600 text-sm">Yes! You can upgrade or downgrade your plan at any time from your account settings.</p>
+            </div>
+            
+            <div>
+                <h3 class="font-semibold text-gray-900 mb-2">Is there a free trial?</h3>
+                <p class="text-gray-600 text-sm">We offer a 7-day free trial for new premium members. Cancel anytime during the trial.</p>
+            </div>
+            
+            <div>
+                <h3 class="font-semibold text-gray-900 mb-2">What payment methods do you accept?</h3>
+                <p class="text-gray-600 text-sm">We accept EcoCash, OneMoney, InnBucks, and major credit cards.</p>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

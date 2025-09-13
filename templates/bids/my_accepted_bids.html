@@ -1,0 +1,178 @@
+{% extends 'base.html' %}
+
+{% block title %}My Accepted Bids - MjoloBid{% endblock %}
+
+{% block content %}
+<div class="mb-8">
+    <h1 class="text-3xl font-bold text-gray-900 mb-4">
+        {% if user.user_type == 'M' %}
+            My Accepted Bids
+        {% else %}
+            Bids I've Accepted
+        {% endif %}
+    </h1>
+    <p class="text-gray-600">
+        {% if user.user_type == 'M' %}
+            Bids you posted that have been accepted by others
+        {% else %}
+            Bids you have accepted and are participating in
+        {% endif %}
+    </p>
+</div>
+
+<!-- Accepted Bids List -->
+<div class="space-y-6">
+    {% for bid in bids %}
+        <div class="bg-white rounded-lg shadow-lg overflow-hidden hover:shadow-xl transition-shadow">
+            <!-- Bid Header -->
+            <div class="bg-gradient-to-r from-green-500 to-green-600 p-4 text-white">
+                <div class="flex items-center justify-between">
+                    <div class="flex items-center">
+                        <div class="w-10 h-10 bg-white bg-opacity-20 rounded-full flex items-center justify-center mr-3">
+                            <i class="fas fa-check text-lg"></i>
+                        </div>
+                        <div>
+                            <h3 class="font-semibold">{{ bid.title }}</h3>
+                            <p class="text-sm opacity-90">
+                                {% if user.user_type == 'M' %}
+                                    Accepted by {{ bid.accepted_by.username }}
+                                {% else %}
+                                    Posted by {{ bid.user.username }}
+                                {% endif %}
+                            </p>
+                        </div>
+                    </div>
+                    <div class="text-right">
+                        <div class="text-2xl font-bold">${{ bid.bid_amount }}</div>
+                        <div class="text-sm opacity-90">Accepted</div>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Event Info -->
+            <div class="p-6">
+                <div class="flex items-center mb-4">
+                    <span class="text-2xl mr-3">{{ bid.event_category.icon }}</span>
+                    <div>
+                        <h4 class="font-semibold text-gray-900">{{ bid.event_category.name }}</h4>
+                        <p class="text-sm text-gray-600">{{ bid.description|truncatewords:15 }}</p>
+                    </div>
+                </div>
+                
+                <!-- Event Details -->
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6">
+                    <div class="flex items-center text-sm text-gray-600">
+                        <i class="fas fa-calendar-alt mr-2 text-green-500"></i>
+                        <span>{{ bid.event_date|date:"M d, Y g:i A" }}</span>
+                    </div>
+                    <div class="flex items-center text-sm text-gray-600">
+                        <i class="fas fa-map-marker-alt mr-2 text-green-500"></i>
+                        <span>{{ bid.event_location }}</span>
+                    </div>
+                    <div class="flex items-center text-sm text-gray-600">
+                        <i class="fas fa-clock mr-2 text-green-500"></i>
+                        <span>Accepted on {{ bid.accepted_at|date:"M d, Y g:i A" }}</span>
+                    </div>
+                    <div class="flex items-center text-sm text-gray-600">
+                        <i class="fas fa-user mr-2 text-green-500"></i>
+                        <span>
+                            {% if user.user_type == 'M' %}
+                                {{ bid.accepted_by.age }} years old
+                            {% else %}
+                                {{ bid.user.age }} years old
+                            {% endif %}
+                        </span>
+                    </div>
+                </div>
+                
+                <!-- Status and Actions -->
+                <div class="flex items-center justify-between">
+                    <div class="flex items-center space-x-4">
+                        <span class="inline-flex items-center px-3 py-1 rounded-full text-sm font-medium bg-green-100 text-green-800">
+                            <i class="fas fa-check-circle mr-1"></i>
+                            Accepted
+                        </span>
+                        {% if bid.status == 'COMPLETED' %}
+                            <span class="inline-flex items-center px-3 py-1 rounded-full text-sm font-medium bg-blue-100 text-blue-800">
+                                <i class="fas fa-flag-checkered mr-1"></i>
+                                Completed
+                            </span>
+                        {% endif %}
+                    </div>
+                    
+                    <div class="flex space-x-2">
+                        <a href="{% url 'bids:bid_detail' bid.id %}" 
+                           class="bg-green-500 text-white px-4 py-2 rounded-lg hover:bg-green-600 transition-colors">
+                            <i class="fas fa-eye mr-1"></i>View Details
+                        </a>
+                        
+                        {% if bid.status == 'ACCEPTED' %}
+                            <a href="{% url 'bids:send_message' bid.id %}" 
+                               class="bg-blue-500 text-white px-4 py-2 rounded-lg hover:bg-blue-600 transition-colors">
+                                <i class="fas fa-comment mr-1"></i>Message
+                            </a>
+                            
+                            {% if user.user_type == 'F' %}
+                                <form method="POST" action="{% url 'bids:complete_bid' bid.id %}" class="inline">
+                                    {% csrf_token %}
+                                    <button type="submit" 
+                                            class="bg-purple-500 text-white px-4 py-2 rounded-lg hover:bg-purple-600 transition-colors"
+                                            onclick="return confirm('Mark this bid as completed?')">
+                                        <i class="fas fa-check-double mr-1"></i>Complete
+                                    </button>
+                                </form>
+                            {% endif %}
+                        {% endif %}
+                    </div>
+                </div>
+            </div>
+        </div>
+    {% empty %}
+        <div class="text-center py-12">
+            <div class="text-6xl text-gray-300 mb-4">📋</div>
+            <h3 class="text-xl font-semibold text-gray-600 mb-2">No accepted bids yet</h3>
+            <p class="text-gray-500 mb-6">
+                {% if user.user_type == 'M' %}
+                    Your posted bids haven't been accepted yet. Keep posting great opportunities!
+                {% else %}
+                    You haven't accepted any bids yet. Browse available bids to get started!
+                {% endif %}
+            </p>
+            <a href="{% url 'bids:browse_bids' %}" 
+               class="bg-primary text-white px-6 py-3 rounded-lg hover:bg-purple-700 transition-colors">
+                <i class="fas fa-search mr-2"></i>
+                {% if user.user_type == 'M' %}
+                    Post New Bid
+                {% else %}
+                    Browse Bids
+                {% endif %}
+            </a>
+        </div>
+    {% endfor %}
+</div>
+
+<!-- Statistics -->
+{% if bids %}
+    <div class="mt-8 bg-white rounded-lg shadow-lg p-6">
+        <h3 class="text-lg font-semibold text-gray-900 mb-4">Statistics</h3>
+        <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+            <div class="text-center">
+                <div class="text-2xl font-bold text-green-600">{{ bids|length }}</div>
+                <div class="text-sm text-gray-600">Total Accepted</div>
+            </div>
+            <div class="text-center">
+                <div class="text-2xl font-bold text-blue-600">
+                    ${{ bids|length|floatformat:0|default:"0" }}
+                </div>
+                <div class="text-sm text-gray-600">Total Value</div>
+            </div>
+            <div class="text-center">
+                <div class="text-2xl font-bold text-purple-600">
+                    {% for bid in bids %}{% if bid.status == 'COMPLETED' %}{{ forloop.counter0|add:1 }}{% endif %}{% endfor %}
+                </div>
+                <div class="text-sm text-gray-600">Completed</div>
+            </div>
+        </div>
+    </div>
+{% endif %}
+{% endblock %}
