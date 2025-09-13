@@ -83,7 +83,7 @@ STRIPE_PUBLISHABLE_KEY = config('STRIPE_PUBLISHABLE_KEY')
 STRIPE_SECRET_KEY = config('STRIPE_SECRET_KEY')
 STRIPE_WEBHOOK_SECRET = config('STRIPE_WEBHOOK_SECRET')
 
-# Logging
+# Logging - Use console only for Railway
 LOGGING = {
     'version': 1,
     'disable_existing_loggers': False,
