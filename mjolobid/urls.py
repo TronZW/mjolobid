@@ -21,14 +21,19 @@ def health_check(request):
             'error': str(e)
         }, status=500)
 
+def root_health_check(request):
+    """Simple root endpoint for Railway healthcheck"""
+    return JsonResponse({'status': 'ok'})
+
 urlpatterns = [
     path('admin/', admin.site.urls),
-    path('', include('accounts.urls')),
+    path('health/', health_check, name='health_check'),
     path('bids/', include('bids.urls')),
     path('payments/', include('payments.urls')),
     path('notifications/', include('notifications.urls')),
     path('dashboard/', include('admin_dashboard.urls')),
-    path('health/', health_check, name='health_check'),
+    path('', root_health_check, name='root_health_check'),
+    path('accounts/', include('accounts.urls')),
 ]
 
 if settings.DEBUG:
