@@ -16,17 +16,28 @@ SECRET_KEY = config('SECRET_KEY')
 ALLOWED_HOSTS = ['*']
 
 # Database - Use PostgreSQL in production
-import dj_database_url
+# Set default values for the environment variables if they're not already set
+os.environ.setdefault("PGDATABASE", "railway")
+os.environ.setdefault("PGUSER", "postgres")
+os.environ.setdefault("PGPASSWORD", "")
+os.environ.setdefault("PGHOST", "localhost")
+os.environ.setdefault("PGPORT", "5432")
 
 DATABASES = {
-    'default': dj_database_url.parse(
-        config('DATABASE_URL', default='postgresql://postgres:password@localhost:5432/railway')
-    )
+    'default': {
+        'ENGINE': 'django.db.backends.postgresql',
+        'NAME': os.environ["PGDATABASE"],
+        'USER': os.environ["PGUSER"],
+        'PASSWORD': os.environ["PGPASSWORD"],
+        'HOST': os.environ["PGHOST"],
+        'PORT': os.environ["PGPORT"],
+    }
 }
 
 # Static files (CSS, JavaScript, Images)
 STATIC_URL = '/static/'
 STATIC_ROOT = os.path.join(BASE_DIR, 'staticfiles')
+STATICFILES_DIRS = [os.path.join(BASE_DIR, 'static')]
 
 # Media files
 MEDIA_URL = '/media/'

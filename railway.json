@@ -4,7 +4,6 @@
     "builder": "NIXPACKS"
   },
   "deploy": {
-    "startCommand": "python manage.py migrate --noinput && python manage.py collectstatic --noinput && gunicorn mjolobid.wsgi:application --bind 0.0.0.0:$PORT --workers 1 --timeout 120",
     "healthcheckPath": "/health/",
     "healthcheckTimeout": 60,
     "restartPolicyType": "ON_FAILURE",
