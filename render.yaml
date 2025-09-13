@@ -4,7 +4,7 @@ services:
     env: python
     plan: free
     buildCommand: pip install -r requirements.txt
-    startCommand: python manage.py migrate && python manage.py collectstatic --noinput && python manage.py create_superuser && gunicorn mjolobid.wsgi:application --bind 0.0.0.0:$PORT
+    startCommand: python startup.py
     envVars:
       - key: SECRET_KEY
         generateValue: true
