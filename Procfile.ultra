@@ -1,0 +1,1 @@
+web: DJANGO_SETTINGS_MODULE=mjolobid.settings_ultra_minimal gunicorn mjolobid.wsgi:application --bind 0.0.0.0:$PORT
