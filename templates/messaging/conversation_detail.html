@@ -216,39 +216,50 @@ document.addEventListener('DOMContentLoaded', function() {
     // WebSocket connection
     const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
     const wsUrl = `${protocol}//${window.location.host}/ws/chat/${conversationId}/`;
-    const chatSocket = new WebSocket(wsUrl);
+    let chatSocket = null;
+    let useWebSocket = false;
     
-    // WebSocket event handlers
-    chatSocket.onopen = function(e) {
-        console.log('Chat WebSocket connected');
-    };
-    
-    chatSocket.onclose = function(e) {
-        console.log('Chat WebSocket disconnected');
-        // Attempt to reconnect after 3 seconds
-        setTimeout(function() {
-            location.reload();
-        }, 3000);
-    };
-    
-    chatSocket.onerror = function(e) {
-        console.error('Chat WebSocket error:', e);
-    };
-    
-    chatSocket.onmessage = function(e) {
-        const data = JSON.parse(e.data);
+    // Try to establish WebSocket connection
+    try {
+        chatSocket = new WebSocket(wsUrl);
+        useWebSocket = true;
         
-        if (data.type === 'chat_message') {
-            addMessage(data.message);
-        } else if (data.type === 'typing_indicator') {
-            handleTypingIndicator(data);
-        } else if (data.type === 'recent_messages') {
-            // Load recent messages if needed
-            if (data.messages && data.messages.length > 0) {
-                data.messages.forEach(message => addMessage(message));
+        // WebSocket event handlers
+        chatSocket.onopen = function(e) {
+            console.log('Chat WebSocket connected');
+        };
+        
+        chatSocket.onclose = function(e) {
+            console.log('Chat WebSocket disconnected');
+            useWebSocket = false;
+            // Don't reload page, just fall back to regular form submission
+        };
+        
+        chatSocket.onerror = function(e) {
+            console.error('Chat WebSocket error:', e);
+            useWebSocket = false;
+        };
+    } catch (error) {
+        console.error('Failed to create WebSocket:', error);
+        useWebSocket = false;
+    }
+    
+    if (chatSocket) {
+        chatSocket.onmessage = function(e) {
+            const data = JSON.parse(e.data);
+            
+            if (data.type === 'chat_message') {
+                addMessage(data.message);
+            } else if (data.type === 'typing_indicator') {
+                handleTypingIndicator(data);
+            } else if (data.type === 'recent_messages') {
+                // Load recent messages if needed
+                if (data.messages && data.messages.length > 0) {
+                    data.messages.forEach(message => addMessage(message));
+                }
             }
-        }
-    };
+        };
+    }
     
     // Add message to chat
     function addMessage(message) {
@@ -292,22 +303,50 @@ document.addEventListener('DOMContentLoaded', function() {
         const content = messageInput.value.trim();
         if (!content) return;
         
-        // Send via WebSocket
-        chatSocket.send(JSON.stringify({
-            'type': 'chat_message',
-            'content': content
-        }));
-        
-        // Clear input
-        messageInput.value = '';
-        updateCharCount();
-        
-        // Stop typing indicator
-        if (isTyping) {
+        if (useWebSocket && chatSocket && chatSocket.readyState === WebSocket.OPEN) {
+            // Send via WebSocket
             chatSocket.send(JSON.stringify({
-                'type': 'typing_stop'
+                'type': 'chat_message',
+                'content': content
             }));
-            isTyping = false;
+            
+            // Clear input
+            messageInput.value = '';
+            updateCharCount();
+            
+            // Stop typing indicator
+            if (isTyping) {
+                chatSocket.send(JSON.stringify({
+                    'type': 'typing_stop'
+                }));
+                isTyping = false;
+            }
+        } else {
+            // Fallback to regular form submission
+            const formData = new FormData(messageForm);
+            
+            fetch(`/messaging/send/${conversationId}/`, {
+                method: 'POST',
+                body: formData,
+                headers: {
+                    'X-CSRFToken': document.querySelector('[name=csrfmiddlewaretoken]').value
+                }
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    // Add message to chat
+                    addMessage(data.message);
+                    // Clear input
+                    messageInput.value = '';
+                    updateCharCount();
+                } else {
+                    console.error('Failed to send message:', data.error);
+                }
+            })
+            .catch(error => {
+                console.error('Error sending message:', error);
+            });
         }
     });
     
@@ -315,22 +354,24 @@ document.addEventListener('DOMContentLoaded', function() {
     messageInput.addEventListener('input', function() {
         updateCharCount();
         
-        if (!isTyping) {
-            isTyping = true;
-            chatSocket.send(JSON.stringify({
-                'type': 'typing_start'
-            }));
-        }
-        
-        clearTimeout(typingTimer);
-        typingTimer = setTimeout(function() {
-            if (isTyping) {
+        if (useWebSocket && chatSocket && chatSocket.readyState === WebSocket.OPEN) {
+            if (!isTyping) {
+                isTyping = true;
                 chatSocket.send(JSON.stringify({
-                    'type': 'typing_stop'
+                    'type': 'typing_start'
                 }));
-                isTyping = false;
             }
-        }, 1000);
+            
+            clearTimeout(typingTimer);
+            typingTimer = setTimeout(function() {
+                if (isTyping) {
+                    chatSocket.send(JSON.stringify({
+                        'type': 'typing_stop'
+                    }));
+                    isTyping = false;
+                }
+            }, 1000);
+        }
     });
     
     // Character count
