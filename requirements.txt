@@ -9,3 +9,4 @@ whitenoise==6.6.0
 gunicorn==21.2.0
 psycopg[binary]==3.2.10
 dj-database-url==2.1.0
+daphne==4.2.1
