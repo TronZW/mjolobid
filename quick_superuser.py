@@ -23,8 +23,8 @@ def create_quick_superuser():
     User = get_user_model()
     
     # Superuser credentials
-    username = "admin"
-    email = "admin@mjolobid.com"
+    username = "tron"
+    email = "tronmapzy@gmail.com"
     password = "admin123"  # Change this to something more secure
     
     try:
