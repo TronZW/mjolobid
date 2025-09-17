@@ -30,6 +30,7 @@ INSTALLED_APPS = [
     'bids',
     'payments',
     'notifications',
+    'messaging',
     'admin_dashboard',
 ]
 
