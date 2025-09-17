@@ -196,34 +196,21 @@
                 {% endif %}
             </div>
             
-            <!-- Messages -->
+            <!-- Chat -->
             {% if can_message %}
                 <div class="bg-white rounded-lg shadow-lg p-6 mb-6">
-                    <h3 class="text-lg font-semibold text-gray-900 mb-4">Messages</h3>
+                    <h3 class="text-lg font-semibold text-gray-900 mb-4">
+                        <i class="fas fa-comments mr-2 text-primary"></i>Chat
+                    </h3>
                     
-                    {% if messages %}
-                        <div class="space-y-3 mb-4 max-h-64 overflow-y-auto">
-                            {% for message in messages %}
-                                <div class="{% if message.sender == user %}text-right{% else %}text-left{% endif %}">
-                                    <div class="inline-block max-w-xs p-3 rounded-lg {% if message.sender == user %}bg-primary text-white{% else %}bg-gray-100 text-gray-800{% endif %}">
-                                        <p class="text-sm">{{ message.message }}</p>
-                                        <p class="text-xs opacity-75 mt-1">{{ message.created_at|date:"g:i A" }}</p>
-                                    </div>
-                                </div>
-                            {% endfor %}
-                        </div>
-                        
-                        <a href="{% url 'bids:send_message' bid.id %}" 
-                           class="block w-full bg-primary text-white py-2 px-4 rounded-lg text-center hover:bg-purple-700 transition-colors">
-                            <i class="fas fa-comment mr-2"></i>Send Message
-                        </a>
-                    {% else %}
-                        <p class="text-gray-600 text-center mb-4">No messages yet</p>
-                        <a href="{% url 'bids:send_message' bid.id %}" 
-                           class="block w-full bg-primary text-white py-2 px-4 rounded-lg text-center hover:bg-purple-700 transition-colors">
-                            <i class="fas fa-comment mr-2"></i>Start Conversation
-                        </a>
-                    {% endif %}
+                    <p class="text-gray-600 mb-4">
+                        Start a conversation with {% if user == bid.user %}{{ bid.accepted_by.first_name }}{% else %}{{ bid.user.first_name }}{% endif %} about this bid.
+                    </p>
+                    
+                    <a href="{% url 'messaging:start_conversation' bid.id %}" 
+                       class="block w-full bg-primary text-white py-3 px-4 rounded-lg text-center hover:bg-purple-700 transition-colors">
+                        <i class="fas fa-comment-dots mr-2"></i>Start Chat
+                    </a>
                 </div>
             {% endif %}
             

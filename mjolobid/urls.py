@@ -28,6 +28,7 @@ urlpatterns = [
     path('bids/', include('bids.urls')),
     path('payments/', include('payments.urls')),
     path('notifications/', include('notifications.urls')),
+    path('messaging/', include('messaging.urls')),
     path('dashboard/', include('admin_dashboard.urls')),
     path('accounts/', include('accounts.urls')),
     path('', home, name='home'),  # Landing page at root URL

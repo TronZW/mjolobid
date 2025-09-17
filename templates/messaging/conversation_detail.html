@@ -1,0 +1,374 @@
+{% extends 'base.html' %}
+
+{% block title %}Chat with {{ other_participant.first_name }} - MjoloBid{% endblock %}
+
+{% block extra_css %}
+<style>
+    .chat-container {
+        height: calc(100vh - 200px);
+        min-height: 500px;
+    }
+    
+    .messages-container {
+        height: calc(100% - 120px);
+        overflow-y: auto;
+    }
+    
+    .message-input-container {
+        height: 120px;
+    }
+    
+    /* Custom scrollbar */
+    .messages-container::-webkit-scrollbar {
+        width: 6px;
+    }
+    
+    .messages-container::-webkit-scrollbar-track {
+        background: #f1f1f1;
+        border-radius: 3px;
+    }
+    
+    .messages-container::-webkit-scrollbar-thumb {
+        background: #c1c1c1;
+        border-radius: 3px;
+    }
+    
+    .messages-container::-webkit-scrollbar-thumb:hover {
+        background: #a8a8a8;
+    }
+    
+    /* Message bubbles */
+    .message-bubble {
+        max-width: 70%;
+        word-wrap: break-word;
+    }
+    
+    .message-bubble.own {
+        background: linear-gradient(135deg, #8b5cf6, #7c3aed);
+        color: white;
+        margin-left: auto;
+    }
+    
+    .message-bubble.other {
+        background: #f3f4f6;
+        color: #374151;
+        margin-right: auto;
+    }
+    
+    /* Typing indicator */
+    .typing-indicator {
+        display: none;
+    }
+    
+    .typing-indicator.show {
+        display: block;
+    }
+    
+    .typing-dots {
+        display: inline-block;
+    }
+    
+    .typing-dots span {
+        display: inline-block;
+        width: 8px;
+        height: 8px;
+        border-radius: 50%;
+        background-color: #9ca3af;
+        margin: 0 2px;
+        animation: typing 1.4s infinite ease-in-out;
+    }
+    
+    .typing-dots span:nth-child(1) { animation-delay: -0.32s; }
+    .typing-dots span:nth-child(2) { animation-delay: -0.16s; }
+    
+    @keyframes typing {
+        0%, 80%, 100% {
+            transform: scale(0.8);
+            opacity: 0.5;
+        }
+        40% {
+            transform: scale(1);
+            opacity: 1;
+        }
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="max-w-6xl mx-auto">
+    <!-- Header -->
+    <div class="bg-white rounded-lg shadow-lg p-4 mb-6">
+        <div class="flex items-center justify-between">
+            <div class="flex items-center space-x-4">
+                <a href="{% url 'messaging:conversation_list' %}" 
+                   class="text-gray-500 hover:text-gray-700 transition-colors">
+                    <i class="fas fa-arrow-left text-xl"></i>
+                </a>
+                
+                <!-- Other participant info -->
+                <div class="flex items-center space-x-3">
+                    {% if other_participant.profile_picture %}
+                        <img src="{{ other_participant.profile_picture.url }}" 
+                             alt="{{ other_participant.username }}"
+                             class="w-10 h-10 rounded-full object-cover">
+                    {% else %}
+                        <div class="w-10 h-10 bg-primary rounded-full flex items-center justify-center">
+                            <span class="text-white font-semibold">
+                                {{ other_participant.first_name|first|upper }}
+                            </span>
+                        </div>
+                    {% endif %}
+                    
+                    <div>
+                        <h2 class="text-lg font-semibold text-gray-900">
+                            {{ other_participant.first_name }} {{ other_participant.last_name }}
+                        </h2>
+                        <p class="text-sm text-gray-500">{{ other_participant.username }}</p>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Bid info -->
+            <div class="text-right">
+                <h3 class="text-sm font-semibold text-gray-900">{{ conversation.bid.title }}</h3>
+                <p class="text-xs text-gray-500">${{ conversation.bid.bid_amount }}</p>
+            </div>
+        </div>
+    </div>
+
+    <!-- Chat Container -->
+    <div class="bg-white rounded-lg shadow-lg chat-container flex flex-col">
+        <!-- Messages Area -->
+        <div class="messages-container p-4 space-y-4" id="messages-container">
+            {% for message in messages %}
+                <div class="flex {% if message.sender == user %}justify-end{% else %}justify-start{% endif %}">
+                    <div class="message-bubble {% if message.sender == user %}own{% else %}other{% endif %} p-3 rounded-lg">
+                        <p class="text-sm">{{ message.content }}</p>
+                        <p class="text-xs opacity-75 mt-1">
+                            {{ message.created_at|date:"g:i A" }}
+                            {% if message.sender == user and message.is_read %}
+                                <i class="fas fa-check-double text-blue-400 ml-1"></i>
+                            {% elif message.sender == user %}
+                                <i class="fas fa-check text-gray-400 ml-1"></i>
+                            {% endif %}
+                        </p>
+                    </div>
+                </div>
+            {% endfor %}
+            
+            <!-- Typing Indicator -->
+            <div class="typing-indicator" id="typing-indicator">
+                <div class="flex justify-start">
+                    <div class="message-bubble other p-3 rounded-lg">
+                        <div class="typing-dots">
+                            <span></span>
+                            <span></span>
+                            <span></span>
+                        </div>
+                        <p class="text-xs text-gray-500 mt-1" id="typing-text">Someone is typing...</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Message Input -->
+        <div class="message-input-container border-t border-gray-200 p-4">
+            <form id="message-form" class="flex space-x-3">
+                {% csrf_token %}
+                <div class="flex-1">
+                    <textarea id="message-input" 
+                              name="content"
+                              placeholder="Type your message..."
+                              rows="2"
+                              maxlength="2000"
+                              class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary focus:border-transparent resize-none"></textarea>
+                </div>
+                <button type="submit" 
+                        class="bg-primary text-white px-6 py-3 rounded-lg hover:bg-purple-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                        id="send-button">
+                    <i class="fas fa-paper-plane"></i>
+                </button>
+            </form>
+            
+            <!-- Character count -->
+            <div class="text-right mt-2">
+                <span class="text-xs text-gray-500" id="char-count">0/2000</span>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- WebSocket Connection -->
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    const conversationId = {{ conversation.id }};
+    const messagesContainer = document.getElementById('messages-container');
+    const messageForm = document.getElementById('message-form');
+    const messageInput = document.getElementById('message-input');
+    const sendButton = document.getElementById('send-button');
+    const charCount = document.getElementById('char-count');
+    const typingIndicator = document.getElementById('typing-indicator');
+    const typingText = document.getElementById('typing-text');
+    
+    let typingTimer;
+    let isTyping = false;
+    
+    // WebSocket connection
+    const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
+    const wsUrl = `${protocol}//${window.location.host}/ws/chat/${conversationId}/`;
+    const chatSocket = new WebSocket(wsUrl);
+    
+    // WebSocket event handlers
+    chatSocket.onopen = function(e) {
+        console.log('Chat WebSocket connected');
+    };
+    
+    chatSocket.onclose = function(e) {
+        console.log('Chat WebSocket disconnected');
+        // Attempt to reconnect after 3 seconds
+        setTimeout(function() {
+            location.reload();
+        }, 3000);
+    };
+    
+    chatSocket.onerror = function(e) {
+        console.error('Chat WebSocket error:', e);
+    };
+    
+    chatSocket.onmessage = function(e) {
+        const data = JSON.parse(e.data);
+        
+        if (data.type === 'chat_message') {
+            addMessage(data.message);
+        } else if (data.type === 'typing_indicator') {
+            handleTypingIndicator(data);
+        } else if (data.type === 'recent_messages') {
+            // Load recent messages if needed
+            if (data.messages && data.messages.length > 0) {
+                data.messages.forEach(message => addMessage(message));
+            }
+        }
+    };
+    
+    // Add message to chat
+    function addMessage(message) {
+        const messageDiv = document.createElement('div');
+        messageDiv.className = `flex ${message.is_own ? 'justify-end' : 'justify-start'}`;
+        
+        const bubbleClass = message.is_own ? 'own' : 'other';
+        const readIcon = message.is_own ? 
+            (message.is_read ? '<i class="fas fa-check-double text-blue-400 ml-1"></i>' : 
+             '<i class="fas fa-check text-gray-400 ml-1"></i>') : '';
+        
+        messageDiv.innerHTML = `
+            <div class="message-bubble ${bubbleClass} p-3 rounded-lg">
+                <p class="text-sm">${escapeHtml(message.content)}</p>
+                <p class="text-xs opacity-75 mt-1">
+                    ${formatTime(message.timestamp)}${readIcon}
+                </p>
+            </div>
+        `;
+        
+        // Insert before typing indicator
+        typingIndicator.parentNode.insertBefore(messageDiv, typingIndicator);
+        scrollToBottom();
+    }
+    
+    // Handle typing indicator
+    function handleTypingIndicator(data) {
+        if (data.is_typing) {
+            typingText.textContent = `${data.user.name} is typing...`;
+            typingIndicator.classList.add('show');
+        } else {
+            typingIndicator.classList.remove('show');
+        }
+        scrollToBottom();
+    }
+    
+    // Send message
+    messageForm.addEventListener('submit', function(e) {
+        e.preventDefault();
+        
+        const content = messageInput.value.trim();
+        if (!content) return;
+        
+        // Send via WebSocket
+        chatSocket.send(JSON.stringify({
+            'type': 'chat_message',
+            'content': content
+        }));
+        
+        // Clear input
+        messageInput.value = '';
+        updateCharCount();
+        
+        // Stop typing indicator
+        if (isTyping) {
+            chatSocket.send(JSON.stringify({
+                'type': 'typing_stop'
+            }));
+            isTyping = false;
+        }
+    });
+    
+    // Typing indicator
+    messageInput.addEventListener('input', function() {
+        updateCharCount();
+        
+        if (!isTyping) {
+            isTyping = true;
+            chatSocket.send(JSON.stringify({
+                'type': 'typing_start'
+            }));
+        }
+        
+        clearTimeout(typingTimer);
+        typingTimer = setTimeout(function() {
+            if (isTyping) {
+                chatSocket.send(JSON.stringify({
+                    'type': 'typing_stop'
+                }));
+                isTyping = false;
+            }
+        }, 1000);
+    });
+    
+    // Character count
+    function updateCharCount() {
+        const count = messageInput.value.length;
+        charCount.textContent = `${count}/2000`;
+        
+        if (count > 1800) {
+            charCount.classList.add('text-red-500');
+        } else {
+            charCount.classList.remove('text-red-500');
+        }
+    }
+    
+    // Utility functions
+    function escapeHtml(text) {
+        const div = document.createElement('div');
+        div.textContent = text;
+        return div.innerHTML;
+    }
+    
+    function formatTime(timestamp) {
+        const date = new Date(timestamp);
+        return date.toLocaleTimeString([], {hour: 'numeric', minute: '2-digit'});
+    }
+    
+    function scrollToBottom() {
+        messagesContainer.scrollTop = messagesContainer.scrollHeight;
+    }
+    
+    // Initial scroll to bottom
+    scrollToBottom();
+    
+    // Auto-resize textarea
+    messageInput.addEventListener('input', function() {
+        this.style.height = 'auto';
+        this.style.height = Math.min(this.scrollHeight, 100) + 'px';
+    });
+});
+</script>
+{% endblock %}

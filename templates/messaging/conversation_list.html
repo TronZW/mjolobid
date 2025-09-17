@@ -1,0 +1,135 @@
+{% extends 'base.html' %}
+
+{% block title %}Messages - MjoloBid{% endblock %}
+
+{% block content %}
+<div class="max-w-6xl mx-auto">
+    <div class="mb-8">
+        <h1 class="text-3xl font-bold text-gray-900 mb-4">
+            <i class="fas fa-comments mr-3 text-primary"></i>Messages
+        </h1>
+        <p class="text-gray-600">Your conversations and messages</p>
+    </div>
+
+    {% if conversations %}
+        <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+            <!-- Conversation List -->
+            <div class="lg:col-span-1">
+                <div class="bg-white rounded-lg shadow-lg">
+                    <div class="p-4 border-b border-gray-200">
+                        <h2 class="text-lg font-semibold text-gray-900">Conversations</h2>
+                    </div>
+                    
+                    <div class="max-h-96 overflow-y-auto">
+                        {% for conversation in conversations %}
+                            <a href="{% url 'messaging:conversation_detail' conversation.id %}" 
+                               class="block p-4 border-b border-gray-100 hover:bg-gray-50 transition-colors">
+                                <div class="flex items-start space-x-3">
+                                    <!-- Avatar -->
+                                    <div class="flex-shrink-0">
+                                        {% if conversation.other_participant.profile_picture %}
+                                            <img src="{{ conversation.other_participant.profile_picture.url }}" 
+                                                 alt="{{ conversation.other_participant.username }}"
+                                                 class="w-12 h-12 rounded-full object-cover">
+                                        {% else %}
+                                            <div class="w-12 h-12 bg-primary rounded-full flex items-center justify-center">
+                                                <span class="text-white font-semibold text-lg">
+                                                    {{ conversation.other_participant.first_name|first|upper }}
+                                                </span>
+                                            </div>
+                                        {% endif %}
+                                        
+                                        <!-- Unread indicator -->
+                                        {% if conversation.unread_count > 0 %}
+                                            <div class="absolute -mt-2 -mr-2 bg-red-500 text-white text-xs rounded-full w-5 h-5 flex items-center justify-center">
+                                                {{ conversation.unread_count }}
+                                            </div>
+                                        {% endif %}
+                                    </div>
+                                    
+                                    <!-- Conversation Info -->
+                                    <div class="flex-1 min-w-0">
+                                        <div class="flex items-center justify-between">
+                                            <h3 class="text-sm font-semibold text-gray-900 truncate">
+                                                {{ conversation.other_participant.first_name }} {{ conversation.other_participant.last_name }}
+                                            </h3>
+                                            <span class="text-xs text-gray-500">
+                                                {{ conversation.updated_at|date:"M d" }}
+                                            </span>
+                                        </div>
+                                        
+                                        <p class="text-sm text-gray-600 truncate">
+                                            {{ conversation.bid.title }}
+                                        </p>
+                                        
+                                        {% if conversation.latest_message %}
+                                            <p class="text-xs text-gray-500 truncate mt-1">
+                                                {% if conversation.latest_message.sender == user %}
+                                                    You: 
+                                                {% endif %}
+                                                {{ conversation.latest_message.content|truncatechars:50 }}
+                                            </p>
+                                        {% endif %}
+                                    </div>
+                                </div>
+                            </a>
+                        {% endfor %}
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Welcome Message -->
+            <div class="lg:col-span-2">
+                <div class="bg-white rounded-lg shadow-lg p-8 text-center">
+                    <div class="text-6xl text-gray-300 mb-4">
+                        <i class="fas fa-comments"></i>
+                    </div>
+                    <h3 class="text-xl font-semibold text-gray-900 mb-2">Select a Conversation</h3>
+                    <p class="text-gray-600">Choose a conversation from the list to start messaging</p>
+                </div>
+            </div>
+        </div>
+    {% else %}
+        <!-- No Conversations -->
+        <div class="bg-white rounded-lg shadow-lg p-12 text-center">
+            <div class="text-6xl text-gray-300 mb-6">
+                <i class="fas fa-comments"></i>
+            </div>
+            <h3 class="text-2xl font-semibold text-gray-900 mb-4">No Conversations Yet</h3>
+            <p class="text-gray-600 mb-8">Start a conversation by accepting a bid or having someone accept your bid.</p>
+            
+            <div class="space-y-4">
+                <a href="{% url 'bids:browse_bids' %}" 
+                   class="inline-block bg-primary text-white px-6 py-3 rounded-lg hover:bg-purple-700 transition-colors">
+                    <i class="fas fa-search mr-2"></i>Browse Available Bids
+                </a>
+                <a href="{% url 'bids:my_bids' %}" 
+                   class="inline-block bg-gray-500 text-white px-6 py-3 rounded-lg hover:bg-gray-600 transition-colors ml-4">
+                    <i class="fas fa-list mr-2"></i>My Bids
+                </a>
+            </div>
+        </div>
+    {% endif %}
+</div>
+
+<style>
+/* Custom scrollbar for conversation list */
+.max-h-96::-webkit-scrollbar {
+    width: 4px;
+}
+
+.max-h-96::-webkit-scrollbar-track {
+    background: #f1f1f1;
+    border-radius: 2px;
+}
+
+.max-h-96::-webkit-scrollbar-thumb {
+    background: #c1c1c1;
+    border-radius: 2px;
+}
+
+.max-h-96::-webkit-scrollbar-thumb:hover {
+    background: #a8a8a8;
+}
+</style>
+{% endblock %}

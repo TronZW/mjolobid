@@ -39,6 +39,9 @@
                         <a href="{% url 'bids:browse_bids' %}" class="text-gray-700 hover:text-primary px-3 py-2 rounded-md text-sm font-medium">
                             <i class="fas fa-search mr-1"></i>Browse Bids
                         </a>
+                        <a href="{% url 'messaging:conversation_list' %}" class="text-gray-700 hover:text-primary px-3 py-2 rounded-md text-sm font-medium">
+                            <i class="fas fa-comments mr-1"></i>Messages
+                        </a>
                         {% if user.user_type == 'M' %}
                             <a href="{% url 'bids:my_bids' %}" class="text-gray-700 hover:text-primary px-3 py-2 rounded-md text-sm font-medium">
                                 <i class="fas fa-list mr-1"></i>My Bids
