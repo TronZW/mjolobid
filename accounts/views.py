@@ -1,4 +1,5 @@
 from django.shortcuts import render, redirect
+from django.urls import reverse
 from django.contrib.auth import login, logout, authenticate
 from django.contrib.auth.decorators import login_required
 from django.contrib import messages
@@ -7,7 +8,7 @@ from django.views.decorators.csrf import csrf_exempt
 from django.utils import timezone
 from django.db.models import Q
 from .models import User, UserProfile, UserRating
-from .forms import UserRegistrationForm, UserLoginForm, ProfileUpdateForm
+from .forms import UserRegistrationForm, UserLoginForm, ProfileUpdateForm, ProfileSetupForm
 import json
 
 
@@ -76,13 +77,14 @@ def user_logout(request):
 def profile_setup(request):
     """Profile setup after registration"""
     if request.method == 'POST':
-        form = ProfileUpdateForm(request.POST, request.FILES, instance=request.user)
+        form = ProfileSetupForm(request.POST, request.FILES, instance=request.user)
         if form.is_valid():
             form.save()
             messages.success(request, 'Profile updated successfully!')
-            return redirect('accounts:profile')
+            profile_url = f"{reverse('accounts:profile')}?setup=done"
+            return redirect(profile_url)
     else:
-        form = ProfileUpdateForm(instance=request.user)
+        form = ProfileSetupForm(instance=request.user)
     
     return render(request, 'accounts/profile_setup.html', {'form': form})
 
@@ -98,9 +100,12 @@ def profile(request):
     # Get user's ratings
     ratings = UserRating.objects.filter(rated_user=request.user).order_by('-created_at')[:5]
     
+    profile_setup_success = request.GET.get('setup') == 'done'
+
     context = {
         'user_profile': user_profile,
         'ratings': ratings,
+        'profile_setup_success': profile_setup_success,
     }
     
     return render(request, 'accounts/profile.html', context)

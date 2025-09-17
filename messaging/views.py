@@ -20,14 +20,16 @@ def conversation_list(request):
         participants=request.user,
         is_active=True
     ).select_related('bid', 'bid__user', 'bid__accepted_by').prefetch_related(
-        Prefetch('messages', queryset=Message.objects.select_related('sender').order_by('-created_at')[:1])
+        'messages__sender'
     ).order_by('-updated_at')
     
-    # Add unread counts
+    # Add unread counts and latest messages
     for conversation in conversations:
         conversation.unread_count = conversation.get_unread_count(request.user)
         conversation.other_participant = conversation.get_other_participant(request.user)
-        conversation.latest_message = conversation.get_latest_message()
+        # Get the latest message manually to avoid slicing issues
+        latest_messages = conversation.messages.select_related('sender').order_by('-created_at')
+        conversation.latest_message = latest_messages.first() if latest_messages.exists() else None
     
     context = {
         'conversations': conversations,

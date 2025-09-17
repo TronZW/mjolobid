@@ -107,9 +107,9 @@
                         </a>
                         
                         {% if bid.status == 'ACCEPTED' %}
-                            <a href="{% url 'bids:send_message' bid.id %}" 
+                            <a href="{% url 'messaging:start_conversation' bid.id %}" 
                                class="bg-blue-500 text-white px-4 py-2 rounded-lg hover:bg-blue-600 transition-colors">
-                                <i class="fas fa-comment mr-1"></i>Message
+                                <i class="fas fa-comment mr-1"></i>Chat
                             </a>
                             
                             {% if user.user_type == 'F' %}

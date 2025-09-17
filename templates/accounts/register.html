@@ -17,6 +17,12 @@
         <div class="bg-white rounded-2xl shadow-xl border border-gray-100 overflow-hidden">
             <form method="POST" enctype="multipart/form-data" class="p-8">
                 {% csrf_token %}
+                {% if form.non_field_errors %}
+                <div class="mb-6 text-red-600 text-sm flex items-center">
+                    <i class="fas fa-exclamation-triangle mr-2"></i>
+                    {{ form.non_field_errors.0 }}
+                </div>
+                {% endif %}
                 
                 <!-- User Type Selection -->
                 <div class="mb-8">
@@ -24,8 +30,8 @@
                         <i class="fas fa-user-tag mr-2 text-primary"></i>I am a:
                     </h3>
                     <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-                        <label class="relative flex items-center p-6 border-2 border-gray-200 rounded-xl cursor-pointer hover:border-primary hover:bg-purple-50 transition-all duration-200 group">
-                            <input type="radio" name="user_type" value="M" class="sr-only" required>
+                        <label for="user_type_m" class="relative flex items-center p-6 border-2 border-gray-200 rounded-xl cursor-pointer hover:border-primary hover:bg-purple-50 transition-all duration-200 group select-none">
+                            <input type="radio" id="user_type_m" name="user_type" value="M" class="absolute inset-0 opacity-0 cursor-pointer" required>
                             <div class="flex items-center space-x-4">
                                 <div class="w-12 h-12 bg-blue-100 rounded-full flex items-center justify-center group-hover:bg-blue-200 transition-colors">
                                     <i class="fas fa-male text-blue-600 text-xl"></i>
@@ -38,8 +44,8 @@
                             <div class="absolute top-2 right-2 w-6 h-6 border-2 border-gray-300 rounded-full group-hover:border-primary transition-colors"></div>
                         </label>
                         
-                        <label class="relative flex items-center p-6 border-2 border-gray-200 rounded-xl cursor-pointer hover:border-primary hover:bg-pink-50 transition-all duration-200 group">
-                            <input type="radio" name="user_type" value="F" class="sr-only" required>
+                        <label for="user_type_f" class="relative flex items-center p-6 border-2 border-gray-200 rounded-xl cursor-pointer hover:border-primary hover:bg-pink-50 transition-all duration-200 group select-none">
+                            <input type="radio" id="user_type_f" name="user_type" value="F" class="absolute inset-0 opacity-0 cursor-pointer" required>
                             <div class="flex items-center space-x-4">
                                 <div class="w-12 h-12 bg-pink-100 rounded-full flex items-center justify-center group-hover:bg-pink-200 transition-colors">
                                     <i class="fas fa-female text-pink-600 text-xl"></i>
@@ -52,7 +58,15 @@
                             <div class="absolute top-2 right-2 w-6 h-6 border-2 border-gray-300 rounded-full group-hover:border-primary transition-colors"></div>
                         </label>
                     </div>
+                    {% if form.user_type.errors %}
+                        <div class="text-red-600 text-sm flex items-center mt-2">
+                            <i class="fas fa-exclamation-circle mr-1"></i>
+                            {{ form.user_type.errors.0 }}
+                        </div>
+                    {% endif %}
                 </div>
+
+                
                 
                 <!-- Basic Information -->
                 <div class="mb-8">
@@ -327,37 +341,58 @@ function togglePassword(inputId) {
 
 // Radio button selection styling
 document.addEventListener('DOMContentLoaded', function() {
-    const radioLabels = document.querySelectorAll('label[for*="user_type"]');
-    
-    radioLabels.forEach(label => {
-        const radio = label.querySelector('input[type="radio"]');
-        const checkmark = label.querySelector('.absolute');
-        
-        radio.addEventListener('change', function() {
-            // Remove selection from all labels
-            radioLabels.forEach(l => {
-                l.classList.remove('border-primary', 'bg-purple-50', 'bg-pink-50');
-                l.classList.add('border-gray-200');
-                const check = l.querySelector('.absolute');
+    // Gender selection styling and click support on entire label area
+    const maleLabel = document.querySelector('label[for="user_type_m"]');
+    const femaleLabel = document.querySelector('label[for="user_type_f"]');
+    const maleRadio = document.getElementById('user_type_m');
+    const femaleRadio = document.getElementById('user_type_f');
+
+    function resetStyles() {
+        [maleLabel, femaleLabel].forEach(l => {
+            l.classList.remove('border-primary', 'bg-blue-50', 'bg-pink-50');
+            l.classList.add('border-gray-200');
+            const check = l.querySelector('.absolute');
+            if (check) {
                 check.classList.remove('bg-primary', 'border-primary');
                 check.classList.add('border-gray-300');
-            });
-            
-            // Add selection to current label
-            if (this.checked) {
-                label.classList.remove('border-gray-200');
-                label.classList.add('border-primary');
-                if (this.value === 'M') {
-                    label.classList.add('bg-blue-50');
-                } else {
-                    label.classList.add('bg-pink-50');
-                }
-                checkmark.classList.remove('border-gray-300');
-                checkmark.classList.add('bg-primary', 'border-primary');
+            }
+        });
+    }
+
+    function applyStyles(label, value) {
+        label.classList.remove('border-gray-200');
+        label.classList.add('border-primary');
+        if (value === 'M') {
+            label.classList.add('bg-blue-50');
+        } else {
+            label.classList.add('bg-pink-50');
+        }
+        const check = label.querySelector('.absolute');
+        if (check) {
+            check.classList.remove('border-gray-300');
+            check.classList.add('bg-primary', 'border-primary');
+        }
+    }
+
+    function handleChange(e) {
+        resetStyles();
+        if (maleRadio.checked) applyStyles(maleLabel, 'M');
+        if (femaleRadio.checked) applyStyles(femaleLabel, 'F');
+    }
+
+    [maleLabel, femaleLabel].forEach(label => {
+        label.addEventListener('click', function(e) {
+            const input = this.querySelector('input[type="radio"]');
+            if (input) {
+                input.checked = true;
+                handleChange();
             }
         });
     });
-    
+
+    maleRadio.addEventListener('change', handleChange);
+    femaleRadio.addEventListener('change', handleChange);
+
     // Set max date for date of birth
     const dateInput = document.getElementById('{{ form.date_of_birth.id_for_label }}');
     const today = new Date();

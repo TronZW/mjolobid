@@ -9,7 +9,7 @@ from django.core.paginator import Paginator
 from django.conf import settings
 import json
 from .models import Bid, EventCategory, BidMessage, BidReview, EventPromotion
-from .forms import BidForm, BidMessageForm, BidReviewForm
+from .forms import BidForm, BidReviewForm
 
 
 @login_required
@@ -252,48 +252,6 @@ def my_accepted_bids(request):
     }
     
     return render(request, 'bids/my_accepted_bids.html', context)
-
-
-@login_required
-def send_message(request, bid_id):
-    """Send a message for a bid"""
-    bid = get_object_or_404(Bid, id=bid_id)
-    
-    # Check if user can message
-    if request.user != bid.user and request.user != bid.accepted_by:
-        messages.error(request, 'You cannot send messages for this bid.')
-        return redirect('bids:bid_detail', bid_id=bid_id)
-    
-    if request.method == 'POST':
-        form = BidMessageForm(request.POST)
-        if form.is_valid():
-            message = form.save(commit=False)
-            message.bid = bid
-            message.sender = request.user
-            message.save()
-            
-            # Send notification to the other user
-            from notifications.models import Notification
-            recipient = bid.accepted_by if request.user == bid.user else bid.user
-            Notification.objects.create(
-                user=recipient,
-                title='New Message',
-                message=f'{request.user.username} sent you a message',
-                notification_type='MESSAGE',
-                related_object_id=bid.id
-            )
-            
-            messages.success(request, 'Message sent!')
-            return redirect('bids:bid_detail', bid_id=bid_id)
-    else:
-        form = BidMessageForm()
-    
-    context = {
-        'form': form,
-        'bid': bid,
-    }
-    
-    return render(request, 'bids/send_message.html', context)
 
 
 @login_required

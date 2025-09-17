@@ -33,12 +33,27 @@
                         </span>
                     </a>
                 </div>
-                
-                <div class="flex items-center space-x-4">
+                <!-- Mobile menu button -->
+                <div class="flex items-center md:hidden">
+                    <button id="mobile-menu-button" type="button" class="inline-flex items-center justify-center p-2 rounded-md text-gray-700 hover:text-primary hover:bg-gray-100 focus:outline-none focus:ring-2 focus:ring-inset focus:ring-primary" aria-controls="mobile-menu" aria-expanded="false">
+                        <span class="sr-only">Open main menu</span>
+                        <i class="fas fa-bars text-xl"></i>
+                    </button>
+                </div>
+
+                <div class="hidden md:flex items-center space-x-4">
                     {% if user.is_authenticated %}
                         <a href="{% url 'bids:browse_bids' %}" class="text-gray-700 hover:text-primary px-3 py-2 rounded-md text-sm font-medium">
                             <i class="fas fa-search mr-1"></i>Browse Bids
                         </a>
+                        <a href="{% url 'bids:browse_bids' %}" class="text-gray-700 hover:text-primary px-3 py-2 rounded-md text-sm font-medium">
+                            <i class="fas fa-calendar-alt mr-1"></i>Upcoming Events
+                        </a>
+                        {% if user.is_staff or user.is_superuser %}
+                        <a href="/dashboard/" class="text-gray-700 hover:text-primary px-3 py-2 rounded-md text-sm font-medium">
+                            <i class="fas fa-chart-line mr-1"></i>Dashboard
+                        </a>
+                        {% endif %}
                         <a href="{% url 'messaging:conversation_list' %}" class="text-gray-700 hover:text-primary px-3 py-2 rounded-md text-sm font-medium">
                             <i class="fas fa-comments mr-1"></i>Messages
                         </a>
@@ -73,36 +88,54 @@
         </div>
     </nav>
 
-    <!-- Messages -->
-    {% if messages %}
-        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 mt-4">
-            {% for message in messages %}
-                {% if message.tags == 'error' %}
-                    <div class="alert alert-{{ message.tags }} bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded mb-4 relative">
-                        <div class="flex items-center justify-between">
-                            <span>{{ message }}</span>
-                            <button onclick="this.parentElement.parentElement.remove()" 
-                                    class="ml-4 text-red-500 hover:text-red-700 transition-colors duration-200 p-1 rounded-full hover:bg-red-200"
-                                    title="Close message">
-                                <i class="fas fa-times text-sm"></i>
-                            </button>
-                        </div>
-                    </div>
-                {% else %}
-                    <div class="alert alert-{{ message.tags }} bg-green-100 border border-green-400 text-green-700 px-4 py-3 rounded mb-4 relative">
-                        <div class="flex items-center justify-between">
-                            <span>{{ message }}</span>
-                            <button onclick="this.parentElement.parentElement.remove()" 
-                                    class="ml-4 text-green-500 hover:text-green-700 transition-colors duration-200 p-1 rounded-full hover:bg-green-200"
-                                    title="Close message">
-                                <i class="fas fa-times text-sm"></i>
-                            </button>
-                        </div>
-                    </div>
+    <!-- Mobile dropdown menu -->
+    <div id="mobile-menu" class="md:hidden hidden bg-white shadow-lg border-t border-gray-100">
+        <div class="px-4 pt-2 pb-3 space-y-1">
+            {% if user.is_authenticated %}
+                <a href="{% url 'bids:browse_bids' %}" class="block text-gray-700 hover:text-primary px-3 py-2 rounded-md text-base font-medium">
+                    <i class="fas fa-search mr-2"></i>Browse Bids
+                </a>
+                <a href="{% url 'bids:browse_bids' %}" class="block text-gray-700 hover:text-primary px-3 py-2 rounded-md text-base font-medium">
+                    <i class="fas fa-calendar-alt mr-2"></i>Upcoming Events
+                </a>
+                {% if user.is_staff or user.is_superuser %}
+                <a href="/dashboard/" class="block text-gray-700 hover:text-primary px-3 py-2 rounded-md text-base font-medium">
+                    <i class="fas fa-chart-line mr-2"></i>Dashboard
+                </a>
                 {% endif %}
-            {% endfor %}
+                <a href="{% url 'messaging:conversation_list' %}" class="block text-gray-700 hover:text-primary px-3 py-2 rounded-md text-base font-medium">
+                    <i class="fas fa-comments mr-2"></i>Messages
+                </a>
+                {% if user.user_type == 'M' %}
+                    <a href="{% url 'bids:my_bids' %}" class="block text-gray-700 hover:text-primary px-3 py-2 rounded-md text-base font-medium">
+                        <i class="fas fa-list mr-2"></i>My Bids
+                    </a>
+                    <a href="{% url 'bids:post_bid' %}" class="block text-gray-700 hover:text-primary px-3 py-2 rounded-md text-base font-medium">
+                        <i class="fas fa-plus mr-2"></i>Post Bid
+                    </a>
+                {% else %}
+                    <a href="{% url 'bids:my_accepted_bids' %}" class="block text-gray-700 hover:text-primary px-3 py-2 rounded-md text-base font-medium">
+                        <i class="fas fa-check mr-2"></i>My Bids
+                    </a>
+                {% endif %}
+                <a href="{% url 'accounts:profile' %}" class="block text-gray-700 hover:text-primary px-3 py-2 rounded-md text-base font-medium">
+                    <i class="fas fa-user mr-2"></i>Profile
+                </a>
+                <a href="{% url 'accounts:logout' %}" class="block text-gray-700 hover:text-primary px-3 py-2 rounded-md text-base font-medium">
+                    <i class="fas fa-sign-out-alt mr-2"></i>Logout
+                </a>
+            {% else %}
+                <a href="{% url 'accounts:login' %}" class="block text-gray-700 hover:text-primary px-3 py-2 rounded-md text-base font-medium">
+                    Login
+                </a>
+                <a href="{% url 'accounts:register' %}" class="block text-gray-700 hover:text-primary px-3 py-2 rounded-md text-base font-medium">
+                    Sign Up
+                </a>
+            {% endif %}
         </div>
-    {% endif %}
+    </div>
+
+    
 
     <!-- Main Content -->
     <main class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
@@ -155,28 +188,7 @@
         </div>
     </footer>
 
-    <!-- Floating Event Ticker -->
-    <div id="event-ticker" class="fixed top-16 left-0 right-0 bg-gradient-to-r from-primary to-secondary text-white py-2 overflow-hidden z-40">
-        <div class="flex items-center justify-between">
-            <div class="flex animate-scroll flex-1">
-                <div class="flex space-x-8 whitespace-nowrap">
-                    <span class="font-semibold">🎉 Upcoming Events:</span>
-                    <span>Club Havana - Tonight 10PM</span>
-                    <span>•</span>
-                    <span>Beer Garden - Tomorrow 8PM</span>
-                    <span>•</span>
-                    <span>Jazz Night - Friday 9PM</span>
-                    <span>•</span>
-                    <span>Pool Party - Saturday 2PM</span>
-                </div>
-            </div>
-            <button onclick="closeEventTicker()" 
-                    class="ml-4 mr-4 text-white hover:text-gray-200 transition-colors duration-200 p-1 rounded-full hover:bg-white hover:bg-opacity-20"
-                    title="Close ticker">
-                <i class="fas fa-times text-sm"></i>
-            </button>
-        </div>
-    </div>
+    
 
     <!-- Real-time Notification Banner -->
     <div id="notification-banner" class="fixed top-24 left-4 right-4 bg-purple-600 text-white p-4 rounded-lg shadow-lg z-50 hidden">
@@ -194,37 +206,7 @@
     </div>
 
     <script>
-        // Event ticker animation
-        function animateTicker() {
-            const ticker = document.getElementById('event-ticker');
-            if (ticker) {
-                ticker.style.animation = 'scroll 30s linear infinite';
-            }
-        }
-
-        // Event ticker functions
-        function closeEventTicker() {
-            const ticker = document.getElementById('event-ticker');
-            if (ticker) {
-                ticker.style.display = 'none';
-                // Store preference in localStorage
-                localStorage.setItem('eventTickerClosed', 'true');
-                // Show a small notification that ticker was closed
-                showNotification('Event ticker closed. You can re-enable it from the footer.');
-            }
-        }
-
-        function restoreEventTicker() {
-            const ticker = document.getElementById('event-ticker');
-            if (ticker) {
-                ticker.style.display = 'block';
-                // Remove preference from localStorage
-                localStorage.removeItem('eventTickerClosed');
-                // Restart animation
-                animateTicker();
-                showNotification('Event ticker restored!');
-            }
-        }
+        
 
         // Notification functions
         function showNotification(message) {
@@ -251,16 +233,17 @@
 
         // Initialize
         document.addEventListener('DOMContentLoaded', function() {
-            // Check if event ticker was previously closed
-            const tickerClosed = localStorage.getItem('eventTickerClosed');
-            if (!tickerClosed) {
-                animateTicker();
-            } else {
-                // Hide the ticker if it was previously closed
-                const ticker = document.getElementById('event-ticker');
-                if (ticker) {
-                    ticker.style.display = 'none';
-                }
+            // Mobile menu toggle
+            const btn = document.getElementById('mobile-menu-button');
+            const menu = document.getElementById('mobile-menu');
+            if (btn && menu) {
+                btn.addEventListener('click', function() {
+                    const isHidden = menu.classList.contains('hidden');
+                    menu.classList.toggle('hidden');
+                    btn.setAttribute('aria-expanded', String(isHidden));
+                    // swap icon (bars <-> times)
+                    this.innerHTML = isHidden ? '<i class="fas fa-times text-xl"></i>' : '<i class="fas fa-bars text-xl"></i>';
+                });
             }
         });
 
@@ -276,10 +259,7 @@
     </script>
 
     <style>
-        @keyframes scroll {
-            0% { transform: translateX(100%); }
-            100% { transform: translateX(-100%); }
-        }
+        
     </style>
 
     {% block extra_js %}{% endblock %}
