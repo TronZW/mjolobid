@@ -46,8 +46,9 @@ def conversation_detail(request, conversation_id):
     )
     
     # Mark all messages as read
-    conversation.messages.filter(
-        sender__ne=request.user,
+    conversation.messages.exclude(
+        sender=request.user
+    ).filter(
         is_read=False
     ).update(is_read=True, read_at=timezone.now())
     

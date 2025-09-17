@@ -278,11 +278,11 @@ class ChatConsumer(AsyncWebsocketConsumer):
     def mark_message_read(self, message_id):
         """Mark a message as read"""
         try:
-            message = Message.objects.get(
+            message = Message.objects.filter(
                 id=message_id,
-                conversation__participants=self.user,
-                sender__ne=self.user
-            )
-            message.mark_as_read()
+                conversation__participants=self.user
+            ).exclude(sender=self.user).first()
+            if message:
+                message.mark_as_read()
         except Message.DoesNotExist:
             pass
