@@ -51,6 +51,14 @@ def collect_static():
     except subprocess.CalledProcessError as e:
         print(f"❌ Static collection failed: {e}")
 
+def seed_data():
+    """Seed the database with dummy data"""
+    try:
+        subprocess.run(['python', 'seed_data.py'], check=True)
+        print("✅ Data seeding completed successfully!")
+    except subprocess.CalledProcessError as e:
+        print(f"❌ Data seeding failed: {e}")
+
 def start_gunicorn():
     """Start Gunicorn server"""
     port = os.environ.get('PORT', '8000')
@@ -77,6 +85,10 @@ if __name__ == "__main__":
     
     # Create superuser
     create_superuser()
+    
+    # Seed data
+    print("🌱 Seeding database with dummy data...")
+    seed_data()
     
     # Start server
     print("🌐 Starting Gunicorn server...")
