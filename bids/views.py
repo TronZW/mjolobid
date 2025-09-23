@@ -148,6 +148,23 @@ def bid_detail(request, bid_id):
 
 
 @login_required
+def upcoming_events(request):
+    """List upcoming events from admins/organizers (not bids)."""
+    now = timezone.now()
+    events = EventPromotion.objects.filter(
+        is_active=True,
+        start_date__lte=now,
+        end_date__gte=now,
+        event_date__gte=now,
+    ).order_by('-priority', 'event_date')
+
+    context = {
+        'events': events,
+    }
+    return render(request, 'bids/upcoming_events.html', context)
+
+
+@login_required
 def accept_bid(request, bid_id):
     """Accept a bid"""
     if request.user.user_type != 'F':
