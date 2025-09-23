@@ -275,6 +275,41 @@ def post_bid(request):
 
 
 @login_required
+def edit_bid(request, bid_id):
+    """Edit an existing bid (owner only)"""
+    if request.user.user_type != 'M':
+        messages.error(request, 'Only male users can edit bids.')
+        return redirect('bids:browse_bids')
+
+    bid = get_object_or_404(Bid, id=bid_id, user=request.user)
+
+    if request.method == 'POST':
+        form = BidForm(request.POST, request.FILES, instance=bid)
+        if form.is_valid():
+            bid = form.save()
+
+            # Optionally handle new images appended to existing ones
+            images = request.FILES.getlist('images')
+            for image in images:
+                BidImage.objects.create(bid=bid, image=image)
+
+            messages.success(request, 'Bid updated successfully!')
+            return redirect('bids:my_bids')
+    else:
+        form = BidForm(instance=bid)
+
+    categories = EventCategory.objects.filter(is_active=True)
+
+    context = {
+        'form': form,
+        'categories': categories,
+        'bid': bid,
+    }
+
+    return render(request, 'bids/edit_bid.html', context)
+
+
+@login_required
 def my_accepted_bids(request):
     """View user's accepted bids"""
     if request.user.user_type == 'M':
