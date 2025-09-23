@@ -16,7 +16,7 @@ def home(request):
     """Home page with intro popup"""
     if request.user.is_authenticated:
         if request.user.user_type == 'M':
-            return redirect('bids:my_bids')
+            return redirect('bids:male_homepage')
         else:
             return redirect('bids:browse_bids')
     

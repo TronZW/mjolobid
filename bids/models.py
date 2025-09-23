@@ -162,6 +162,22 @@ class BidReview(models.Model):
         return f"Review for {self.bid.title} by {self.reviewer.username}"
 
 
+class BidView(models.Model):
+    """Track when users view bids"""
+    
+    bid = models.ForeignKey(Bid, on_delete=models.CASCADE, related_name='views')
+    viewer = models.ForeignKey(User, on_delete=models.CASCADE, related_name='bid_views')
+    viewed_at = models.DateTimeField(auto_now_add=True)
+    
+    class Meta:
+        unique_together = ('bid', 'viewer')
+        verbose_name = 'Bid View'
+        verbose_name_plural = 'Bid Views'
+    
+    def __str__(self):
+        return f"{self.viewer.username} viewed {self.bid.title}"
+
+
 class EventPromotion(models.Model):
     """Event promotions for the floating ticker"""
     

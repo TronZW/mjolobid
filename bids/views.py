@@ -8,7 +8,7 @@ from django.db.models import Q, F
 from django.core.paginator import Paginator
 from django.conf import settings
 import json
-from .models import Bid, EventCategory, BidMessage, BidReview, EventPromotion
+from .models import Bid, EventCategory, BidMessage, BidReview, EventPromotion, BidView
 from .forms import BidForm, BidReviewForm
 
 
@@ -122,6 +122,10 @@ def bid_detail(request, bid_id):
     if request.user == bid.user or request.user == bid.accepted_by:
         messages_list = BidMessage.objects.filter(bid=bid).order_by('created_at')
     
+    # Track view if user is female and not the bid owner
+    if request.user.user_type == 'F' and request.user != bid.user:
+        BidView.objects.get_or_create(bid=bid, viewer=request.user)
+    
     # Get reviews
     reviews = BidReview.objects.filter(bid=bid).order_by('-created_at')
     
@@ -178,6 +182,37 @@ def accept_bid(request, bid_id):
     
     messages.success(request, f'You have accepted the bid for {bid.title}!')
     return redirect('bids:my_accepted_bids')
+
+
+@login_required
+def male_homepage(request):
+    """Male homepage showing women who viewed/accepted their offers"""
+    if request.user.user_type != 'M':
+        messages.error(request, 'Only male users can access this page.')
+        return redirect('bids:browse_bids')
+    
+    # Get women who have viewed the user's bids
+    viewed_women = User.objects.filter(
+        user_type='F',
+        bid_views__bid__user=request.user
+    ).distinct().select_related('userprofile')
+    
+    # Get women who have accepted the user's bids
+    accepted_women = User.objects.filter(
+        user_type='F',
+        bids_accepted__user=request.user
+    ).distinct().select_related('userprofile')
+    
+    # Get recent bids for context
+    recent_bids = Bid.objects.filter(user=request.user).order_by('-created_at')[:5]
+    
+    context = {
+        'viewed_women': viewed_women,
+        'accepted_women': accepted_women,
+        'recent_bids': recent_bids,
+    }
+    
+    return render(request, 'bids/male_homepage.html', context)
 
 
 @login_required
