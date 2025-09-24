@@ -3,10 +3,12 @@ from django.urls import reverse
 from django.contrib.auth import login, logout, authenticate
 from django.contrib.auth.decorators import login_required
 from django.contrib import messages
-from django.http import JsonResponse
+from django.http import JsonResponse, HttpResponse
 from django.views.decorators.csrf import csrf_exempt
 from django.utils import timezone
 from django.db.models import Q
+from django.conf import settings
+import os
 from .models import User, UserProfile, UserRating
 from .forms import UserRegistrationForm, UserLoginForm, ProfileUpdateForm, ProfileSetupForm
 import json
@@ -79,6 +81,12 @@ def user_logout(request):
 def profile_setup(request):
     """Profile setup after registration"""
     if request.method == 'POST':
+        # Debug: Check if files are being received
+        if request.FILES:
+            messages.info(request, f'Files received: {list(request.FILES.keys())}')
+        else:
+            messages.info(request, 'No files received in request')
+            
         form = ProfileSetupForm(request.POST, request.FILES, instance=request.user)
         if form.is_valid():
             user = form.save()
@@ -120,6 +128,27 @@ def profile(request):
     }
     
     return render(request, 'accounts/profile.html', context)
+
+
+def test_media(request):
+    """Test view to check media file serving"""
+    media_files = []
+    media_dir = settings.MEDIA_ROOT / 'profile_pics'
+    if media_dir.exists():
+        for file in media_dir.iterdir():
+            if file.is_file():
+                media_files.append({
+                    'name': file.name,
+                    'path': str(file),
+                    'url': f"{settings.MEDIA_URL}profile_pics/{file.name}"
+                })
+    
+    return JsonResponse({
+        'media_root': str(settings.MEDIA_ROOT),
+        'media_url': settings.MEDIA_URL,
+        'files': media_files,
+        'debug': settings.DEBUG
+    })
 
 
 @login_required

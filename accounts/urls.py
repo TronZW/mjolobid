@@ -15,4 +15,5 @@ urlpatterns = [
     path('affiliate/', views.affiliate_dashboard, name='affiliate_dashboard'),
     path('update-location/', views.update_location, name='update_location'),
     path('rate-user/<int:user_id>/', views.rate_user, name='rate_user'),
+    path('test-media/', views.test_media, name='test_media'),
 ]
