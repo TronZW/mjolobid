@@ -1,0 +1,206 @@
+{% extends 'base.html' %}
+
+{% block title %}Create Bid for {{ event.title }} - MjoloBid{% endblock %}
+
+{% block content %}
+<div class="min-h-screen bg-gray-50 py-10">
+  <div class="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8">
+    <div class="mb-8">
+      <h1 class="text-3xl font-bold text-gray-900">
+        <i class="fas fa-plus mr-2 text-primary"></i>Create Bid for Event
+      </h1>
+      <p class="text-gray-600 mt-2">Create a bid for the event: <strong>{{ event.title }}</strong></p>
+    </div>
+
+    <!-- Event Info Card -->
+    <div class="bg-white rounded-xl shadow-lg p-6 mb-8">
+      <h2 class="text-xl font-semibold text-gray-900 mb-4">
+        <i class="fas fa-calendar-alt mr-2 text-primary"></i>Event Details
+      </h2>
+      <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+        <div>
+          <h3 class="font-semibold text-gray-700">{{ event.title }}</h3>
+          <p class="text-gray-600 text-sm mt-1">{{ event.description }}</p>
+        </div>
+        <div class="space-y-2 text-sm">
+          <div class="flex items-center">
+            <i class="fas fa-clock text-primary mr-2"></i>
+            {{ event.event_date|date:"M d, Y g:i A" }}
+          </div>
+          <div class="flex items-center">
+            <i class="fas fa-map-marker-alt text-primary mr-2"></i>
+            {{ event.location }}
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Bid Form -->
+    <div class="bg-white rounded-xl shadow-lg p-8">
+      <h2 class="text-xl font-semibold text-gray-900 mb-6">
+        <i class="fas fa-edit mr-2 text-primary"></i>Bid Information
+      </h2>
+      
+      <form method="post" enctype="multipart/form-data" class="space-y-6">
+        {% csrf_token %}
+        
+        <!-- Title -->
+        <div>
+          <label for="{{ form.title.id_for_label }}" class="block text-sm font-semibold text-gray-700 mb-2">
+            <i class="fas fa-heading mr-2 text-primary"></i>Bid Title
+          </label>
+          <input type="text" 
+                 name="{{ form.title.name }}" 
+                 id="{{ form.title.id_for_label }}"
+                 value="{{ form.title.value|default:'' }}"
+                 class="w-full px-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-primary focus:border-transparent transition-all duration-200"
+                 placeholder="Enter bid title..."
+                 required>
+          {% if form.title.errors %}
+            <div class="text-red-600 text-sm flex items-center mt-1">
+              <i class="fas fa-exclamation-circle mr-1"></i>
+              {{ form.title.errors.0 }}
+            </div>
+          {% endif %}
+        </div>
+
+        <!-- Description -->
+        <div>
+          <label for="{{ form.description.id_for_label }}" class="block text-sm font-semibold text-gray-700 mb-2">
+            <i class="fas fa-align-left mr-2 text-primary"></i>Description
+          </label>
+          <textarea name="{{ form.description.name }}"
+                    id="{{ form.description.id_for_label }}"
+                    rows="4"
+                    class="w-full px-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-primary focus:border-transparent transition-all duration-200"
+                    placeholder="Describe your bid..."
+                    required>{{ form.description.value|default:'' }}</textarea>
+          {% if form.description.errors %}
+            <div class="text-red-600 text-sm flex items-center mt-1">
+              <i class="fas fa-exclamation-circle mr-1"></i>
+              {{ form.description.errors.0 }}
+            </div>
+          {% endif %}
+        </div>
+
+        <!-- Event Category -->
+        <div>
+          <label for="{{ form.event_category.id_for_label }}" class="block text-sm font-semibold text-gray-700 mb-2">
+            <i class="fas fa-tags mr-2 text-primary"></i>Event Category
+          </label>
+          <select name="{{ form.event_category.name }}" 
+                  id="{{ form.event_category.id_for_label }}"
+                  class="w-full px-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-primary focus:border-transparent transition-all duration-200"
+                  required>
+            <option value="">Select a category...</option>
+            {% for category in categories %}
+            <option value="{{ category.id }}" {% if form.event_category.value == category.id %}selected{% endif %}>
+              {{ category.icon }} {{ category.name }}
+            </option>
+            {% endfor %}
+          </select>
+          {% if form.event_category.errors %}
+            <div class="text-red-600 text-sm flex items-center mt-1">
+              <i class="fas fa-exclamation-circle mr-1"></i>
+              {{ form.event_category.errors.0 }}
+            </div>
+          {% endif %}
+        </div>
+
+        <!-- Event Date and Location -->
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+          <div>
+            <label for="{{ form.event_date.id_for_label }}" class="block text-sm font-semibold text-gray-700 mb-2">
+              <i class="fas fa-calendar mr-2 text-primary"></i>Event Date & Time
+            </label>
+            <input type="datetime-local" 
+                   name="{{ form.event_date.name }}" 
+                   id="{{ form.event_date.id_for_label }}"
+                   value="{{ form.event_date.value|default:'' }}"
+                   class="w-full px-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-primary focus:border-transparent transition-all duration-200"
+                   required>
+            {% if form.event_date.errors %}
+              <div class="text-red-600 text-sm flex items-center mt-1">
+                <i class="fas fa-exclamation-circle mr-1"></i>
+                {{ form.event_date.errors.0 }}
+              </div>
+            {% endif %}
+          </div>
+
+          <div>
+            <label for="{{ form.event_location.id_for_label }}" class="block text-sm font-semibold text-gray-700 mb-2">
+              <i class="fas fa-map-marker-alt mr-2 text-primary"></i>Event Location
+            </label>
+            <input type="text" 
+                   name="{{ form.event_location.name }}" 
+                   id="{{ form.event_location.id_for_label }}"
+                   value="{{ form.event_location.value|default:'' }}"
+                   class="w-full px-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-primary focus:border-transparent transition-all duration-200"
+                   placeholder="Event location..."
+                   required>
+            {% if form.event_location.errors %}
+              <div class="text-red-600 text-sm flex items-center mt-1">
+                <i class="fas fa-exclamation-circle mr-1"></i>
+                {{ form.event_location.errors.0 }}
+              </div>
+            {% endif %}
+          </div>
+        </div>
+
+        <!-- Event Address -->
+        <div>
+          <label for="{{ form.event_address.id_for_label }}" class="block text-sm font-semibold text-gray-700 mb-2">
+            <i class="fas fa-map mr-2 text-primary"></i>Event Address
+          </label>
+          <textarea name="{{ form.event_address.name }}"
+                    id="{{ form.event_address.id_for_label }}"
+                    rows="2"
+                    class="w-full px-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-primary focus:border-transparent transition-all duration-200"
+                    placeholder="Full event address..."
+                    required>{{ form.event_address.value|default:'' }}</textarea>
+          {% if form.event_address.errors %}
+            <div class="text-red-600 text-sm flex items-center mt-1">
+              <i class="fas fa-exclamation-circle mr-1"></i>
+              {{ form.event_address.errors.0 }}
+            </div>
+          {% endif %}
+        </div>
+
+        <!-- Bid Amount -->
+        <div>
+          <label for="{{ form.bid_amount.id_for_label }}" class="block text-sm font-semibold text-gray-700 mb-2">
+            <i class="fas fa-dollar-sign mr-2 text-primary"></i>Bid Amount
+          </label>
+          <input type="number" 
+                 name="{{ form.bid_amount.name }}" 
+                 id="{{ form.bid_amount.id_for_label }}"
+                 value="{{ form.bid_amount.value|default:'' }}"
+                 step="0.01" 
+                 min="0"
+                 class="w-full px-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-primary focus:border-transparent transition-all duration-200"
+                 placeholder="Enter your bid amount..."
+                 required>
+          {% if form.bid_amount.errors %}
+            <div class="text-red-600 text-sm flex items-center mt-1">
+              <i class="fas fa-exclamation-circle mr-1"></i>
+              {{ form.bid_amount.errors.0 }}
+            </div>
+          {% endif %}
+        </div>
+
+        <!-- Form Actions -->
+        <div class="flex justify-end space-x-4 pt-6 border-t border-gray-200">
+          <a href="{% url 'bids:upcoming_events' %}" 
+             class="px-6 py-3 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 transition-colors">
+            <i class="fas fa-times mr-2"></i>Cancel
+          </a>
+          <button type="submit" 
+                  class="px-6 py-3 bg-primary text-white rounded-lg hover:bg-purple-700 transition-colors">
+            <i class="fas fa-plus mr-2"></i>Create Bid
+          </button>
+        </div>
+      </form>
+    </div>
+  </div>
+</div>
+{% endblock %}

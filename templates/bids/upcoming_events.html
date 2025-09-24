@@ -38,13 +38,18 @@
               <i class="fas fa-map-marker-alt text-primary mr-2"></i>
               {{ e.location }}
             </div>
-            {% if e.link_url %}
-            <div class="mt-3">
+            <div class="mt-3 flex justify-between items-center">
+              {% if e.link_url %}
               <a href="{{ e.link_url }}" target="_blank" rel="noopener" class="inline-flex items-center text-primary hover:text-purple-700 font-medium">
                 More Info <i class="fas fa-external-link-alt ml-2 text-xs"></i>
               </a>
+              {% endif %}
+              {% if user.user_type == 'M' and not user.is_staff and not user.is_superuser %}
+              <a href="{% url 'bids:post_bid_for_event' e.id %}" class="inline-flex items-center bg-primary text-white px-4 py-2 rounded-lg hover:bg-purple-700 transition-colors text-sm">
+                <i class="fas fa-plus mr-2"></i>Create Bid
+              </a>
+              {% endif %}
             </div>
-            {% endif %}
           </div>
         </div>
       </div>

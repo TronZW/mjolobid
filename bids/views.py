@@ -192,6 +192,46 @@ def add_event(request):
 
 
 @login_required
+def post_bid_for_event(request, event_id):
+    """Create a bid based on an admin event (male users only)"""
+    if request.user.user_type != 'M' or request.user.is_staff or request.user.is_superuser:
+        messages.error(request, 'Only male users can create bids for events.')
+        return redirect('bids:upcoming_events')
+    
+    event = get_object_or_404(EventPromotion, id=event_id, is_active=True)
+    
+    if request.method == 'POST':
+        form = BidForm(request.POST, request.FILES)
+        if form.is_valid():
+            bid = form.save(commit=False)
+            bid.user = request.user
+            bid.event_location = event.location
+            bid.event_address = event.location  # Use location as address for now
+            bid.save()
+            messages.success(request, f'Bid for "{event.title}" has been created successfully!')
+            return redirect('bids:my_bids')
+    else:
+        # Pre-fill form with event data
+        initial_data = {
+            'title': f'Bid for {event.title}',
+            'description': f'I would like to attend {event.title} on {event.event_date.strftime("%B %d, %Y")} at {event.location}.',
+            'event_date': event.event_date,
+            'event_location': event.location,
+            'event_address': event.location,
+        }
+        form = BidForm(initial=initial_data)
+    
+    categories = EventCategory.objects.filter(is_active=True)
+    
+    context = {
+        'form': form,
+        'event': event,
+        'categories': categories,
+    }
+    return render(request, 'bids/post_bid_for_event.html', context)
+
+
+@login_required
 def accept_bid(request, bid_id):
     """Accept a bid"""
     if request.user.user_type != 'F':
