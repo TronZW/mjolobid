@@ -47,7 +47,7 @@
                             <a href="{% url 'bids:male_homepage' %}" class="text-gray-700 hover:text-primary px-3 py-2 rounded-md text-sm font-medium">
                                 <i class="fas fa-tachometer-alt mr-1"></i>Dashboard
                             </a>
-                        {% else %}
+                        {% elif user.user_type == 'F' %}
                             <a href="{% url 'bids:browse_bids' %}" class="text-gray-700 hover:text-primary px-3 py-2 rounded-md text-sm font-medium">
                                 <i class="fas fa-search mr-1"></i>Browse Bids
                             </a>
@@ -102,7 +102,7 @@
                     <a href="{% url 'bids:male_homepage' %}" class="block text-gray-700 hover:text-primary px-3 py-2 rounded-md text-base font-medium">
                         <i class="fas fa-tachometer-alt mr-2"></i>Dashboard
                     </a>
-                {% else %}
+                {% elif user.user_type == 'F' %}
                     <a href="{% url 'bids:browse_bids' %}" class="block text-gray-700 hover:text-primary px-3 py-2 rounded-md text-base font-medium">
                         <i class="fas fa-search mr-2"></i>Browse Bids
                     </a>

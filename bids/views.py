@@ -15,6 +15,11 @@ from .forms import BidForm, BidReviewForm
 @login_required
 def browse_bids(request):
     """Browse available bids for women"""
+    # Prevent admin users from accessing browse bids
+    if request.user.is_staff or request.user.is_superuser:
+        messages.error(request, 'Admin users cannot browse bids.')
+        return redirect('/dashboard/')
+    
     # Check if user has active subscription
     if request.user.user_type == 'F' and not request.user.subscription_active:
         return redirect('payments:subscription')

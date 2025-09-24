@@ -15,7 +15,9 @@ import json
 def home(request):
     """Home page with intro popup"""
     if request.user.is_authenticated:
-        if request.user.user_type == 'M':
+        if request.user.is_staff or request.user.is_superuser:
+            return redirect('/dashboard/')
+        elif request.user.user_type == 'M':
             return redirect('bids:male_homepage')
         else:
             return redirect('bids:browse_bids')
