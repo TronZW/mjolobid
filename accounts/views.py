@@ -81,10 +81,19 @@ def profile_setup(request):
     if request.method == 'POST':
         form = ProfileSetupForm(request.POST, request.FILES, instance=request.user)
         if form.is_valid():
-            form.save()
-            messages.success(request, 'Profile updated successfully!')
+            user = form.save()
+            # Debug: Check if profile picture was saved
+            if user.profile_picture:
+                messages.success(request, f'Profile updated successfully! Profile picture: {user.profile_picture.name}')
+            else:
+                messages.success(request, 'Profile updated successfully!')
             profile_url = f"{reverse('accounts:profile')}?setup=done"
             return redirect(profile_url)
+        else:
+            # Debug: Show form errors
+            for field, errors in form.errors.items():
+                for error in errors:
+                    messages.error(request, f'{field}: {error}')
     else:
         form = ProfileSetupForm(instance=request.user)
     

@@ -86,6 +86,19 @@ class ProfileSetupForm(forms.ModelForm):
         widgets = {
             'bio': forms.Textarea(attrs={'rows': 4}),
         }
+    
+    def clean_profile_picture(self):
+        picture = self.cleaned_data.get('profile_picture')
+        if picture:
+            # Check file size (max 5MB)
+            if picture.size > 5 * 1024 * 1024:
+                raise forms.ValidationError('Image file too large (max 5MB)')
+            
+            # Check file type
+            if not picture.content_type.startswith('image/'):
+                raise forms.ValidationError('File must be an image')
+        
+        return picture
 
 class UserProfileForm(forms.ModelForm):
     """Extended user profile form"""
