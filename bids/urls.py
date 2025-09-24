@@ -6,6 +6,7 @@ app_name = 'bids'
 urlpatterns = [
     path('', views.browse_bids, name='browse_bids'),
     path('events/', views.upcoming_events, name='upcoming_events'),
+    path('events/add/', views.add_event, name='add_event'),
     path('male-home/', views.male_homepage, name='male_homepage'),
     path('bid/<int:bid_id>/', views.bid_detail, name='bid_detail'),
     path('bid/<int:bid_id>/edit/', views.edit_bid, name='edit_bid'),

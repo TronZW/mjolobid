@@ -9,7 +9,7 @@ from django.core.paginator import Paginator
 from django.conf import settings
 import json
 from .models import Bid, EventCategory, BidMessage, BidReview, EventPromotion, BidView
-from .forms import BidForm, BidReviewForm
+from .forms import BidForm, BidReviewForm, EventPromotionForm
 
 
 @login_required
@@ -167,6 +167,28 @@ def upcoming_events(request):
         'events': events,
     }
     return render(request, 'bids/upcoming_events.html', context)
+
+
+@login_required
+def add_event(request):
+    """Add a new event promotion (admin only)"""
+    if not (request.user.is_staff or request.user.is_superuser):
+        messages.error(request, 'Only administrators can add events.')
+        return redirect('bids:upcoming_events')
+    
+    if request.method == 'POST':
+        form = EventPromotionForm(request.POST, request.FILES)
+        if form.is_valid():
+            event = form.save()
+            messages.success(request, f'Event "{event.title}" has been added successfully!')
+            return redirect('bids:upcoming_events')
+    else:
+        form = EventPromotionForm()
+    
+    context = {
+        'form': form,
+    }
+    return render(request, 'bids/add_event.html', context)
 
 
 @login_required

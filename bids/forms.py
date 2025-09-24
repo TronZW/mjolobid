@@ -1,6 +1,6 @@
 from django import forms
 from django.utils import timezone
-from .models import Bid, BidMessage, BidReview
+from .models import Bid, BidMessage, BidReview, EventPromotion
 
 
 class BidForm(forms.ModelForm):
@@ -62,3 +62,39 @@ class BidReviewForm(forms.ModelForm):
         widgets = {
             'review_text': forms.Textarea(attrs={'rows': 3, 'placeholder': 'Write your review here...'})
         }
+
+
+class EventPromotionForm(forms.ModelForm):
+    """Form for creating/editing event promotions"""
+    
+    class Meta:
+        model = EventPromotion
+        fields = [
+            'title', 'description', 'event_date', 'location', 
+            'image', 'link_url', 'priority', 'end_date', 'cost'
+        ]
+        widgets = {
+            'event_date': forms.DateTimeInput(attrs={'type': 'datetime-local'}),
+            'end_date': forms.DateTimeInput(attrs={'type': 'datetime-local'}),
+            'description': forms.Textarea(attrs={'rows': 4}),
+            'priority': forms.NumberInput(attrs={'min': 0, 'max': 100}),
+            'cost': forms.NumberInput(attrs={'step': '0.01', 'min': '0'}),
+        }
+    
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.fields['event_date'].input_formats = ['%Y-%m-%dT%H:%M']
+        self.fields['end_date'].input_formats = ['%Y-%m-%dT%H:%M']
+    
+    def clean_event_date(self):
+        event_date = self.cleaned_data.get('event_date')
+        if event_date and event_date <= timezone.now():
+            raise forms.ValidationError('Event date must be in the future')
+        return event_date
+    
+    def clean_end_date(self):
+        end_date = self.cleaned_data.get('end_date')
+        event_date = self.cleaned_data.get('event_date')
+        if end_date and event_date and end_date <= event_date:
+            raise forms.ValidationError('End date must be after event date')
+        return end_date

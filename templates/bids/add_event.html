@@ -1,0 +1,212 @@
+{% extends 'base.html' %}
+
+{% block title %}Add Event - MjoloBid{% endblock %}
+
+{% block content %}
+<div class="min-h-screen bg-gray-50 py-10">
+  <div class="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8">
+    <div class="mb-8">
+      <h1 class="text-3xl font-bold text-gray-900">
+        <i class="fas fa-plus mr-2 text-primary"></i>Add New Event
+      </h1>
+      <p class="text-gray-600 mt-2">Create a new event promotion for the upcoming events page.</p>
+    </div>
+
+    <div class="bg-white rounded-xl shadow-lg p-8">
+      <form method="post" enctype="multipart/form-data" class="space-y-6">
+        {% csrf_token %}
+        
+        <!-- Title -->
+        <div>
+          <label for="{{ form.title.id_for_label }}" class="block text-sm font-semibold text-gray-700 mb-2">
+            <i class="fas fa-heading mr-2 text-primary"></i>Event Title
+          </label>
+          <input type="text" 
+                 name="{{ form.title.name }}" 
+                 id="{{ form.title.id_for_label }}"
+                 value="{{ form.title.value|default:'' }}"
+                 class="w-full px-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-primary focus:border-transparent transition-all duration-200"
+                 placeholder="Enter event title..."
+                 required>
+          {% if form.title.errors %}
+            <div class="text-red-600 text-sm flex items-center mt-1">
+              <i class="fas fa-exclamation-circle mr-1"></i>
+              {{ form.title.errors.0 }}
+            </div>
+          {% endif %}
+        </div>
+
+        <!-- Description -->
+        <div>
+          <label for="{{ form.description.id_for_label }}" class="block text-sm font-semibold text-gray-700 mb-2">
+            <i class="fas fa-align-left mr-2 text-primary"></i>Description
+          </label>
+          <textarea name="{{ form.description.name }}"
+                    id="{{ form.description.id_for_label }}"
+                    rows="4"
+                    class="w-full px-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-primary focus:border-transparent transition-all duration-200"
+                    placeholder="Describe the event..."
+                    required>{{ form.description.value|default:'' }}</textarea>
+          {% if form.description.errors %}
+            <div class="text-red-600 text-sm flex items-center mt-1">
+              <i class="fas fa-exclamation-circle mr-1"></i>
+              {{ form.description.errors.0 }}
+            </div>
+          {% endif %}
+        </div>
+
+        <!-- Event Date and Location -->
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+          <div>
+            <label for="{{ form.event_date.id_for_label }}" class="block text-sm font-semibold text-gray-700 mb-2">
+              <i class="fas fa-calendar mr-2 text-primary"></i>Event Date & Time
+            </label>
+            <input type="datetime-local" 
+                   name="{{ form.event_date.name }}" 
+                   id="{{ form.event_date.id_for_label }}"
+                   value="{{ form.event_date.value|default:'' }}"
+                   class="w-full px-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-primary focus:border-transparent transition-all duration-200"
+                   required>
+            {% if form.event_date.errors %}
+              <div class="text-red-600 text-sm flex items-center mt-1">
+                <i class="fas fa-exclamation-circle mr-1"></i>
+                {{ form.event_date.errors.0 }}
+              </div>
+            {% endif %}
+          </div>
+
+          <div>
+            <label for="{{ form.location.id_for_label }}" class="block text-sm font-semibold text-gray-700 mb-2">
+              <i class="fas fa-map-marker-alt mr-2 text-primary"></i>Location
+            </label>
+            <input type="text" 
+                   name="{{ form.location.name }}" 
+                   id="{{ form.location.id_for_label }}"
+                   value="{{ form.location.value|default:'' }}"
+                   class="w-full px-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-primary focus:border-transparent transition-all duration-200"
+                   placeholder="Event location..."
+                   required>
+            {% if form.location.errors %}
+              <div class="text-red-600 text-sm flex items-center mt-1">
+                <i class="fas fa-exclamation-circle mr-1"></i>
+                {{ form.location.errors.0 }}
+              </div>
+            {% endif %}
+          </div>
+        </div>
+
+        <!-- Image and Link -->
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+          <div>
+            <label for="{{ form.image.id_for_label }}" class="block text-sm font-semibold text-gray-700 mb-2">
+              <i class="fas fa-image mr-2 text-primary"></i>Event Image
+            </label>
+            <input type="file" 
+                   name="{{ form.image.name }}" 
+                   id="{{ form.image.id_for_label }}"
+                   accept="image/*"
+                   class="w-full px-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-primary focus:border-transparent transition-all duration-200">
+            {% if form.image.errors %}
+              <div class="text-red-600 text-sm flex items-center mt-1">
+                <i class="fas fa-exclamation-circle mr-1"></i>
+                {{ form.image.errors.0 }}
+              </div>
+            {% endif %}
+          </div>
+
+          <div>
+            <label for="{{ form.link_url.id_for_label }}" class="block text-sm font-semibold text-gray-700 mb-2">
+              <i class="fas fa-link mr-2 text-primary"></i>Event Link (Optional)
+            </label>
+            <input type="url" 
+                   name="{{ form.link_url.name }}" 
+                   id="{{ form.link_url.id_for_label }}"
+                   value="{{ form.link_url.value|default:'' }}"
+                   class="w-full px-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-primary focus:border-transparent transition-all duration-200"
+                   placeholder="https://example.com">
+            {% if form.link_url.errors %}
+              <div class="text-red-600 text-sm flex items-center mt-1">
+                <i class="fas fa-exclamation-circle mr-1"></i>
+                {{ form.link_url.errors.0 }}
+              </div>
+            {% endif %}
+          </div>
+        </div>
+
+        <!-- Priority and End Date -->
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+          <div>
+            <label for="{{ form.priority.id_for_label }}" class="block text-sm font-semibold text-gray-700 mb-2">
+              <i class="fas fa-star mr-2 text-primary"></i>Priority (0-100)
+            </label>
+            <input type="number" 
+                   name="{{ form.priority.name }}" 
+                   id="{{ form.priority.id_for_label }}"
+                   value="{{ form.priority.value|default:'0' }}"
+                   min="0" 
+                   max="100"
+                   class="w-full px-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-primary focus:border-transparent transition-all duration-200">
+            {% if form.priority.errors %}
+              <div class="text-red-600 text-sm flex items-center mt-1">
+                <i class="fas fa-exclamation-circle mr-1"></i>
+                {{ form.priority.errors.0 }}
+              </div>
+            {% endif %}
+          </div>
+
+          <div>
+            <label for="{{ form.end_date.id_for_label }}" class="block text-sm font-semibold text-gray-700 mb-2">
+              <i class="fas fa-calendar-times mr-2 text-primary"></i>End Date & Time
+            </label>
+            <input type="datetime-local" 
+                   name="{{ form.end_date.name }}" 
+                   id="{{ form.end_date.id_for_label }}"
+                   value="{{ form.end_date.value|default:'' }}"
+                   class="w-full px-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-primary focus:border-transparent transition-all duration-200"
+                   required>
+            {% if form.end_date.errors %}
+              <div class="text-red-600 text-sm flex items-center mt-1">
+                <i class="fas fa-exclamation-circle mr-1"></i>
+                {{ form.end_date.errors.0 }}
+              </div>
+            {% endif %}
+          </div>
+        </div>
+
+        <!-- Cost -->
+        <div>
+          <label for="{{ form.cost.id_for_label }}" class="block text-sm font-semibold text-gray-700 mb-2">
+            <i class="fas fa-dollar-sign mr-2 text-primary"></i>Cost (Optional)
+          </label>
+          <input type="number" 
+                 name="{{ form.cost.name }}" 
+                 id="{{ form.cost.id_for_label }}"
+                 value="{{ form.cost.value|default:'0' }}"
+                 step="0.01" 
+                 min="0"
+                 class="w-full px-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-primary focus:border-transparent transition-all duration-200"
+                 placeholder="0.00">
+          {% if form.cost.errors %}
+            <div class="text-red-600 text-sm flex items-center mt-1">
+              <i class="fas fa-exclamation-circle mr-1"></i>
+              {{ form.cost.errors.0 }}
+            </div>
+          {% endif %}
+        </div>
+
+        <!-- Form Actions -->
+        <div class="flex justify-end space-x-4 pt-6 border-t border-gray-200">
+          <a href="{% url 'bids:upcoming_events' %}" 
+             class="px-6 py-3 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 transition-colors">
+            <i class="fas fa-times mr-2"></i>Cancel
+          </a>
+          <button type="submit" 
+                  class="px-6 py-3 bg-primary text-white rounded-lg hover:bg-purple-700 transition-colors">
+            <i class="fas fa-plus mr-2"></i>Add Event
+          </button>
+        </div>
+      </form>
+    </div>
+  </div>
+</div>
+{% endblock %}
