@@ -87,6 +87,15 @@ class ProfileSetupForm(forms.ModelForm):
             'bio': forms.Textarea(attrs={'rows': 4}),
         }
     
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        # Ensure we don't overwrite required fields that aren't in this form
+        if self.instance and self.instance.pk:
+            # Preserve existing gender and user_type
+            self.fields['bio'].initial = self.instance.bio
+            self.fields['city'].initial = self.instance.city
+            self.fields['location'].initial = self.instance.location
+    
     def clean_profile_picture(self):
         picture = self.cleaned_data.get('profile_picture')
         if picture:
@@ -99,6 +108,22 @@ class ProfileSetupForm(forms.ModelForm):
                 raise forms.ValidationError('File must be an image')
         
         return picture
+    
+    def save(self, commit=True):
+        # Only update the fields that are in this form
+        user = self.instance
+        if self.cleaned_data.get('bio') is not None:
+            user.bio = self.cleaned_data['bio']
+        if self.cleaned_data.get('profile_picture') is not None:
+            user.profile_picture = self.cleaned_data['profile_picture']
+        if self.cleaned_data.get('city') is not None:
+            user.city = self.cleaned_data['city']
+        if self.cleaned_data.get('location') is not None:
+            user.location = self.cleaned_data['location']
+        
+        if commit:
+            user.save()
+        return user
 
 class UserProfileForm(forms.ModelForm):
     """Extended user profile form"""

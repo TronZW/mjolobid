@@ -80,39 +80,47 @@ def user_logout(request):
 @login_required
 def profile_setup(request):
     """Profile setup after registration"""
-    if request.method == 'POST':
-        # Debug: Check if files are being received
-        if request.FILES:
-            messages.info(request, f'Files received: {list(request.FILES.keys())}')
-            for key, file in request.FILES.items():
-                messages.info(request, f'File {key}: {file.name} ({file.size} bytes)')
-        else:
-            messages.info(request, 'No files received in request')
-            
-        # Debug: Check POST data
-        messages.info(request, f'POST data keys: {list(request.POST.keys())}')
-        
-        form = ProfileSetupForm(request.POST, request.FILES, instance=request.user)
-        if form.is_valid():
-            user = form.save()
-            # Debug: Check if profile picture was saved
-            if user.profile_picture:
-                messages.success(request, f'Profile updated successfully! Profile picture: {user.profile_picture.name}')
-                messages.info(request, f'Profile picture URL: {user.profile_picture.url}')
+    try:
+        if request.method == 'POST':
+            # Debug: Check if files are being received
+            if request.FILES:
+                messages.info(request, f'Files received: {list(request.FILES.keys())}')
+                for key, file in request.FILES.items():
+                    messages.info(request, f'File {key}: {file.name} ({file.size} bytes)')
             else:
-                messages.success(request, 'Profile updated successfully!')
-            profile_url = f"{reverse('accounts:profile')}?setup=done"
-            return redirect(profile_url)
+                messages.info(request, 'No files received in request')
+                
+            # Debug: Check POST data
+            messages.info(request, f'POST data keys: {list(request.POST.keys())}')
+            
+            form = ProfileSetupForm(request.POST, request.FILES, instance=request.user)
+            if form.is_valid():
+                user = form.save()
+                # Debug: Check if profile picture was saved
+                if user.profile_picture:
+                    messages.success(request, f'Profile updated successfully! Profile picture: {user.profile_picture.name}')
+                    messages.info(request, f'Profile picture URL: {user.profile_picture.url}')
+                else:
+                    messages.success(request, 'Profile updated successfully!')
+                profile_url = f"{reverse('accounts:profile')}?setup=done"
+                return redirect(profile_url)
+            else:
+                # Debug: Show form errors
+                messages.error(request, f'Form is not valid. Errors: {form.errors}')
+                for field, errors in form.errors.items():
+                    for error in errors:
+                        messages.error(request, f'{field}: {error}')
         else:
-            # Debug: Show form errors
-            messages.error(request, f'Form is not valid. Errors: {form.errors}')
-            for field, errors in form.errors.items():
-                for error in errors:
-                    messages.error(request, f'{field}: {error}')
-    else:
-        form = ProfileSetupForm(instance=request.user)
+            form = ProfileSetupForm(instance=request.user)
+        
+        return render(request, 'accounts/profile_setup.html', {'form': form})
     
-    return render(request, 'accounts/profile_setup.html', {'form': form})
+    except Exception as e:
+        messages.error(request, f'An error occurred: {str(e)}')
+        import traceback
+        messages.error(request, f'Traceback: {traceback.format_exc()}')
+        form = ProfileSetupForm(instance=request.user)
+        return render(request, 'accounts/profile_setup.html', {'form': form})
 
 
 @login_required
