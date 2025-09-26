@@ -112,17 +112,25 @@ class ProfileSetupForm(forms.ModelForm):
     def save(self, commit=True):
         # Only update the fields that are in this form
         user = self.instance
+        print(f"DEBUG: Saving user {user.username}")
+        print(f"DEBUG: Cleaned data: {self.cleaned_data}")
+        
         if self.cleaned_data.get('bio') is not None:
             user.bio = self.cleaned_data['bio']
+            print(f"DEBUG: Setting bio to: {user.bio}")
         if self.cleaned_data.get('profile_picture') is not None:
             user.profile_picture = self.cleaned_data['profile_picture']
+            print(f"DEBUG: Setting profile_picture to: {user.profile_picture}")
         if self.cleaned_data.get('city') is not None:
             user.city = self.cleaned_data['city']
+            print(f"DEBUG: Setting city to: {user.city}")
         if self.cleaned_data.get('location') is not None:
             user.location = self.cleaned_data['location']
+            print(f"DEBUG: Setting location to: {user.location}")
         
         if commit:
             user.save()
+            print(f"DEBUG: User saved successfully")
         return user
 
 class UserProfileForm(forms.ModelForm):

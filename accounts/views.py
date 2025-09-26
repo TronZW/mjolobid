@@ -81,6 +81,12 @@ def user_logout(request):
 def profile_setup(request):
     """Profile setup after registration"""
     try:
+        # Debug: Check current user data
+        messages.info(request, f'Current user: {request.user.username}')
+        messages.info(request, f'User gender: {request.user.gender}')
+        messages.info(request, f'User type: {request.user.user_type}')
+        messages.info(request, f'User city: {request.user.city}')
+        
         if request.method == 'POST':
             # Debug: Check if files are being received
             if request.FILES:
@@ -92,6 +98,8 @@ def profile_setup(request):
                 
             # Debug: Check POST data
             messages.info(request, f'POST data keys: {list(request.POST.keys())}')
+            for key, value in request.POST.items():
+                messages.info(request, f'POST {key}: {value}')
             
             form = ProfileSetupForm(request.POST, request.FILES, instance=request.user)
             if form.is_valid():
