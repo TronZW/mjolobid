@@ -84,21 +84,28 @@ def profile_setup(request):
         # Debug: Check if files are being received
         if request.FILES:
             messages.info(request, f'Files received: {list(request.FILES.keys())}')
+            for key, file in request.FILES.items():
+                messages.info(request, f'File {key}: {file.name} ({file.size} bytes)')
         else:
             messages.info(request, 'No files received in request')
             
+        # Debug: Check POST data
+        messages.info(request, f'POST data keys: {list(request.POST.keys())}')
+        
         form = ProfileSetupForm(request.POST, request.FILES, instance=request.user)
         if form.is_valid():
             user = form.save()
             # Debug: Check if profile picture was saved
             if user.profile_picture:
                 messages.success(request, f'Profile updated successfully! Profile picture: {user.profile_picture.name}')
+                messages.info(request, f'Profile picture URL: {user.profile_picture.url}')
             else:
                 messages.success(request, 'Profile updated successfully!')
             profile_url = f"{reverse('accounts:profile')}?setup=done"
             return redirect(profile_url)
         else:
             # Debug: Show form errors
+            messages.error(request, f'Form is not valid. Errors: {form.errors}')
             for field, errors in form.errors.items():
                 for error in errors:
                     messages.error(request, f'{field}: {error}')
@@ -143,11 +150,47 @@ def test_media(request):
                     'url': f"{settings.MEDIA_URL}profile_pics/{file.name}"
                 })
     
+    # Also check current user's profile picture
+    user_profile_pic = None
+    if request.user.is_authenticated:
+        if request.user.profile_picture:
+            user_profile_pic = {
+                'name': request.user.profile_picture.name,
+                'url': request.user.profile_picture.url,
+                'path': str(request.user.profile_picture.path) if request.user.profile_picture.path else None
+            }
+    
     return JsonResponse({
         'media_root': str(settings.MEDIA_ROOT),
         'media_url': settings.MEDIA_URL,
         'files': media_files,
-        'debug': settings.DEBUG
+        'user_profile_pic': user_profile_pic,
+        'debug': settings.DEBUG,
+        'authenticated': request.user.is_authenticated
+    })
+
+
+def test_upload(request):
+    """Test view to manually test file upload"""
+    if request.method == 'POST' and request.FILES:
+        # Get the first file
+        file = list(request.FILES.values())[0]
+        
+        # Save it to the user's profile
+        if request.user.is_authenticated:
+            request.user.profile_picture = file
+            request.user.save()
+            
+            return JsonResponse({
+                'success': True,
+                'message': 'File uploaded successfully',
+                'filename': file.name,
+                'profile_picture_url': request.user.profile_picture.url if request.user.profile_picture else None
+            })
+    
+    return JsonResponse({
+        'success': False,
+        'message': 'No file uploaded or user not authenticated'
     })
 
 
