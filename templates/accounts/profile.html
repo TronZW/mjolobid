@@ -23,17 +23,9 @@
                 <div class="flex items-center mb-6">
                     {% if user.profile_picture %}
                         <img src="{{ user.profile_picture.url }}" alt="{{ user.username }}" class="w-20 h-20 rounded-full object-cover mr-4">
-                        <!-- Debug info -->
-                        <div class="text-xs text-gray-500 ml-2">
-                            Debug: {{ user.profile_picture.name }}
-                        </div>
                     {% else %}
                         <div class="w-20 h-20 bg-primary rounded-full flex items-center justify-center text-white text-2xl font-bold mr-4">
                             {{ user.username|first|upper }}
-                        </div>
-                        <!-- Debug info -->
-                        <div class="text-xs text-gray-500 ml-2">
-                            Debug: No profile picture
                         </div>
                     {% endif %}
                     <div>
