@@ -26,9 +26,6 @@ INSTALLED_APPS = [
     'django.contrib.staticfiles',
     'rest_framework',
     'corsheaders',
-    'storages',
-    'cloudinary_storage',
-    'cloudinary',
     'accounts',
     'bids',
     'payments',
@@ -106,38 +103,18 @@ STATIC_URL = '/static/'
 STATIC_ROOT = os.path.join(BASE_DIR, 'staticfiles')
 # STATICFILES_DIRS = [os.path.join(BASE_DIR, 'static')]  # Commented out - directory doesn't exist
 
-# Media files - Use cloud storage for production
-USE_S3 = config('USE_S3', default='False', cast=bool)
-USE_CLOUDINARY = config('USE_CLOUDINARY', default='False', cast=bool)
+# Media files - Simple solution for Render
+# Option 1: Use Imgur (free, no complex setup)
+USE_IMGUR = config('USE_IMGUR', default='False', cast=bool)
+IMGUR_CLIENT_ID = config('IMGUR_CLIENT_ID', default='')
 
-if USE_CLOUDINARY:
-    # Cloudinary settings
-    CLOUDINARY_STORAGE = {
-        'CLOUD_NAME': config('CLOUDINARY_CLOUD_NAME'),
-        'API_KEY': config('CLOUDINARY_API_KEY'),
-        'API_SECRET': config('CLOUDINARY_API_SECRET'),
-    }
-    DEFAULT_FILE_STORAGE = 'cloudinary_storage.storage.MediaCloudinaryStorage'
+if USE_IMGUR and IMGUR_CLIENT_ID:
+    # Use custom Imgur storage
+    DEFAULT_FILE_STORAGE = 'accounts.storage.ImgurStorage'
     MEDIA_URL = '/media/'
     MEDIA_ROOT = ''
-elif USE_S3:
-    # AWS S3 settings
-    AWS_ACCESS_KEY_ID = config('AWS_ACCESS_KEY_ID')
-    AWS_SECRET_ACCESS_KEY = config('AWS_SECRET_ACCESS_KEY')
-    AWS_STORAGE_BUCKET_NAME = config('AWS_STORAGE_BUCKET_NAME')
-    AWS_S3_REGION_NAME = config('AWS_S3_REGION_NAME', default='us-east-1')
-    AWS_S3_CUSTOM_DOMAIN = f'{AWS_STORAGE_BUCKET_NAME}.s3.amazonaws.com'
-    AWS_DEFAULT_ACL = 'public-read'
-    AWS_S3_OBJECT_PARAMETERS = {
-        'CacheControl': 'max-age=86400',
-    }
-    
-    # Media files
-    DEFAULT_FILE_STORAGE = 'storages.backends.s3boto3.S3Boto3Storage'
-    MEDIA_URL = f'https://{AWS_S3_CUSTOM_DOMAIN}/media/'
-    MEDIA_ROOT = ''
 else:
-    # Local media files (for development)
+    # Local media files (will be lost on restart, but works for testing)
     MEDIA_URL = '/media/'
     MEDIA_ROOT = os.path.join(BASE_DIR, 'media')
 
