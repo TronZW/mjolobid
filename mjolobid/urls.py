@@ -34,6 +34,9 @@ urlpatterns = [
     path('', home, name='home'),  # Landing page at root URL
 ]
 
+# Serve media files (for testing - files will be lost on restart)
+urlpatterns += static(settings.MEDIA_URL, document_root=settings.MEDIA_ROOT)
+
+# Serve static files in development
 if settings.DEBUG:
-    urlpatterns += static(settings.MEDIA_URL, document_root=settings.MEDIA_ROOT)
     urlpatterns += static(settings.STATIC_URL, document_root=settings.STATIC_ROOT)

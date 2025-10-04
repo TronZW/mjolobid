@@ -103,20 +103,9 @@ STATIC_URL = '/static/'
 STATIC_ROOT = os.path.join(BASE_DIR, 'staticfiles')
 # STATICFILES_DIRS = [os.path.join(BASE_DIR, 'static')]  # Commented out - directory doesn't exist
 
-# Media files - Simple solution for Render
-# Option 1: Use Imgur (free, no complex setup)
-USE_IMGUR = config('USE_IMGUR', default='False', cast=bool)
-IMGUR_CLIENT_ID = config('IMGUR_CLIENT_ID', default='')
-
-if USE_IMGUR and IMGUR_CLIENT_ID:
-    # Use custom Imgur storage
-    DEFAULT_FILE_STORAGE = 'accounts.storage.ImgurStorage'
-    MEDIA_URL = '/media/'
-    MEDIA_ROOT = ''
-else:
-    # Local media files (will be lost on restart, but works for testing)
-    MEDIA_URL = '/media/'
-    MEDIA_ROOT = os.path.join(BASE_DIR, 'media')
+# Media files - Local storage for testing (files will be lost on restart)
+MEDIA_URL = '/media/'
+MEDIA_ROOT = os.path.join(BASE_DIR, 'media')
 
 # Default primary key field type
 DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
