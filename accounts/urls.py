@@ -17,5 +17,4 @@ urlpatterns = [
     path('rate-user/<int:user_id>/', views.rate_user, name='rate_user'),
     path('test-media/', views.test_media, name='test_media'),
     path('test-upload/', views.test_upload, name='test_upload'),
-    path('simple-profile-setup/', views.simple_profile_setup, name='simple_profile_setup'),
 ]

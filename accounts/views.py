@@ -81,28 +81,14 @@ def user_logout(request):
 def profile_setup(request):
     """Profile setup after registration"""
     if request.method == 'POST':
-        # Debug: Check if files are being received
-        if request.FILES:
-            messages.info(request, f'Files received: {list(request.FILES.keys())}')
-            for key, file in request.FILES.items():
-                messages.info(request, f'File {key}: {file.name} ({file.size} bytes)')
-        else:
-            messages.info(request, 'No files received in request')
-            
         form = ProfileSetupForm(request.POST, request.FILES, instance=request.user)
         if form.is_valid():
             user = form.save()
-            # Debug: Check if profile picture was saved
-            if user.profile_picture:
-                messages.success(request, f'Profile updated successfully! Profile picture: {user.profile_picture.name}')
-                messages.info(request, f'Profile picture URL: {user.profile_picture.url}')
-            else:
-                messages.success(request, 'Profile updated successfully!')
+            messages.success(request, 'Profile updated successfully!')
             profile_url = f"{reverse('accounts:profile')}?setup=done"
             return redirect(profile_url)
         else:
             # Show form errors
-            messages.error(request, f'Form is not valid. Errors: {form.errors}')
             for field, errors in form.errors.items():
                 for error in errors:
                     messages.error(request, f'{field}: {error}')
@@ -192,24 +178,6 @@ def test_upload(request):
     })
 
 
-def simple_profile_setup(request):
-    """Simple profile setup form for testing"""
-    if request.method == 'POST':
-        # Debug: Check what's in the request
-        print(f"DEBUG: POST data: {request.POST}")
-        print(f"DEBUG: FILES data: {request.FILES}")
-        
-        form = ProfileSetupForm(request.POST, request.FILES, instance=request.user)
-        if form.is_valid():
-            user = form.save()
-            messages.success(request, 'Profile updated successfully!')
-            return redirect('accounts:profile')
-        else:
-            messages.error(request, f'Form errors: {form.errors}')
-    else:
-        form = ProfileSetupForm(instance=request.user)
-    
-    return render(request, 'accounts/simple_profile_setup.html', {'form': form})
 
 
 @login_required

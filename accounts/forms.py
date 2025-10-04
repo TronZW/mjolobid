@@ -103,41 +103,28 @@ class ProfileSetupForm(forms.ModelForm):
     
     def clean_profile_picture(self):
         picture = self.cleaned_data.get('profile_picture')
-        print(f"DEBUG: Cleaning profile picture: {picture}")
-        if picture:
-            print(f"DEBUG: Picture type: {type(picture)}")
-            print(f"DEBUG: Picture name: {getattr(picture, 'name', 'No name')}")
-            print(f"DEBUG: Picture size: {getattr(picture, 'size', 'No size')}")
-            if hasattr(picture, 'content_type'):
-                print(f"DEBUG: Picture has content_type: {picture.content_type}")
-                # Check file size (max 5MB)
-                if picture.size > 5 * 1024 * 1024:
-                    raise forms.ValidationError('Image file too large (max 5MB)')
-                
-                # Check file type
-                if not picture.content_type.startswith('image/'):
-                    raise forms.ValidationError('File must be an image')
-            else:
-                print(f"DEBUG: Picture exists but no content_type: {type(picture)}")
+        if picture and hasattr(picture, 'content_type'):
+            # Check file size (max 5MB)
+            if picture.size > 5 * 1024 * 1024:
+                raise forms.ValidationError('Image file too large (max 5MB)')
+            
+            # Check file type
+            if not picture.content_type.startswith('image/'):
+                raise forms.ValidationError('File must be an image')
         
         return picture
     
     def save(self, commit=True):
         # Only update the fields that are in this form
         user = self.instance
-        print(f"DEBUG: Saving user {user.username}")
-        print(f"DEBUG: Cleaned data: {self.cleaned_data}")
-        
         user.bio = self.cleaned_data.get('bio', '')
         if self.cleaned_data.get('profile_picture'):
-            print(f"DEBUG: Setting profile picture: {self.cleaned_data['profile_picture']}")
             user.profile_picture = self.cleaned_data['profile_picture']
         user.city = self.cleaned_data.get('city', user.city)
         user.location = self.cleaned_data.get('location', '')
         
         if commit:
             user.save()
-            print(f"DEBUG: User saved. Profile picture: {user.profile_picture}")
         return user
 
 class UserProfileForm(forms.ModelForm):
