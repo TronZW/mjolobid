@@ -69,9 +69,9 @@
                             {% for woman in viewed_women %}
                                 <div class="flex items-center space-x-4 p-4 bg-gray-50 rounded-lg hover:bg-gray-100 transition-colors">
                                     <div class="flex-shrink-0">
-                                        {% if woman.userprofile.profile_picture %}
-                                            <img src="{{ woman.userprofile.profile_picture.url }}" 
-                                                 alt="{{ woman.first_name }}" 
+                                        {% if woman.profile_picture %}
+                                            <img src="{{ woman.profile_picture.url }}" 
+                                                 alt="{{ woman.username }}" 
                                                  class="w-12 h-12 rounded-full object-cover">
                                         {% else %}
                                             <div class="w-12 h-12 bg-primary rounded-full flex items-center justify-center">
@@ -81,11 +81,15 @@
                                     </div>
                                     <div class="flex-1 min-w-0">
                                         <p class="text-sm font-medium text-gray-900">
-                                            {{ woman.first_name }} {{ woman.last_name }}
+                                            {% if woman.first_name or woman.last_name %}
+                                                {{ woman.first_name }} {{ woman.last_name }}
+                                            {% else %}
+                                                {{ woman.username }}
+                                            {% endif %}
                                         </p>
                                         <p class="text-sm text-gray-500">
                                             <i class="fas fa-map-marker-alt mr-1"></i>
-                                            {{ woman.userprofile.city|default:"Location not set" }}
+                                            {{ woman.city|default:"Location not set" }}
                                         </p>
                                     </div>
                                     <div class="flex-shrink-0">
@@ -105,6 +109,47 @@
                 </div>
             </div>
 
+            <!-- Pending Acceptances - Choose Your Match -->
+            {% if bids_with_pending %}
+            <div class="bg-white rounded-lg shadow-lg">
+                <div class="p-6 border-b border-gray-200">
+                    <h2 class="text-xl font-semibold text-gray-900 flex items-center">
+                        <i class="fas fa-users mr-2 text-blue-600"></i>
+                        Choose Your Match
+                    </h2>
+                    <p class="text-gray-600 text-sm mt-1">You have pending acceptances - choose who you want to go with!</p>
+                </div>
+                <div class="p-6">
+                    <div class="space-y-4">
+                        {% for bid in bids_with_pending %}
+                            <div class="border border-blue-200 rounded-lg p-4 bg-blue-50">
+                                <div class="flex items-center justify-between mb-3">
+                                    <h3 class="font-semibold text-gray-900">{{ bid.title }}</h3>
+                                    <span class="bg-blue-100 text-blue-800 px-2 py-1 rounded-full text-xs font-medium">
+                                        {{ bid.acceptances.count }} acceptance{{ bid.acceptances.count|pluralize }}
+                                    </span>
+                                </div>
+                                <p class="text-sm text-gray-600 mb-3">{{ bid.description|truncatewords:15 }}</p>
+                                <div class="flex items-center justify-between">
+                                    <div class="text-sm text-gray-500">
+                                        <i class="fas fa-calendar mr-1"></i>
+                                        {{ bid.event_date|date:"M d, Y" }}
+                                        <i class="fas fa-dollar-sign ml-3 mr-1"></i>
+                                        ${{ bid.bid_amount }}
+                                    </div>
+                                    <a href="{% url 'bids:choose_acceptance' bid.id %}" 
+                                       class="bg-blue-600 text-white px-4 py-2 rounded-lg text-sm font-medium hover:bg-blue-700 transition-colors">
+                                        <i class="fas fa-hand-pointer mr-1"></i>
+                                        Choose Match
+                                    </a>
+                                </div>
+                            </div>
+                        {% endfor %}
+                    </div>
+                </div>
+            </div>
+            {% endif %}
+
             <!-- Women Who Accepted Your Bids -->
             <div class="bg-white rounded-lg shadow-lg">
                 <div class="p-6 border-b border-gray-200">
@@ -120,9 +165,9 @@
                             {% for woman in accepted_women %}
                                 <div class="flex items-center space-x-4 p-4 bg-gray-50 rounded-lg hover:bg-gray-100 transition-colors">
                                     <div class="flex-shrink-0">
-                                        {% if woman.userprofile.profile_picture %}
-                                            <img src="{{ woman.userprofile.profile_picture.url }}" 
-                                                 alt="{{ woman.first_name }}" 
+                                        {% if woman.profile_picture %}
+                                            <img src="{{ woman.profile_picture.url }}" 
+                                                 alt="{{ woman.username }}" 
                                                  class="w-12 h-12 rounded-full object-cover">
                                         {% else %}
                                             <div class="w-12 h-12 bg-primary rounded-full flex items-center justify-center">
@@ -132,11 +177,15 @@
                                     </div>
                                     <div class="flex-1 min-w-0">
                                         <p class="text-sm font-medium text-gray-900">
-                                            {{ woman.first_name }} {{ woman.last_name }}
+                                            {% if woman.first_name or woman.last_name %}
+                                                {{ woman.first_name }} {{ woman.last_name }}
+                                            {% else %}
+                                                {{ woman.username }}
+                                            {% endif %}
                                         </p>
                                         <p class="text-sm text-gray-500">
                                             <i class="fas fa-map-marker-alt mr-1"></i>
-                                            {{ woman.userprofile.city|default:"Location not set" }}
+                                            {{ woman.city|default:"Location not set" }}
                                         </p>
                                     </div>
                                     <div class="flex-shrink-0">

@@ -12,6 +12,7 @@ urlpatterns = [
     path('bid/<int:bid_id>/', views.bid_detail, name='bid_detail'),
     path('bid/<int:bid_id>/edit/', views.edit_bid, name='edit_bid'),
     path('accept/<int:bid_id>/', views.accept_bid, name='accept_bid'),
+    path('choose/<int:bid_id>/', views.choose_acceptance, name='choose_acceptance'),
     path('my-bids/', views.my_bids, name='my_bids'),
     path('post-bid/', views.post_bid, name='post_bid'),
     path('accepted-bids/', views.my_accepted_bids, name='my_accepted_bids'),

@@ -106,6 +106,26 @@ class Bid(models.Model):
         r = 6371  # Earth's radius in kilometers
         
         return round(c * r, 1)
+    
+    @property
+    def pending_acceptances(self):
+        """Get all pending acceptances for this bid"""
+        return self.acceptances.filter(status='PENDING')
+    
+    @property
+    def selected_acceptance(self):
+        """Get the selected acceptance for this bid"""
+        return self.acceptances.filter(status='SELECTED').first()
+    
+    @property
+    def has_pending_acceptances(self):
+        """Check if bid has pending acceptances"""
+        return self.pending_acceptances.exists()
+    
+    @property
+    def acceptance_count(self):
+        """Get total number of acceptances"""
+        return self.acceptances.count()
 
 
 class BidImage(models.Model):
@@ -176,6 +196,32 @@ class BidView(models.Model):
     
     def __str__(self):
         return f"{self.viewer.username} viewed {self.bid.title}"
+
+
+class BidAcceptance(models.Model):
+    """Track multiple acceptances for a bid"""
+    
+    STATUS_CHOICES = [
+        ('PENDING', 'Pending'),  # Girl accepted, waiting for male to choose
+        ('SELECTED', 'Selected'),  # Male chose this girl
+        ('REJECTED', 'Rejected'),  # Male chose someone else
+        ('WITHDRAWN', 'Withdrawn'),  # Girl withdrew her acceptance
+    ]
+    
+    bid = models.ForeignKey(Bid, on_delete=models.CASCADE, related_name='acceptances')
+    accepted_by = models.ForeignKey(User, on_delete=models.CASCADE, related_name='bid_acceptances')
+    accepted_at = models.DateTimeField(auto_now_add=True)
+    status = models.CharField(max_length=20, choices=STATUS_CHOICES, default='PENDING')
+    message = models.TextField(max_length=500, blank=True)  # Optional message from girl
+    
+    class Meta:
+        unique_together = ('bid', 'accepted_by')
+        ordering = ['-accepted_at']
+        verbose_name = 'Bid Acceptance'
+        verbose_name_plural = 'Bid Acceptances'
+    
+    def __str__(self):
+        return f"{self.accepted_by.username} accepted {self.bid.title} ({self.status})"
 
 
 class EventPromotion(models.Model):

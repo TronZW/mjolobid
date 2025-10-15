@@ -60,8 +60,9 @@
                             <i class="fas fa-chart-line mr-1"></i>Dashboard
                         </a>
                         {% endif %}
-                        <a href="{% url 'messaging:conversation_list' %}" class="text-gray-700 hover:text-primary px-3 py-2 rounded-md text-sm font-medium">
+                        <a href="{% url 'messaging:conversation_list' %}" class="relative text-gray-700 hover:text-primary px-3 py-2 rounded-md text-sm font-medium">
                             <i class="fas fa-comments mr-1"></i>Messages
+                            <span id="nav-unread-badge" class="hidden absolute -top-1 -right-1 bg-red-600 text-white text-xs rounded-full px-1.5 py-0.5"></span>
                         </a>
                         {% if user.user_type == 'M' and not user.is_staff and not user.is_superuser %}
                             <a href="{% url 'bids:my_bids' %}" class="text-gray-700 hover:text-primary px-3 py-2 rounded-md text-sm font-medium">
@@ -115,8 +116,9 @@
                     <i class="fas fa-chart-line mr-2"></i>Dashboard
                 </a>
                 {% endif %}
-                <a href="{% url 'messaging:conversation_list' %}" class="block text-gray-700 hover:text-primary px-3 py-2 rounded-md text-base font-medium">
+                <a href="{% url 'messaging:conversation_list' %}" class="relative block text-gray-700 hover:text-primary px-3 py-2 rounded-md text-base font-medium">
                     <i class="fas fa-comments mr-2"></i>Messages
+                    <span id="mobile-nav-unread-badge" class="hidden absolute top-1 right-3 bg-red-600 text-white text-xs rounded-full px-1.5 py-0.5"></span>
                 </a>
                 {% if user.user_type == 'M' and not user.is_staff and not user.is_superuser %}
                     <a href="{% url 'bids:my_bids' %}" class="block text-gray-700 hover:text-primary px-3 py-2 rounded-md text-base font-medium">
@@ -257,6 +259,41 @@
                     this.innerHTML = isHidden ? '<i class="fas fa-times text-xl"></i>' : '<i class="fas fa-bars text-xl"></i>';
                 });
             }
+
+            // Unread message badge updater
+            async function updateUnreadBadge() {
+                try {
+                    const resp = await fetch('{% url 'messaging:unread_count' %}', { credentials: 'same-origin' });
+                    if (!resp.ok) return;
+                    const data = await resp.json();
+                    const count = data.count || 0;
+                    const badge = document.getElementById('nav-unread-badge');
+                    const mobileBadge = document.getElementById('mobile-nav-unread-badge');
+                    if (badge) {
+                        if (count > 0) {
+                            badge.textContent = count;
+                            badge.classList.remove('hidden');
+                        } else {
+                            badge.classList.add('hidden');
+                        }
+                    }
+                    if (mobileBadge) {
+                        if (count > 0) {
+                            mobileBadge.textContent = count;
+                            mobileBadge.classList.remove('hidden');
+                        } else {
+                            mobileBadge.classList.add('hidden');
+                        }
+                    }
+                } catch (e) {
+                    // ignore
+                }
+            }
+
+            {% if user.is_authenticated %}
+            updateUnreadBadge();
+            setInterval(updateUnreadBadge, 10000); // poll every 10s
+            {% endif %}
         });
 
         // WebSocket connection for real-time notifications

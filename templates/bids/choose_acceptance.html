@@ -1,0 +1,141 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}Choose Acceptance - MjoloBid{% endblock %}
+
+{% block content %}
+<div class="min-h-screen bg-gray-50 py-8">
+    <div class="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8">
+        <!-- Header -->
+        <div class="text-center mb-8">
+            <h1 class="text-3xl font-bold text-gray-900 mb-2">Choose Your Match</h1>
+            <p class="text-gray-600">Select from the women who accepted your bid</p>
+        </div>
+
+        <!-- Bid Info Card -->
+        <div class="bg-white rounded-lg shadow-lg p-6 mb-8">
+            <div class="flex items-center justify-between mb-4">
+                <h2 class="text-xl font-semibold text-gray-900">{{ bid.title }}</h2>
+                <span class="bg-green-100 text-green-800 px-3 py-1 rounded-full text-sm font-medium">
+                    ${{ bid.bid_amount }}
+                </span>
+            </div>
+            <p class="text-gray-600 mb-4">{{ bid.description }}</p>
+            <div class="flex items-center text-sm text-gray-500">
+                <i class="fas fa-calendar mr-2"></i>
+                <span>{{ bid.event_date|date:"M d, Y g:i A" }}</span>
+                <i class="fas fa-map-marker-alt ml-4 mr-2"></i>
+                <span>{{ bid.event_location }}</span>
+            </div>
+        </div>
+
+        <!-- Acceptances List -->
+        <div class="space-y-6">
+            <h3 class="text-xl font-semibold text-gray-900 mb-4">
+                {{ acceptances.count }} Woman{{ acceptances.count|pluralize }} Accepted Your Bid
+            </h3>
+
+            <form method="post" class="space-y-4">
+                {% csrf_token %}
+                
+                {% for acceptance in acceptances %}
+                <div class="bg-white rounded-lg shadow-lg p-6 border-2 border-transparent hover:border-blue-300 transition-colors">
+                    <label class="cursor-pointer block">
+                        <div class="flex items-start space-x-4">
+                            <!-- Radio Button -->
+                            <input type="radio" 
+                                   name="acceptance_id" 
+                                   value="{{ acceptance.id }}" 
+                                   class="mt-2 h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300">
+                            
+                            <!-- Profile Picture -->
+                            <div class="flex-shrink-0">
+                                {% if acceptance.accepted_by.profile_picture %}
+                                    <img src="{{ acceptance.accepted_by.profile_picture.url }}" 
+                                         alt="{{ acceptance.accepted_by.username }}"
+                                         class="h-16 w-16 rounded-full object-cover">
+                                {% else %}
+                                    <div class="h-16 w-16 rounded-full bg-gradient-to-br from-blue-400 to-purple-500 flex items-center justify-center text-white font-bold text-xl">
+                                        {{ acceptance.accepted_by.first_name|first|upper }}{{ acceptance.accepted_by.last_name|first|upper }}
+                                    </div>
+                                {% endif %}
+                            </div>
+                            
+                            <!-- User Info -->
+                            <div class="flex-1 min-w-0">
+                                <div class="flex items-center justify-between mb-2">
+                                    <h4 class="text-lg font-semibold text-gray-900">
+                                        {{ acceptance.accepted_by.first_name }} {{ acceptance.accepted_by.last_name }}
+                                    </h4>
+                                    <span class="text-sm text-gray-500">
+                                        Accepted {{ acceptance.accepted_at|timesince }} ago
+                                    </span>
+                                </div>
+                                
+                                <div class="flex items-center space-x-4 text-sm text-gray-600 mb-2">
+                                    <span><i class="fas fa-user mr-1"></i>{{ acceptance.accepted_by.age }} years old</span>
+                                    {% if acceptance.accepted_by.city %}
+                                    <span><i class="fas fa-map-marker-alt mr-1"></i>{{ acceptance.accepted_by.city }}</span>
+                                    {% endif %}
+                                </div>
+                                
+                                {% if acceptance.accepted_by.bio %}
+                                <p class="text-gray-700 text-sm mb-2">{{ acceptance.accepted_by.bio|truncatewords:20 }}</p>
+                                {% endif %}
+                                
+                                {% if acceptance.message %}
+                                <div class="bg-blue-50 border border-blue-200 rounded-lg p-3 mt-2">
+                                    <p class="text-blue-800 text-sm">
+                                        <i class="fas fa-comment mr-1"></i>
+                                        <strong>Message:</strong> {{ acceptance.message }}
+                                    </p>
+                                </div>
+                                {% endif %}
+                            </div>
+                        </div>
+                    </label>
+                </div>
+                {% endfor %}
+
+                <!-- Submit Button -->
+                <div class="text-center pt-6">
+                    <button type="submit" 
+                            class="bg-gradient-to-r from-blue-500 to-purple-600 text-white px-8 py-3 rounded-lg font-semibold hover:opacity-90 transition-opacity">
+                        <i class="fas fa-check mr-2"></i>
+                        Select This Person
+                    </button>
+                </div>
+            </form>
+        </div>
+
+        <!-- Back Button -->
+        <div class="text-center mt-8">
+            <a href="{% url 'bids:my_bids' %}" 
+               class="text-gray-600 hover:text-gray-800 font-medium">
+                <i class="fas fa-arrow-left mr-2"></i>
+                Back to My Bids
+            </a>
+        </div>
+    </div>
+</div>
+
+<script>
+// Add visual feedback for radio selection
+document.querySelectorAll('input[name="acceptance_id"]').forEach(radio => {
+    radio.addEventListener('change', function() {
+        // Remove selection styling from all cards
+        document.querySelectorAll('.bg-white.rounded-lg.shadow-lg').forEach(card => {
+            card.classList.remove('border-blue-500', 'bg-blue-50');
+            card.classList.add('border-transparent');
+        });
+        
+        // Add selection styling to selected card
+        if (this.checked) {
+            const selectedCard = this.closest('.bg-white.rounded-lg.shadow-lg');
+            selectedCard.classList.remove('border-transparent');
+            selectedCard.classList.add('border-blue-500', 'bg-blue-50');
+        }
+    });
+});
+</script>
+{% endblock %}

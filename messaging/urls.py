@@ -11,4 +11,5 @@ urlpatterns = [
     path('messages/<int:conversation_id>/', views.get_messages, name='get_messages'),
     path('typing/<int:conversation_id>/', views.typing_indicator, name='typing_indicator'),
     path('typing-status/<int:conversation_id>/', views.get_typing_indicators, name='get_typing_indicators'),
+    path('api/unread-count/', views.get_unread_message_count, name='unread_count'),
 ]

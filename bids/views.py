@@ -8,8 +8,9 @@ from django.db.models import Q, F
 from django.core.paginator import Paginator
 from django.conf import settings
 import json
-from .models import Bid, EventCategory, BidMessage, BidReview, EventPromotion, BidView
+from .models import Bid, EventCategory, BidMessage, BidReview, EventPromotion, BidView, BidImage
 from .forms import BidForm, BidReviewForm, EventPromotionForm
+from accounts.models import User
 
 
 @login_required
@@ -20,16 +21,32 @@ def browse_bids(request):
         messages.error(request, 'Admin users cannot browse bids.')
         return redirect('/dashboard/')
     
-    # Check if user has active subscription
-    if request.user.user_type == 'F' and not request.user.subscription_active:
+    # Subscription gate disabled for browsing (can be re-enabled via settings flag)
+    if (
+        request.user.user_type == 'F'
+        and not request.user.subscription_active
+        and getattr(settings, 'REQUIRE_SUBSCRIPTION_FOR_BROWSING', False)
+    ):
         return redirect('payments:subscription')
     
     # Get filter parameters
-    category = request.GET.get('category')
+    raw_category = request.GET.get('category')
     min_amount = request.GET.get('min_amount')
     max_amount = request.GET.get('max_amount')
-    location = request.GET.get('location')
+    raw_location = request.GET.get('location')
     sort_by = request.GET.get('sort_by', 'created_at')
+
+    # Normalize filters (ignore placeholders like 'None', 'All', 'Any')
+    def _normalize(value: str):
+        if not value:
+            return None
+        v = value.strip()
+        if v.lower() in ('none', 'all', 'any'):
+            return None
+        return v
+
+    category = _normalize(raw_category)
+    location = _normalize(raw_location)
     
     # Base queryset
     bids = Bid.objects.filter(
@@ -66,6 +83,10 @@ def browse_bids(request):
         bids = bids.order_by('event_date')
     else:
         bids = bids.order_by('-created_at')
+
+    # Fallback: if filters resulted in no bids, show latest pending bids
+    if not bids.exists():
+        bids = Bid.objects.filter(status='PENDING').exclude(user=request.user).order_by('-created_at')[:12]
     
     # Calculate distances if user has location
     if request.user.latitude and request.user.longitude:
@@ -95,11 +116,11 @@ def browse_bids(request):
         'categories': categories,
         'promotions': promotions,
         'current_filters': {
-            'category': category,
-            'min_amount': min_amount,
-            'max_amount': max_amount,
-            'location': location,
-            'sort_by': sort_by,
+            'category': category or '',
+            'min_amount': min_amount or '',
+            'max_amount': max_amount or '',
+            'location': location or '',
+            'sort_by': sort_by or 'created_at',
         }
     }
     
@@ -111,8 +132,12 @@ def bid_detail(request, bid_id):
     """View bid details"""
     bid = get_object_or_404(Bid, id=bid_id)
     
-    # Check if user can view this bid
-    if request.user.user_type == 'F' and not request.user.subscription_active:
+    # Subscription gate disabled for viewing details (toggle via settings flag)
+    if (
+        request.user.user_type == 'F'
+        and not request.user.subscription_active
+        and getattr(settings, 'REQUIRE_SUBSCRIPTION_FOR_BROWSING', False)
+    ):
         return redirect('payments:subscription')
     
     # Calculate distance
@@ -233,7 +258,7 @@ def post_bid_for_event(request, event_id):
 
 @login_required
 def accept_bid(request, bid_id):
-    """Accept a bid"""
+    """Accept a bid - now allows multiple acceptances"""
     if request.user.user_type != 'F':
         messages.error(request, 'Only female users can accept bids.')
         return redirect('bids:browse_bids')
@@ -248,24 +273,132 @@ def accept_bid(request, bid_id):
         messages.error(request, 'You cannot accept your own bid.')
         return redirect('bids:browse_bids')
     
-    # Accept the bid
-    bid.status = 'ACCEPTED'
-    bid.accepted_by = request.user
-    bid.accepted_at = timezone.now()
-    bid.save()
+    # Check if user already accepted this bid
+    from bids.models import BidAcceptance
+    existing_acceptance = BidAcceptance.objects.filter(bid=bid, accepted_by=request.user).first()
     
-    # Send notification
+    if existing_acceptance:
+        if existing_acceptance.status == 'PENDING':
+            messages.info(request, 'You have already accepted this bid!')
+        elif existing_acceptance.status == 'WITHDRAWN':
+            # Allow re-accepting if previously withdrawn
+            existing_acceptance.status = 'PENDING'
+            existing_acceptance.accepted_at = timezone.now()
+            existing_acceptance.save()
+            messages.success(request, f'You have re-accepted the bid for {bid.title}!')
+        else:
+            messages.info(request, 'You have already accepted this bid!')
+        return redirect('bids:browse_bids')
+    
+    # Create new acceptance
+    acceptance = BidAcceptance.objects.create(
+        bid=bid,
+        accepted_by=request.user,
+        status='PENDING'
+    )
+    
+    # Send notification to bid poster
     from notifications.models import Notification
     Notification.objects.create(
         user=bid.user,
-        title='Bid Accepted!',
-        message=f'{request.user.username} has accepted your bid for {bid.title}',
+        title='New Bid Acceptance!',
+        message=f'{request.user.username} has accepted your bid for {bid.title}. You can now choose from your acceptances.',
         notification_type='BID_ACCEPTED',
         related_object_id=bid.id
     )
     
-    messages.success(request, f'You have accepted the bid for {bid.title}!')
+    messages.success(request, f'You have accepted the bid for {bid.title}! The bid poster will be notified and can choose from all acceptances.')
     return redirect('bids:my_accepted_bids')
+
+
+@login_required
+def choose_acceptance(request, bid_id):
+    """Male user chooses from multiple acceptances"""
+    if request.user.user_type != 'M':
+        messages.error(request, 'Only male users can choose acceptances.')
+        return redirect('bids:browse_bids')
+    
+    bid = get_object_or_404(Bid, id=bid_id)
+    
+    if bid.user != request.user:
+        messages.error(request, 'You can only choose acceptances for your own bids.')
+        return redirect('bids:my_bids')
+    
+    if bid.status != 'PENDING':
+        messages.error(request, 'This bid is no longer available for selection.')
+        return redirect('bids:my_bids')
+    
+    # Get all pending acceptances for this bid
+    from bids.models import BidAcceptance
+    acceptances = BidAcceptance.objects.filter(bid=bid, status='PENDING').select_related('accepted_by')
+    
+    if not acceptances.exists():
+        messages.error(request, 'No pending acceptances found for this bid.')
+        return redirect('bids:my_bids')
+    
+    if request.method == 'POST':
+        acceptance_id = request.POST.get('acceptance_id')
+        if not acceptance_id:
+            messages.error(request, 'Please select an acceptance.')
+            return redirect('bids:choose_acceptance', bid_id=bid_id)
+        
+        try:
+            selected_acceptance = BidAcceptance.objects.get(
+                id=acceptance_id, 
+                bid=bid, 
+                status='PENDING'
+            )
+        except BidAcceptance.DoesNotExist:
+            messages.error(request, 'Invalid acceptance selected.')
+            return redirect('bids:choose_acceptance', bid_id=bid_id)
+        
+        # Mark selected acceptance as SELECTED
+        selected_acceptance.status = 'SELECTED'
+        selected_acceptance.save()
+        
+        # Mark all other acceptances as REJECTED
+        BidAcceptance.objects.filter(
+            bid=bid, 
+            status='PENDING'
+        ).exclude(id=acceptance_id).update(status='REJECTED')
+        
+        # Update bid status to ACCEPTED and set accepted_by
+        bid.status = 'ACCEPTED'
+        bid.accepted_by = selected_acceptance.accepted_by
+        bid.accepted_at = timezone.now()
+        bid.save()
+        
+        # Send notifications
+        from notifications.models import Notification
+        
+        # Notify selected girl
+        Notification.objects.create(
+            user=selected_acceptance.accepted_by,
+            title='You Were Selected!',
+            message=f'Congratulations! {request.user.username} has selected you for their bid: {bid.title}',
+            notification_type='BID_ACCEPTED',
+            related_object_id=bid.id
+        )
+        
+        # Notify rejected girls
+        rejected_acceptances = BidAcceptance.objects.filter(bid=bid, status='REJECTED')
+        for rejection in rejected_acceptances:
+            Notification.objects.create(
+                user=rejection.accepted_by,
+                title='Bid Selection Update',
+                message=f'Sorry, {request.user.username} has selected someone else for their bid: {bid.title}',
+                notification_type='BID_CANCELLED',
+                related_object_id=bid.id
+            )
+        
+        messages.success(request, f'You have selected {selected_acceptance.accepted_by.username} for your bid!')
+        return redirect('bids:my_bids')
+    
+    context = {
+        'bid': bid,
+        'acceptances': acceptances,
+    }
+    return render(request, 'bids/choose_acceptance.html', context)
 
 
 @login_required
@@ -279,21 +412,36 @@ def male_homepage(request):
     viewed_women = User.objects.filter(
         user_type='F',
         bid_views__bid__user=request.user
-    ).distinct().select_related('userprofile')
+    ).distinct().select_related('profile')
     
-    # Get women who have accepted the user's bids
+    # Get women who have accepted the user's bids (using new BidAcceptance model)
+    from bids.models import BidAcceptance
+    pending_acceptances = BidAcceptance.objects.filter(
+        bid__user=request.user,
+        status='PENDING'
+    ).select_related('accepted_by', 'bid').order_by('-accepted_at')
+    
+    # Get women who have accepted the user's bids (old system for completed bids)
     accepted_women = User.objects.filter(
         user_type='F',
         bids_accepted__user=request.user
-    ).distinct().select_related('userprofile')
+    ).distinct().select_related('profile')
     
     # Get recent bids for context
     recent_bids = Bid.objects.filter(user=request.user).order_by('-created_at')[:5]
+    
+    # Get bids with pending acceptances
+    bids_with_pending = Bid.objects.filter(
+        user=request.user,
+        acceptances__status='PENDING'
+    ).distinct().order_by('-created_at')
     
     context = {
         'viewed_women': viewed_women,
         'accepted_women': accepted_women,
         'recent_bids': recent_bids,
+        'pending_acceptances': pending_acceptances,
+        'bids_with_pending': bids_with_pending,
     }
     
     return render(request, 'bids/male_homepage.html', context)
@@ -398,11 +546,21 @@ def my_accepted_bids(request):
     """View user's accepted bids"""
     if request.user.user_type == 'M':
         bids = Bid.objects.filter(user=request.user, status='ACCEPTED')
+        pending_acceptances = None
     else:
         bids = Bid.objects.filter(accepted_by=request.user, status='ACCEPTED')
+        # Also include bids the user has accepted that are awaiting poster selection
+        from bids.models import BidAcceptance
+        pending_acceptances = (
+            BidAcceptance.objects
+            .filter(accepted_by=request.user, status='PENDING')
+            .select_related('bid', 'bid__user', 'bid__event_category')
+            .order_by('-accepted_at')
+        )
     
     context = {
         'bids': bids,
+        'pending_acceptances': pending_acceptances,
     }
     
     return render(request, 'bids/my_accepted_bids.html', context)

@@ -6,16 +6,16 @@
 <div class="mb-8">
     <h1 class="text-3xl font-bold text-gray-900 mb-4">
         {% if user.user_type == 'M' %}
-            My Accepted Bids
+            My Selected Bids
         {% else %}
             Bids I've Accepted
         {% endif %}
     </h1>
     <p class="text-gray-600">
         {% if user.user_type == 'M' %}
-            Bids you posted that have been accepted by others
+            Bids you posted where you've selected a match
         {% else %}
-            Bids you have accepted and are participating in
+            Bids you have accepted (selected or awaiting selection)
         {% endif %}
     </p>
 </div>
@@ -35,7 +35,7 @@
                             <h3 class="font-semibold">{{ bid.title }}</h3>
                             <p class="text-sm opacity-90">
                                 {% if user.user_type == 'M' %}
-                                    Accepted by {{ bid.accepted_by.username }}
+                                    Selected: {{ bid.accepted_by.username }}
                                 {% else %}
                                     Posted by {{ bid.user.username }}
                                 {% endif %}
@@ -44,7 +44,7 @@
                     </div>
                     <div class="text-right">
                         <div class="text-2xl font-bold">${{ bid.bid_amount }}</div>
-                        <div class="text-sm opacity-90">Accepted</div>
+                        <div class="text-sm opacity-90">Selected</div>
                     </div>
                 </div>
             </div>
@@ -90,7 +90,7 @@
                     <div class="flex items-center space-x-4">
                         <span class="inline-flex items-center px-3 py-1 rounded-full text-sm font-medium bg-green-100 text-green-800">
                             <i class="fas fa-check-circle mr-1"></i>
-                            Accepted
+                            Selected
                         </span>
                         {% if bid.status == 'COMPLETED' %}
                             <span class="inline-flex items-center px-3 py-1 rounded-full text-sm font-medium bg-blue-100 text-blue-800">
@@ -150,6 +150,47 @@
         </div>
     {% endfor %}
 </div>
+
+{% if user.user_type == 'F' and pending_acceptances %}
+<!-- Awaiting Selection -->
+<div class="mt-10">
+    <h2 class="text-2xl font-bold text-gray-900 mb-4">Awaiting Selection</h2>
+    <p class="text-gray-600 mb-4">These are bids you've accepted. The poster hasn't chosen the final match yet.</p>
+
+    <div class="space-y-6">
+        {% for acc in pending_acceptances %}
+        <div class="bg-white rounded-lg shadow p-6">
+            <div class="flex items-start justify-between">
+                <div>
+                    <h3 class="text-lg font-semibold text-gray-900">{{ acc.bid.title }}</h3>
+                    <p class="text-sm text-gray-600">Posted by {{ acc.bid.user.username }} • {{ acc.accepted_at|timesince }} ago</p>
+                </div>
+                <span class="inline-flex items-center px-3 py-1 rounded-full text-sm font-medium bg-blue-100 text-blue-800">
+                    <i class="fas fa-hourglass-half mr-1"></i>
+                    Waiting for selection
+                </span>
+            </div>
+
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mt-4 text-sm text-gray-700">
+                <div><i class="fas fa-calendar-alt mr-2 text-blue-500"></i>{{ acc.bid.event_date|date:"M d, Y g:i A" }}</div>
+                <div><i class="fas fa-map-marker-alt mr-2 text-blue-500"></i>{{ acc.bid.event_location }}</div>
+            </div>
+
+            <div class="mt-4 flex items-center justify-between">
+                <div class="text-gray-600">
+                    You will receive <span class="font-semibold text-gray-900">${{ acc.bid.bid_amount }}</span>
+                </div>
+                <a href="{% url 'bids:bid_detail' acc.bid.id %}" class="text-primary hover:text-purple-700 font-medium">
+                    View details <i class="fas fa-arrow-right ml-1"></i>
+                </a>
+            </div>
+        </div>
+        {% empty %}
+        <div class="text-gray-500">No pending acceptances.</div>
+        {% endfor %}
+    </div>
+</div>
+{% endif %}
 
 <!-- Statistics -->
 {% if bids %}

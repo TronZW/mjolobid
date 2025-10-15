@@ -145,7 +145,8 @@ def send_message(request, conversation_id):
                 'content': message.content,
                 'sender': request.user.username,
                 'timestamp': message.created_at.isoformat(),
-                'is_read': message.is_read
+                'is_read': message.is_read,
+                'is_own': True
             }
         })
     
@@ -245,3 +246,13 @@ def get_typing_indicators(request, conversation_id):
             })
     
     return JsonResponse({'typing_users': typing_users})
+
+
+@login_required
+def get_unread_message_count(request):
+    """Return total unread messages for the current user"""
+    count = Message.objects.filter(
+        conversation__participants=request.user,
+        is_read=False
+    ).exclude(sender=request.user).count()
+    return JsonResponse({'count': count})
