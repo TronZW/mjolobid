@@ -4,6 +4,7 @@ Render-specific settings for mjolobid project.
 import os
 from pathlib import Path
 from decouple import config
+import logging
 
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
 BASE_DIR = Path(__file__).resolve().parent.parent
@@ -84,6 +85,15 @@ else:
             config('DATABASE_URL', default='sqlite:///db.sqlite3')
         )
     }
+
+# Log effective DB configuration at startup for diagnostics
+try:
+    _db = DATABASES.get('default', {})
+    _engine = _db.get('ENGINE', '')
+    _name = _db.get('NAME', '')
+    logging.getLogger('startup').info(f"DB_ENGINE={_engine} DB_NAME={_name}")
+except Exception:
+    pass
 
 # Password validation
 AUTH_PASSWORD_VALIDATORS = [
