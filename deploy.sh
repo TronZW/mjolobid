@@ -10,6 +10,11 @@ if [ -n "${SQLITE_DB_PATH}" ]; then
   DB_DIR=$(dirname "${SQLITE_DB_PATH}")
   mkdir -p "${DB_DIR}"
 fi
+
+# Backup the database before migrating (SQLite only)
+echo "🧾 Backing up database (if SQLite)..."
+python manage.py backup_db --keep 7 || true
+
 python manage.py migrate --noinput
 
 # Ensure media directory exists on mounted disk
