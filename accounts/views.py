@@ -65,6 +65,9 @@ def user_login(request):
             else:
                 messages.error(request, 'Invalid username or password.')
     else:
+        # Clear any pre-existing (non-error) messages on initial load
+        for _ in messages.get_messages(request):
+            pass
         form = UserLoginForm()
     
     return render(request, 'accounts/login.html', {'form': form})
