@@ -22,7 +22,7 @@
             <div class="bg-white rounded-lg shadow-lg p-6 mb-6">
                 <div class="flex items-center mb-6">
                     {% if user.profile_picture %}
-                        <img src="{{ user.profile_picture.url }}" alt="{{ user.username }}" class="w-20 h-20 rounded-full object-cover mr-4">
+                        <img src="{{ user.get_profile_picture_url }}" alt="{{ user.username }}" class="w-20 h-20 rounded-full object-cover mr-4">
                     {% else %}
                         <div class="w-20 h-20 bg-primary rounded-full flex items-center justify-center text-white text-2xl font-bold mr-4">
                             {{ user.username|first|upper }}

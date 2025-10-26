@@ -1,6 +1,7 @@
 from django.contrib.auth.models import AbstractUser
 from django.db import models
 from django.utils import timezone
+from django.conf import settings
 
 
 class User(AbstractUser):
@@ -65,6 +66,33 @@ class User(AbstractUser):
             self.referral_code = ''.join(random.choices(string.ascii_uppercase + string.digits, k=8))
         super().save(*args, **kwargs)
     
+    def get_profile_picture_url(self) -> str:
+        """Return a usable URL for the user's profile picture.
+
+        Handles both local FileSystemStorage paths and legacy absolute URLs
+        that may have been stored when using a remote storage backend.
+        """
+        if not self.profile_picture:
+            return ""
+
+        # Try the storage-provided URL first
+        try:
+            url = self.profile_picture.url
+            if isinstance(url, str) and (url.startswith('http://') or url.startswith('https://') or url.startswith('/')):
+                return url
+        except Exception:
+            # Fall back to interpreting the stored value directly
+            name = str(self.profile_picture)
+            if name.startswith('http://') or name.startswith('https://'):
+                return name
+            # Build a local media URL
+            base = getattr(settings, 'MEDIA_URL', '/media/')
+            if not base.endswith('/'):
+                base += '/'
+            return f"{base}{name}"
+
+        return url
+
     @property
     def age(self):
         if self.date_of_birth:

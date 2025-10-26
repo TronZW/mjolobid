@@ -33,7 +33,7 @@
                     {% if user.profile_picture %}
                         <div class="mb-3">
                             <p class="text-sm text-gray-600 mb-2">Current profile picture:</p>
-                            <img src="{{ user.profile_picture.url }}" alt="Current profile picture" class="w-20 h-20 rounded-full object-cover border-2 border-gray-200">
+                            <img src="{{ user.get_profile_picture_url }}" alt="Current profile picture" class="w-20 h-20 rounded-full object-cover border-2 border-gray-200">
                         </div>
                     {% endif %}
                     
@@ -123,6 +123,14 @@ function previewImage(input) {
         preview.classList.add('hidden');
     }
 }
+
+// Ensure preview remains visible if user re-selects or form re-renders
+document.addEventListener('DOMContentLoaded', function() {
+    const input = document.getElementById('{{ form.profile_picture.id_for_label }}');
+    if (input) {
+        input.addEventListener('change', function() { previewImage(input); });
+    }
+});
 </script>
 {% endblock %}
 
