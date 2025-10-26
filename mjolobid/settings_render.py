@@ -70,7 +70,9 @@ WSGI_APPLICATION = 'mjolobid.wsgi.application'
 # Database configuration
 # Prefer SQLite on a Render Disk if SQLITE_DB_PATH is provided.
 # Otherwise, fall back to DATABASE_URL (Postgres) or local sqlite.
-SQLITE_DB_PATH = os.environ.get('SQLITE_DB_PATH', '').strip()
+# Prefer SQLite on the Render Disk if available, even if env is missing
+disk_default_path = '/var/disk1/db.sqlite3' if os.path.isdir('/var/disk1') else ''
+SQLITE_DB_PATH = os.environ.get('SQLITE_DB_PATH', disk_default_path).strip()
 if SQLITE_DB_PATH:
     DATABASES = {
         'default': {

@@ -9,6 +9,12 @@ if [ -n "${SQLITE_DB_PATH}" ]; then
   echo "🗄️  Ensuring SQLite directory exists for ${SQLITE_DB_PATH}..."
   DB_DIR=$(dirname "${SQLITE_DB_PATH}")
   mkdir -p "${DB_DIR}"
+elif [ -d "/var/disk1" ]; then
+  # Fallback to default disk path if env var not set
+  export SQLITE_DB_PATH="/var/disk1/db.sqlite3"
+  echo "🗄️  SQLITE_DB_PATH not set. Using default ${SQLITE_DB_PATH}"
+  DB_DIR=$(dirname "${SQLITE_DB_PATH}")
+  mkdir -p "${DB_DIR}"
 fi
 
 # Backup the database before migrating (SQLite only)
