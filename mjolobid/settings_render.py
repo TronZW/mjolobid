@@ -67,13 +67,26 @@ TEMPLATES = [
 
 WSGI_APPLICATION = 'mjolobid.wsgi.application'
 
-# Database configuration
-# Prefer SQLite on a Render Disk if SQLITE_DB_PATH is provided.
-# Otherwise, fall back to DATABASE_URL (Postgres) or local sqlite.
-# Prefer SQLite on the Render Disk if available, even if env is missing
+# Database configuration (prefer managed Postgres)
+# Priority:
+# 1) DATABASE_URL (Postgres)
+# 2) SQLITE_DB_PATH (SQLite on disk)
+# 3) Local sqlite fallback
+import dj_database_url
+
+database_url = config('DATABASE_URL', default='').strip()
 disk_default_path = '/var/disk1/db.sqlite3' if os.path.isdir('/var/disk1') else ''
 SQLITE_DB_PATH = os.environ.get('SQLITE_DB_PATH', disk_default_path).strip()
-if SQLITE_DB_PATH:
+
+if database_url:
+    DATABASES = {
+        'default': dj_database_url.parse(
+            database_url,
+            conn_max_age=600,
+            ssl_require=True,
+        )
+    }
+elif SQLITE_DB_PATH:
     DATABASES = {
         'default': {
             'ENGINE': 'django.db.backends.sqlite3',
@@ -81,11 +94,11 @@ if SQLITE_DB_PATH:
         }
     }
 else:
-    import dj_database_url
     DATABASES = {
-        'default': dj_database_url.parse(
-            config('DATABASE_URL', default='sqlite:///db.sqlite3')
-        )
+        'default': {
+            'ENGINE': 'django.db.backends.sqlite3',
+            'NAME': str(BASE_DIR / 'db.sqlite3'),
+        }
     }
 
 # Log effective DB configuration at startup for diagnostics

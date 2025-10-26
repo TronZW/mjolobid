@@ -24,8 +24,7 @@ services:
         value: "false"
       - key: CREATE_SUPERUSER_ON_DEPLOY
         value: "false"
-      - key: SQLITE_DB_PATH
-        value: /var/disk1/db.sqlite3
+      # Remove SQLITE_DB_PATH so Postgres is preferred
       - key: USE_GITHUB_STORAGE
         value: "true"
     healthCheckPath: /
