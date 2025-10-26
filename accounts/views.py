@@ -95,7 +95,7 @@ def profile_setup(request):
     else:
         form = ProfileSetupForm(instance=request.user)
     
-    return render(request, 'accounts/profile_setup.html', {'form': form})
+    return render(request, 'accounts/profile_setup.html', {'form': form, 'hide_navbar': True})
 
 
 @login_required
