@@ -6,13 +6,27 @@ echo "🚀 Starting MjoloBid deployment..."
 echo "📊 Running database migrations..."
 python manage.py migrate --noinput
 
-# Create superuser
-echo "👤 Creating superuser..."
-python manage.py create_superuser
+# Ensure media directory exists on mounted disk
+if [ -n "${MEDIA_ROOT}" ]; then
+  echo "🗂️  Ensuring MEDIA_ROOT exists at ${MEDIA_ROOT}..."
+  mkdir -p "${MEDIA_ROOT}"
+fi
 
-# Seed data
-echo "🌱 Seeding database with dummy data..."
-python manage.py seed_data
+# Create superuser (optional, gated)
+if [ "${CREATE_SUPERUSER_ON_DEPLOY:-false}" = "true" ]; then
+  echo "👤 Creating superuser..."
+  python manage.py create_superuser
+else
+  echo "⏭️  Skipping superuser creation (CREATE_SUPERUSER_ON_DEPLOY=false)"
+fi
+
+# Seed data (optional, gated)
+if [ "${SEED_ON_DEPLOY:-false}" = "true" ]; then
+  echo "🌱 Seeding database with dummy data..."
+  python manage.py seed_data
+else
+  echo "⏭️  Skipping data seeding (SEED_ON_DEPLOY=false)"
+fi
 
 # Collect static files
 echo "📁 Collecting static files..."

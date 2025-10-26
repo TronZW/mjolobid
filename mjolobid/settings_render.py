@@ -103,20 +103,9 @@ STATIC_URL = '/static/'
 STATIC_ROOT = os.path.join(BASE_DIR, 'staticfiles')
 # STATICFILES_DIRS = [os.path.join(BASE_DIR, 'static')]  # Commented out - directory doesn't exist
 
-# Media files - GitHub storage for persistent storage
-USE_GITHUB_STORAGE = config('USE_GITHUB_STORAGE', default='False', cast=bool)
-GITHUB_TOKEN = config('GITHUB_TOKEN', default='')
-GITHUB_REPO = config('GITHUB_REPO', default='')
-
-if USE_GITHUB_STORAGE and GITHUB_TOKEN and GITHUB_REPO:
-    # Use GitHub storage
-    DEFAULT_FILE_STORAGE = 'accounts.storage.GitHubStorage'
-    MEDIA_URL = '/media/'
-    MEDIA_ROOT = ''
-else:
-    # Local media files (will be lost on restart, but works for testing)
-    MEDIA_URL = '/media/'
-    MEDIA_ROOT = os.path.join(BASE_DIR, 'media')
+# Media files - prefer Render Disk via MEDIA_ROOT, fallback to local dir
+MEDIA_URL = '/media/'
+MEDIA_ROOT = os.environ.get('MEDIA_ROOT', os.path.join(BASE_DIR, 'media'))
 
 # Default primary key field type
 DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
