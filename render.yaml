@@ -6,8 +6,8 @@ services:
     buildCommand: pip install -r requirements.txt
     startCommand: chmod +x deploy.sh && ./deploy.sh
     disk:
-      name: media-disk
-      mountPath: /var/media
+      name: app-disk
+      mountPath: /var/disk1
       sizeGB: 1
     envVars:
       - key: SECRET_KEY
@@ -24,8 +24,10 @@ services:
         value: "false"
       - key: CREATE_SUPERUSER_ON_DEPLOY
         value: "false"
-      - key: MEDIA_ROOT
-        value: /var/media
+      - key: SQLITE_DB_PATH
+        value: /var/disk1/db.sqlite3
+      - key: USE_GITHUB_STORAGE
+        value: "true"
     healthCheckPath: /
 
 databases:

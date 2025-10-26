@@ -66,15 +66,24 @@ TEMPLATES = [
 
 WSGI_APPLICATION = 'mjolobid.wsgi.application'
 
-# Database - Use PostgreSQL in production
-# Render provides database connection via DATABASE_URL environment variable
-import dj_database_url
-
-DATABASES = {
-    'default': dj_database_url.parse(
-        config('DATABASE_URL', default='sqlite:///db.sqlite3')
-    )
-}
+# Database configuration
+# Prefer SQLite on a Render Disk if SQLITE_DB_PATH is provided.
+# Otherwise, fall back to DATABASE_URL (Postgres) or local sqlite.
+SQLITE_DB_PATH = os.environ.get('SQLITE_DB_PATH', '').strip()
+if SQLITE_DB_PATH:
+    DATABASES = {
+        'default': {
+            'ENGINE': 'django.db.backends.sqlite3',
+            'NAME': SQLITE_DB_PATH,
+        }
+    }
+else:
+    import dj_database_url
+    DATABASES = {
+        'default': dj_database_url.parse(
+            config('DATABASE_URL', default='sqlite:///db.sqlite3')
+        )
+    }
 
 # Password validation
 AUTH_PASSWORD_VALIDATORS = [
@@ -103,9 +112,18 @@ STATIC_URL = '/static/'
 STATIC_ROOT = os.path.join(BASE_DIR, 'staticfiles')
 # STATICFILES_DIRS = [os.path.join(BASE_DIR, 'static')]  # Commented out - directory doesn't exist
 
-# Media files - prefer Render Disk via MEDIA_ROOT, fallback to local dir
-MEDIA_URL = '/media/'
-MEDIA_ROOT = os.environ.get('MEDIA_ROOT', os.path.join(BASE_DIR, 'media'))
+# Media files - Use GitHub-backed storage when configured; otherwise local
+USE_GITHUB_STORAGE = config('USE_GITHUB_STORAGE', default=True, cast=bool)
+GITHUB_TOKEN = config('GITHUB_TOKEN', default='')
+GITHUB_REPO = config('GITHUB_REPO', default='')
+
+if USE_GITHUB_STORAGE and GITHUB_TOKEN and GITHUB_REPO:
+    DEFAULT_FILE_STORAGE = 'accounts.storage.GitHubStorage'
+    MEDIA_URL = '/'
+    MEDIA_ROOT = ''
+else:
+    MEDIA_URL = '/media/'
+    MEDIA_ROOT = os.environ.get('MEDIA_ROOT', os.path.join(BASE_DIR, 'media'))
 
 # Default primary key field type
 DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'

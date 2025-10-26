@@ -4,6 +4,12 @@ echo "🚀 Starting MjoloBid deployment..."
 
 # Run migrations
 echo "📊 Running database migrations..."
+# Ensure DB directory exists if using sqlite on disk
+if [ -n "${SQLITE_DB_PATH}" ]; then
+  echo "🗄️  Ensuring SQLite directory exists for ${SQLITE_DB_PATH}..."
+  DB_DIR=$(dirname "${SQLITE_DB_PATH}")
+  mkdir -p "${DB_DIR}"
+fi
 python manage.py migrate --noinput
 
 # Ensure media directory exists on mounted disk
