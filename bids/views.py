@@ -232,6 +232,48 @@ def post_bid_for_event(request, event_id):
             bid.user = request.user
             bid.event_location = event.location
             bid.event_address = event.location  # Use location as address for now
+            
+            # Handle event category
+            event_category_choice = form.cleaned_data.get('event_category')
+            custom_category = form.cleaned_data.get('custom_category')
+            
+            if event_category_choice == 'other' and custom_category:
+                # Create or get custom category
+                category, created = EventCategory.objects.get_or_create(
+                    name=custom_category,
+                    defaults={
+                        'icon': '✨',
+                        'description': f'Custom category: {custom_category}',
+                        'is_active': True
+                    }
+                )
+                bid.event_category = category
+            else:
+                # Map choice to category name and get/create category
+                category_mapping = {
+                    'club_night': 'Club Night',
+                    'concert': 'Concert',
+                    'restaurant': 'Restaurant',
+                    'movie': 'Movie',
+                    'sports_event': 'Sports Event',
+                    'beach_day': 'Beach Day',
+                    'shopping': 'Shopping',
+                    'art_exhibition': 'Art Exhibition',
+                    'hiking': 'Hiking',
+                }
+                
+                if event_category_choice in category_mapping:
+                    category_name = category_mapping[event_category_choice]
+                    category, created = EventCategory.objects.get_or_create(
+                        name=category_name,
+                        defaults={
+                            'icon': '🎉',
+                            'description': f'{category_name} events',
+                            'is_active': True
+                        }
+                    )
+                    bid.event_category = category
+            
             bid.save()
             messages.success(request, f'Bid for "{event.title}" has been created successfully!')
             return redirect('bids:my_bids')
@@ -246,12 +288,9 @@ def post_bid_for_event(request, event_id):
         }
         form = BidForm(initial=initial_data)
     
-    categories = EventCategory.objects.filter(is_active=True)
-    
     context = {
         'form': form,
         'event': event,
-        'categories': categories,
     }
     return render(request, 'bids/post_bid_for_event.html', context)
 
@@ -480,6 +519,48 @@ def post_bid(request):
         if form.is_valid():
             bid = form.save(commit=False)
             bid.user = request.user
+            
+            # Handle event category
+            event_category_choice = form.cleaned_data.get('event_category')
+            custom_category = form.cleaned_data.get('custom_category')
+            
+            if event_category_choice == 'other' and custom_category:
+                # Create or get custom category
+                category, created = EventCategory.objects.get_or_create(
+                    name=custom_category,
+                    defaults={
+                        'icon': '✨',
+                        'description': f'Custom category: {custom_category}',
+                        'is_active': True
+                    }
+                )
+                bid.event_category = category
+            else:
+                # Map choice to category name and get/create category
+                category_mapping = {
+                    'club_night': 'Club Night',
+                    'concert': 'Concert',
+                    'restaurant': 'Restaurant',
+                    'movie': 'Movie',
+                    'sports_event': 'Sports Event',
+                    'beach_day': 'Beach Day',
+                    'shopping': 'Shopping',
+                    'art_exhibition': 'Art Exhibition',
+                    'hiking': 'Hiking',
+                }
+                
+                if event_category_choice in category_mapping:
+                    category_name = category_mapping[event_category_choice]
+                    category, created = EventCategory.objects.get_or_create(
+                        name=category_name,
+                        defaults={
+                            'icon': '🎉',
+                            'description': f'{category_name} events',
+                            'is_active': True
+                        }
+                    )
+                    bid.event_category = category
+            
             bid.save()
             
             # Handle images
@@ -496,11 +577,8 @@ def post_bid(request):
     else:
         form = BidForm()
     
-    categories = EventCategory.objects.filter(is_active=True)
-    
     context = {
         'form': form,
-        'categories': categories,
     }
     
     return render(request, 'bids/post_bid.html', context)
@@ -518,7 +596,50 @@ def edit_bid(request, bid_id):
     if request.method == 'POST':
         form = BidForm(request.POST, request.FILES, instance=bid)
         if form.is_valid():
-            bid = form.save()
+            bid = form.save(commit=False)
+            
+            # Handle event category
+            event_category_choice = form.cleaned_data.get('event_category')
+            custom_category = form.cleaned_data.get('custom_category')
+            
+            if event_category_choice == 'other' and custom_category:
+                # Create or get custom category
+                category, created = EventCategory.objects.get_or_create(
+                    name=custom_category,
+                    defaults={
+                        'icon': '✨',
+                        'description': f'Custom category: {custom_category}',
+                        'is_active': True
+                    }
+                )
+                bid.event_category = category
+            else:
+                # Map choice to category name and get/create category
+                category_mapping = {
+                    'club_night': 'Club Night',
+                    'concert': 'Concert',
+                    'restaurant': 'Restaurant',
+                    'movie': 'Movie',
+                    'sports_event': 'Sports Event',
+                    'beach_day': 'Beach Day',
+                    'shopping': 'Shopping',
+                    'art_exhibition': 'Art Exhibition',
+                    'hiking': 'Hiking',
+                }
+                
+                if event_category_choice in category_mapping:
+                    category_name = category_mapping[event_category_choice]
+                    category, created = EventCategory.objects.get_or_create(
+                        name=category_name,
+                        defaults={
+                            'icon': '🎉',
+                            'description': f'{category_name} events',
+                            'is_active': True
+                        }
+                    )
+                    bid.event_category = category
+            
+            bid.save()
 
             # Optionally handle new images appended to existing ones
             images = request.FILES.getlist('images')
@@ -530,11 +651,8 @@ def edit_bid(request, bid_id):
     else:
         form = BidForm(instance=bid)
 
-    categories = EventCategory.objects.filter(is_active=True)
-
     context = {
         'form': form,
-        'categories': categories,
         'bid': bid,
     }
 
