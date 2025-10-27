@@ -4,14 +4,11 @@ echo "🚀 Starting MjoloBid deployment..."
 
 # Run migrations
 echo "📊 Running database migrations..."
-# If using SQLite (local/dev), ensure path and back up; otherwise skip
-if [ -n "${SQLITE_DB_PATH}" ]; then
-  echo "🗄️  Ensuring SQLite directory exists for ${SQLITE_DB_PATH}..."
-  DB_DIR=$(dirname "${SQLITE_DB_PATH}")
-  mkdir -p "${DB_DIR}"
-  echo "🧾 Backing up SQLite database before migrate..."
-  python manage.py backup_db --keep 7 || true
-fi
+# Ensure SQLite directory exists on disk
+echo "🗄️  Ensuring SQLite directory exists at /var/disk1..."
+mkdir -p /var/disk1
+echo "🧾 Backing up SQLite database before migrate..."
+python manage.py backup_db --keep 7 || true
 
 python manage.py migrate --noinput
 
