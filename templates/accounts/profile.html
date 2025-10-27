@@ -103,12 +103,47 @@
                         <p class="text-gray-700">{{ user.bio }}</p>
                     </div>
                 {% endif %}
+                
+                <!-- Gallery Preview -->
+                <div class="mt-6">
+                    <div class="flex items-center justify-between mb-4">
+                        <h3 class="text-lg font-semibold text-gray-900">Photos</h3>
+                        <a href="{% url 'accounts:gallery' %}" class="text-primary hover:text-purple-700 text-sm font-medium">
+                            View All <i class="fas fa-arrow-right ml-1"></i>
+                        </a>
+                    </div>
+                    {% if user.gallery_images.exists %}
+                        <div class="grid grid-cols-3 gap-2">
+                            {% for image in user.gallery_images.all|slice:":6" %}
+                                <div class="aspect-square rounded-lg overflow-hidden">
+                                    <img src="{{ image.get_image_url }}" 
+                                         alt="{{ image.caption|default:'Gallery image' }}" 
+                                         class="w-full h-full object-cover hover:scale-105 transition-transform duration-200">
+                                </div>
+                            {% endfor %}
+                        </div>
+                        {% if user.gallery_images.count > 6 %}
+                            <p class="text-sm text-gray-500 mt-2">+{{ user.gallery_images.count|add:"-6" }} more photos</p>
+                        {% endif %}
+                    {% else %}
+                        <div class="text-center py-8 bg-gray-50 rounded-lg">
+                            <i class="fas fa-images text-gray-400 text-2xl mb-2"></i>
+                            <p class="text-gray-500 text-sm">No photos yet</p>
+                            <a href="{% url 'accounts:gallery' %}" class="text-primary hover:text-purple-700 text-sm font-medium">
+                                Add photos
+                            </a>
+                        </div>
+                    {% endif %}
+                </div>
             </div>
             
             <!-- Action Buttons -->
-            <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
                 <a href="{% url 'accounts:edit_profile' %}" class="btn-primary text-center">
                     <i class="fas fa-edit mr-2"></i>Edit Profile
+                </a>
+                <a href="{% url 'accounts:gallery' %}" class="bg-blue-500 text-white py-3 px-6 rounded-xl font-semibold hover:bg-blue-600 transition-colors text-center">
+                    <i class="fas fa-images mr-2"></i>My Gallery
                 </a>
                 {% if not user.is_premium %}
                     <a href="{% url 'accounts:premium_upgrade' %}" class="btn-secondary text-center">

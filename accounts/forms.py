@@ -1,6 +1,6 @@
 from django import forms
 from django.contrib.auth.forms import UserCreationForm
-from .models import User, UserProfile
+from .models import User, UserProfile, UserGallery
 
 
 class UserRegistrationForm(UserCreationForm):
@@ -137,4 +137,51 @@ class UserProfileForm(forms.ModelForm):
         widgets = {
             'interests': forms.Textarea(attrs={'rows': 3}),
             'preferred_events': forms.CheckboxSelectMultiple,
+        }
+
+
+class GalleryImageForm(forms.ModelForm):
+    """Form for uploading gallery images"""
+    
+    class Meta:
+        model = UserGallery
+        fields = ('image', 'caption')
+        widgets = {
+            'caption': forms.TextInput(attrs={
+                'placeholder': 'Add a caption (optional)',
+                'class': 'w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-primary focus:border-transparent'
+            }),
+            'image': forms.FileInput(attrs={
+                'class': 'w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-primary focus:border-transparent',
+                'accept': 'image/*'
+            })
+        }
+    
+    def clean_image(self):
+        image = self.cleaned_data.get('image')
+        if image and hasattr(image, 'content_type'):
+            # Check file size (max 10MB for gallery images)
+            if image.size > 10 * 1024 * 1024:
+                raise forms.ValidationError('Image file too large (max 10MB)')
+            
+            # Check file type
+            if not image.content_type.startswith('image/'):
+                raise forms.ValidationError('File must be an image')
+        
+        return image
+
+
+class GalleryImageUpdateForm(forms.ModelForm):
+    """Form for updating gallery image details"""
+    
+    class Meta:
+        model = UserGallery
+        fields = ('caption', 'is_primary')
+        widgets = {
+            'caption': forms.TextInput(attrs={
+                'class': 'w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-primary focus:border-transparent'
+            }),
+            'is_primary': forms.CheckboxInput(attrs={
+                'class': 'h-4 w-4 text-primary focus:ring-primary border-gray-300 rounded'
+            })
         }

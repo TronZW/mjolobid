@@ -164,3 +164,50 @@ class UserRating(models.Model):
     
     def __str__(self):
         return f"{self.rating_user.username} rated {self.rated_user.username} {self.rating} stars"
+
+
+class UserGallery(models.Model):
+    """User gallery images for profile showcase"""
+    
+    user = models.ForeignKey(User, on_delete=models.CASCADE, related_name='gallery_images')
+    image = models.ImageField(upload_to='gallery/')
+    caption = models.CharField(max_length=200, blank=True)
+    is_primary = models.BooleanField(default=False, help_text="Primary image for profile")
+    uploaded_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+    
+    class Meta:
+        ordering = ['-is_primary', '-uploaded_at']
+        verbose_name_plural = "User Gallery Images"
+    
+    def __str__(self):
+        return f"{self.user.username}'s gallery image - {self.caption or 'No caption'}"
+    
+    def save(self, *args, **kwargs):
+        # If this is set as primary, unset other primary images for this user
+        if self.is_primary:
+            UserGallery.objects.filter(user=self.user, is_primary=True).exclude(id=self.id).update(is_primary=False)
+        super().save(*args, **kwargs)
+    
+    def get_image_url(self):
+        """Return a usable URL for the image"""
+        if not self.image:
+            return ""
+        
+        try:
+            url = self.image.url
+            if isinstance(url, str) and (url.startswith('http://') or url.startswith('https://') or url.startswith('/')):
+                return url
+        except Exception:
+            # Fall back to interpreting the stored value directly
+            name = str(self.image)
+            if name.startswith('http://') or name.startswith('https://'):
+                return name
+            # Build a local media URL
+            from django.conf import settings
+            base = getattr(settings, 'MEDIA_URL', '/media/')
+            if not base.endswith('/'):
+                base += '/'
+            return f"{base}{name}"
+        
+        return url

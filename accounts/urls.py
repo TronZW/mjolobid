@@ -17,4 +17,9 @@ urlpatterns = [
     path('rate-user/<int:user_id>/', views.rate_user, name='rate_user'),
     path('test-media/', views.test_media, name='test_media'),
     path('test-upload/', views.test_upload, name='test_upload'),
+    path('gallery/', views.gallery, name='gallery'),
+    path('gallery/upload/', views.upload_gallery_image, name='upload_gallery_image'),
+    path('gallery/edit/<int:image_id>/', views.edit_gallery_image, name='edit_gallery_image'),
+    path('gallery/delete/<int:image_id>/', views.delete_gallery_image, name='delete_gallery_image'),
+    path('gallery/set-primary/<int:image_id>/', views.set_primary_image, name='set_primary_image'),
 ]

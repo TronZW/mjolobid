@@ -9,8 +9,8 @@ from django.utils import timezone
 from django.db.models import Q
 from django.conf import settings
 import os
-from .models import User, UserProfile, UserRating
-from .forms import UserRegistrationForm, UserLoginForm, ProfileUpdateForm, ProfileSetupForm
+from .models import User, UserProfile, UserRating, UserGallery
+from .forms import UserRegistrationForm, UserLoginForm, ProfileUpdateForm, ProfileSetupForm, GalleryImageForm, GalleryImageUpdateForm
 import json
 
 
@@ -276,3 +276,84 @@ def rate_user(request, user_id):
             messages.success(request, 'Rating submitted successfully!')
     
     return redirect('accounts:profile')
+
+
+@login_required
+def gallery(request):
+    """User gallery management"""
+    gallery_images = UserGallery.objects.filter(user=request.user).order_by('-is_primary', '-uploaded_at')
+    
+    context = {
+        'gallery_images': gallery_images,
+    }
+    
+    return render(request, 'accounts/gallery.html', context)
+
+
+@login_required
+def upload_gallery_image(request):
+    """Upload a new gallery image"""
+    if request.method == 'POST':
+        form = GalleryImageForm(request.POST, request.FILES)
+        if form.is_valid():
+            gallery_image = form.save(commit=False)
+            gallery_image.user = request.user
+            gallery_image.save()
+            messages.success(request, 'Image uploaded successfully!')
+            return redirect('accounts:gallery')
+        else:
+            for field, errors in form.errors.items():
+                for error in errors:
+                    messages.error(request, f'{field}: {error}')
+    else:
+        form = GalleryImageForm()
+    
+    return render(request, 'accounts/upload_gallery_image.html', {'form': form})
+
+
+@login_required
+def edit_gallery_image(request, image_id):
+    """Edit gallery image details"""
+    try:
+        gallery_image = UserGallery.objects.get(id=image_id, user=request.user)
+    except UserGallery.DoesNotExist:
+        messages.error(request, 'Image not found.')
+        return redirect('accounts:gallery')
+    
+    if request.method == 'POST':
+        form = GalleryImageUpdateForm(request.POST, instance=gallery_image)
+        if form.is_valid():
+            form.save()
+            messages.success(request, 'Image updated successfully!')
+            return redirect('accounts:gallery')
+    else:
+        form = GalleryImageUpdateForm(instance=gallery_image)
+    
+    return render(request, 'accounts/edit_gallery_image.html', {'form': form, 'gallery_image': gallery_image})
+
+
+@login_required
+def delete_gallery_image(request, image_id):
+    """Delete a gallery image"""
+    try:
+        gallery_image = UserGallery.objects.get(id=image_id, user=request.user)
+        gallery_image.delete()
+        messages.success(request, 'Image deleted successfully!')
+    except UserGallery.DoesNotExist:
+        messages.error(request, 'Image not found.')
+    
+    return redirect('accounts:gallery')
+
+
+@login_required
+def set_primary_image(request, image_id):
+    """Set an image as primary"""
+    try:
+        gallery_image = UserGallery.objects.get(id=image_id, user=request.user)
+        gallery_image.is_primary = True
+        gallery_image.save()
+        messages.success(request, 'Primary image updated!')
+    except UserGallery.DoesNotExist:
+        messages.error(request, 'Image not found.')
+    
+    return redirect('accounts:gallery')
