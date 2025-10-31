@@ -357,3 +357,61 @@ def set_primary_image(request, image_id):
         messages.error(request, 'Image not found.')
     
     return redirect('accounts:gallery')
+
+
+@login_required
+def view_user_profile(request, user_id):
+    """View another user's profile"""
+    try:
+        viewed_user = User.objects.get(id=user_id)
+    except User.DoesNotExist:
+        messages.error(request, 'User not found.')
+        return redirect('accounts:home')
+    
+    # Get user profile
+    try:
+        user_profile = viewed_user.profile
+    except UserProfile.DoesNotExist:
+        user_profile = UserProfile.objects.create(user=viewed_user)
+    
+    # Get user's ratings
+    ratings = UserRating.objects.filter(rated_user=viewed_user).order_by('-created_at')[:5]
+    
+    # Get gallery images (limited to 6 for preview)
+    gallery_images = UserGallery.objects.filter(user=viewed_user).order_by('-is_primary', '-uploaded_at')[:6]
+    
+    # Check if viewing own profile
+    is_own_profile = (request.user == viewed_user)
+    
+    context = {
+        'viewed_user': viewed_user,
+        'user_profile': user_profile,
+        'ratings': ratings,
+        'gallery_images': gallery_images,
+        'is_own_profile': is_own_profile,
+    }
+    
+    return render(request, 'accounts/view_user_profile.html', context)
+
+
+@login_required
+def view_user_gallery(request, user_id):
+    """View another user's gallery"""
+    try:
+        viewed_user = User.objects.get(id=user_id)
+    except User.DoesNotExist:
+        messages.error(request, 'User not found.')
+        return redirect('accounts:home')
+    
+    gallery_images = UserGallery.objects.filter(user=viewed_user).order_by('-is_primary', '-uploaded_at')
+    
+    # Check if viewing own gallery
+    is_own_gallery = (request.user == viewed_user)
+    
+    context = {
+        'viewed_user': viewed_user,
+        'gallery_images': gallery_images,
+        'is_own_gallery': is_own_gallery,
+    }
+    
+    return render(request, 'accounts/view_user_gallery.html', context)

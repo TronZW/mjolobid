@@ -22,4 +22,6 @@ urlpatterns = [
     path('gallery/edit/<int:image_id>/', views.edit_gallery_image, name='edit_gallery_image'),
     path('gallery/delete/<int:image_id>/', views.delete_gallery_image, name='delete_gallery_image'),
     path('gallery/set-primary/<int:image_id>/', views.set_primary_image, name='set_primary_image'),
+    path('view-profile/<int:user_id>/', views.view_user_profile, name='view_user_profile'),
+    path('view-gallery/<int:user_id>/', views.view_user_gallery, name='view_user_gallery'),
 ]

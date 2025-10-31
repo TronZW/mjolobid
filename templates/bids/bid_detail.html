@@ -21,7 +21,7 @@
                         <div class="flex items-center">
                             <div class="w-16 h-16 bg-white bg-opacity-20 rounded-full flex items-center justify-center mr-4">
                                 {% if bid.user.profile_picture %}
-                                    <img src="{{ bid.user.profile_picture.url }}" alt="{{ bid.user.username }}" class="w-16 h-16 rounded-full object-cover">
+                                    <img src="{{ bid.user.get_profile_picture_url }}" alt="{{ bid.user.username }}" class="w-16 h-16 rounded-full object-cover">
                                 {% else %}
                                     <i class="fas fa-user text-2xl"></i>
                                 {% endif %}
@@ -36,6 +36,18 @@
                                 {% endif %}
                             </div>
                         </div>
+                        {% if request.user.user_type == 'F' and request.user != bid.user %}
+                            <div class="flex space-x-2">
+                                <a href="{% url 'accounts:view_user_profile' bid.user.id %}" 
+                                   class="bg-white bg-opacity-20 hover:bg-opacity-30 text-white px-4 py-2 rounded-lg text-sm font-semibold transition-colors">
+                                    <i class="fas fa-user mr-1"></i>Profile
+                                </a>
+                                <a href="{% url 'accounts:view_user_gallery' bid.user.id %}" 
+                                   class="bg-white bg-opacity-20 hover:bg-opacity-30 text-white px-4 py-2 rounded-lg text-sm font-semibold transition-colors">
+                                    <i class="fas fa-images mr-1"></i>Gallery
+                                </a>
+                            </div>
+                        {% endif %}
                         {% if bid.is_boosted %}
                             <div class="bg-yellow-400 text-yellow-900 px-3 py-1 rounded-full text-sm font-bold">
                                 <i class="fas fa-bolt mr-1"></i>BOOSTED
@@ -111,7 +123,21 @@
             
             <!-- User Profile -->
             <div class="bg-white rounded-lg shadow-lg p-6">
-                <h3 class="text-lg font-semibold text-gray-900 mb-4">About {{ bid.user.username }}</h3>
+                <div class="flex items-center justify-between mb-4">
+                    <h3 class="text-lg font-semibold text-gray-900">About {{ bid.user.username }}</h3>
+                    {% if request.user.user_type == 'F' and request.user != bid.user %}
+                        <div class="flex space-x-2">
+                            <a href="{% url 'accounts:view_user_profile' bid.user.id %}" 
+                               class="bg-primary text-white px-4 py-2 rounded-lg text-sm font-semibold hover:bg-purple-700 transition-colors">
+                                <i class="fas fa-user mr-1"></i>View Full Profile
+                            </a>
+                            <a href="{% url 'accounts:view_user_gallery' bid.user.id %}" 
+                               class="bg-blue-500 text-white px-4 py-2 rounded-lg text-sm font-semibold hover:bg-blue-600 transition-colors">
+                                <i class="fas fa-images mr-1"></i>View Gallery
+                            </a>
+                        </div>
+                    {% endif %}
+                </div>
                 <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
                     <div>
                         <p class="text-gray-700 mb-2"><strong>Age:</strong> {{ bid.user.age }} years old</p>

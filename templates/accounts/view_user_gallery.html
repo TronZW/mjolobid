@@ -1,0 +1,65 @@
+{% extends 'base.html' %}
+
+{% block title %}{{ viewed_user.username }}'s Gallery - MjoloBid{% endblock %}
+
+{% block content %}
+<div class="max-w-6xl mx-auto">
+    <div class="mb-8">
+        <div class="flex items-center justify-between">
+            <div>
+                <h1 class="text-3xl font-bold text-gray-900 mb-2">{{ viewed_user.username }}'s Gallery</h1>
+                <p class="text-gray-600">{{ gallery_images.count }} photo{{ gallery_images.count|pluralize }}</p>
+            </div>
+            <div class="flex space-x-2">
+                <a href="{% url 'accounts:view_user_profile' viewed_user.id %}" 
+                   class="bg-primary text-white px-4 py-2 rounded-lg font-semibold hover:bg-purple-700 transition-colors">
+                    <i class="fas fa-user mr-2"></i>View Profile
+                </a>
+                <a href="{% url 'bids:browse_bids' %}" 
+                   class="bg-gray-100 text-gray-700 px-4 py-2 rounded-lg font-semibold hover:bg-gray-200 transition-colors">
+                    <i class="fas fa-arrow-left mr-2"></i>Back
+                </a>
+            </div>
+        </div>
+    </div>
+
+    {% if gallery_images %}
+        <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
+            {% for image in gallery_images %}
+                <div class="bg-white rounded-lg shadow-lg overflow-hidden group relative">
+                    <div class="aspect-square relative overflow-hidden">
+                        <img src="{{ image.get_image_url }}" 
+                             alt="{{ image.caption|default:'Gallery image' }}" 
+                             class="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300">
+                        
+                        {% if image.is_primary %}
+                            <div class="absolute top-2 left-2 bg-yellow-500 text-white px-2 py-1 rounded-full text-xs font-semibold">
+                                <i class="fas fa-star mr-1"></i>Primary
+                            </div>
+                        {% endif %}
+                    </div>
+                    
+                    <div class="p-4">
+                        {% if image.caption %}
+                            <p class="text-gray-700 text-sm">{{ image.caption }}</p>
+                        {% else %}
+                            <p class="text-gray-400 text-sm italic">No caption</p>
+                        {% endif %}
+                        <p class="text-gray-500 text-xs mt-1">
+                            {{ image.uploaded_at|date:"M d, Y" }}
+                        </p>
+                    </div>
+                </div>
+            {% endfor %}
+        </div>
+    {% else %}
+        <div class="text-center py-12 bg-white rounded-lg shadow-lg">
+            <div class="mx-auto w-24 h-24 bg-gray-100 rounded-full flex items-center justify-center mb-4">
+                <i class="fas fa-images text-gray-400 text-3xl"></i>
+            </div>
+            <h3 class="text-xl font-semibold text-gray-900 mb-2">No photos yet</h3>
+            <p class="text-gray-600">{{ viewed_user.username }} hasn't uploaded any photos yet.</p>
+        </div>
+    {% endif %}
+</div>
+{% endblock %}

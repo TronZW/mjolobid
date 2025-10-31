@@ -1,0 +1,171 @@
+{% extends 'base.html' %}
+
+{% block title %}{{ viewed_user.username }}'s Profile - MjoloBid{% endblock %}
+
+{% block content %}
+<div class="max-w-4xl mx-auto">
+    <div class="mb-8">
+        <div class="flex items-center justify-between">
+            <div>
+                <h1 class="text-3xl font-bold text-gray-900 mb-2">{{ viewed_user.username }}'s Profile</h1>
+                <p class="text-gray-600">{{ viewed_user.get_user_type_display }} • {{ viewed_user.city }}</p>
+            </div>
+            <div class="flex space-x-2">
+                <a href="{% url 'accounts:view_user_gallery' viewed_user.id %}" 
+                   class="bg-blue-500 text-white px-4 py-2 rounded-lg font-semibold hover:bg-blue-600 transition-colors">
+                    <i class="fas fa-images mr-2"></i>View Gallery
+                </a>
+                {% if not is_own_profile %}
+                    <a href="{% url 'bids:browse_bids' %}" 
+                       class="bg-gray-100 text-gray-700 px-4 py-2 rounded-lg font-semibold hover:bg-gray-200 transition-colors">
+                        <i class="fas fa-arrow-left mr-2"></i>Back
+                    </a>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+
+    <div class="grid grid-cols-1 lg:grid-cols-3 gap-8">
+        <!-- Profile Information -->
+        <div class="lg:col-span-2">
+            <div class="bg-white rounded-lg shadow-lg p-6 mb-6">
+                <div class="flex items-center mb-6">
+                    {% if viewed_user.profile_picture %}
+                        <img src="{{ viewed_user.get_profile_picture_url }}" alt="{{ viewed_user.username }}" class="w-24 h-24 rounded-full object-cover mr-4 border-4 border-primary">
+                    {% else %}
+                        <div class="w-24 h-24 bg-primary rounded-full flex items-center justify-center text-white text-3xl font-bold mr-4">
+                            {{ viewed_user.username|first|upper }}
+                        </div>
+                    {% endif %}
+                    <div>
+                        <h2 class="text-2xl font-bold text-gray-900">{{ viewed_user.username }}</h2>
+                        <p class="text-gray-600">{{ viewed_user.get_user_type_display }} • {{ viewed_user.city }}</p>
+                        {% if viewed_user.is_verified %}
+                            <span class="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-green-100 text-green-800 mt-1">
+                                <i class="fas fa-check-circle mr-1"></i>Verified
+                            </span>
+                        {% endif %}
+                    </div>
+                </div>
+                
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                    <div>
+                        <h3 class="text-lg font-semibold text-gray-900 mb-4">Basic Information</h3>
+                        <div class="space-y-3">
+                            {% if viewed_user.age %}
+                                <div>
+                                    <span class="font-medium text-gray-700">Age:</span>
+                                    <span class="text-gray-600 ml-2">{{ viewed_user.age }} years old</span>
+                                </div>
+                            {% endif %}
+                            <div>
+                                <span class="font-medium text-gray-700">Location:</span>
+                                <span class="text-gray-600 ml-2">{{ viewed_user.city }}{% if viewed_user.location %}, {{ viewed_user.location }}{% endif %}</span>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div>
+                        <h3 class="text-lg font-semibold text-gray-900 mb-4">Account Status</h3>
+                        <div class="space-y-3">
+                            <div class="flex items-center">
+                                <span class="font-medium text-gray-700">Premium:</span>
+                                {% if viewed_user.is_premium %}
+                                    <span class="ml-2 px-2 py-1 bg-yellow-100 text-yellow-800 rounded-full text-xs font-medium">
+                                        <i class="fas fa-crown mr-1"></i>Active
+                                    </span>
+                                {% else %}
+                                    <span class="ml-2 px-2 py-1 bg-gray-100 text-gray-800 rounded-full text-xs font-medium">
+                                        Free
+                                    </span>
+                                {% endif %}
+                            </div>
+                            <div class="flex items-center">
+                                <span class="font-medium text-gray-700">Member since:</span>
+                                <span class="text-gray-600 ml-2">{{ viewed_user.date_joined|date:"M d, Y" }}</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                
+                {% if viewed_user.bio %}
+                    <div class="mt-6">
+                        <h3 class="text-lg font-semibold text-gray-900 mb-2">Bio</h3>
+                        <p class="text-gray-700">{{ viewed_user.bio }}</p>
+                    </div>
+                {% endif %}
+            </div>
+            
+            <!-- Gallery Preview -->
+            {% if gallery_images %}
+                <div class="bg-white rounded-lg shadow-lg p-6 mb-6">
+                    <div class="flex items-center justify-between mb-4">
+                        <h3 class="text-lg font-semibold text-gray-900">Photos</h3>
+                        <a href="{% url 'accounts:view_user_gallery' viewed_user.id %}" class="text-primary hover:text-purple-700 text-sm font-medium">
+                            View All <i class="fas fa-arrow-right ml-1"></i>
+                        </a>
+                    </div>
+                    <div class="grid grid-cols-3 gap-2">
+                        {% for image in gallery_images %}
+                            <div class="aspect-square rounded-lg overflow-hidden">
+                                <img src="{{ image.get_image_url }}" 
+                                     alt="{{ image.caption|default:'Gallery image' }}" 
+                                     class="w-full h-full object-cover hover:scale-105 transition-transform duration-200 cursor-pointer"
+                                     onclick="window.location='{% url 'accounts:view_user_gallery' viewed_user.id %}'">
+                            </div>
+                        {% endfor %}
+                    </div>
+                    {% if viewed_user.gallery_images.count > 6 %}
+                        <p class="text-sm text-gray-500 mt-2">+{{ viewed_user.gallery_images.count|add:"-6" }} more photos</p>
+                    {% endif %}
+                </div>
+            {% endif %}
+        </div>
+        
+        <!-- Sidebar -->
+        <div class="lg:col-span-1">
+            <!-- Stats Card -->
+            <div class="bg-white rounded-lg shadow-lg p-6 mb-6">
+                <h3 class="text-lg font-semibold text-gray-900 mb-4">Stats</h3>
+                <div class="space-y-4">
+                    {% if viewed_user.user_type == 'M' %}
+                        <div class="flex justify-between">
+                            <span class="text-gray-600">Bids Posted:</span>
+                            <span class="font-semibold">{{ viewed_user.bids_posted.count }}</span>
+                        </div>
+                    {% else %}
+                        <div class="flex justify-between">
+                            <span class="text-gray-600">Bids Accepted:</span>
+                            <span class="font-semibold">{{ viewed_user.bids_accepted.count }}</span>
+                        </div>
+                    {% endif %}
+                </div>
+            </div>
+            
+            <!-- Ratings -->
+            {% if ratings %}
+                <div class="bg-white rounded-lg shadow-lg p-6">
+                    <h3 class="text-lg font-semibold text-gray-900 mb-4">Ratings</h3>
+                    <div class="space-y-4">
+                        {% for rating in ratings %}
+                            <div class="border-b border-gray-200 pb-3 last:border-0">
+                                <div class="flex items-center mb-1">
+                                    <div class="flex text-yellow-500">
+                                        {% for i in "12345"|make_list %}
+                                            <i class="fas fa-star {% if forloop.counter <= rating.rating %}text-yellow-500{% else %}text-gray-300{% endif %}"></i>
+                                        {% endfor %}
+                                    </div>
+                                    <span class="ml-2 text-sm text-gray-500">{{ rating.created_at|date:"M Y" }}</span>
+                                </div>
+                                {% if rating.review %}
+                                    <p class="text-sm text-gray-600 mt-1">{{ rating.review }}</p>
+                                {% endif %}
+                            </div>
+                        {% endfor %}
+                    </div>
+                </div>
+            {% endif %}
+        </div>
+    </div>
+</div>
+{% endblock %}
