@@ -1,0 +1,79 @@
+{% extends 'base.html' %}
+
+{% block title %}Bids on {{ offer.title }} - MjoloBid{% endblock %}
+
+{% block content %}
+<div class="max-w-4xl mx-auto">
+    <div class="mb-6">
+        <a href="{% url 'offers:my_offers' %}" class="text-primary hover:text-purple-700 flex items-center">
+            <i class="fas fa-arrow-left mr-2"></i>Back to My Offers
+        </a>
+    </div>
+
+    <div class="bg-white rounded-lg shadow-lg p-6 mb-6">
+        <h1 class="text-2xl font-bold mb-2">{{ offer.title }}</h1>
+        <p class="text-gray-600">{{ offer.description }}</p>
+    </div>
+
+    <div class="bg-white rounded-lg shadow-lg p-6">
+        <h2 class="text-xl font-semibold mb-6">All Bids ({{ bids|length }})</h2>
+        
+        {% if bids %}
+            <div class="space-y-4">
+                {% for bid in bids %}
+                    <div class="border border-gray-200 rounded-lg p-6 hover:shadow-md transition-shadow">
+                        <div class="flex justify-between items-start mb-4">
+                            <div class="flex items-center">
+                                {% if bid.bidder.profile_picture %}
+                                    <img src="{{ bid.bidder.get_profile_picture_url }}" alt="{{ bid.bidder.username }}" class="w-12 h-12 rounded-full object-cover mr-4">
+                                {% else %}
+                                    <div class="w-12 h-12 bg-gray-200 rounded-full flex items-center justify-center mr-4">
+                                        <i class="fas fa-user text-gray-500"></i>
+                                    </div>
+                                {% endif %}
+                                <div>
+                                    <h3 class="font-semibold text-lg">{{ bid.bidder.username }}</h3>
+                                    <p class="text-sm text-gray-600">{{ bid.bidder.age }} years old • {{ bid.bidder.city }}</p>
+                                </div>
+                            </div>
+                            <div class="text-right">
+                                <p class="text-2xl font-bold text-green-600">${{ bid.bid_amount }}</p>
+                                <span class="px-3 py-1 rounded-full text-xs {% if bid.status == 'SELECTED' %}bg-green-100 text-green-800{% elif bid.status == 'PENDING' %}bg-yellow-100 text-yellow-800{% else %}bg-gray-100 text-gray-800{% endif %}">
+                                    {{ bid.get_status_display }}
+                                </span>
+                            </div>
+                        </div>
+                        
+                        {% if bid.message %}
+                            <div class="bg-gray-50 rounded-lg p-4 mb-4">
+                                <p class="text-gray-700">{{ bid.message }}</p>
+                            </div>
+                        {% endif %}
+                        
+                        <div class="flex items-center space-x-4">
+                            <a href="{% url 'accounts:view_user_profile' bid.bidder.id %}" class="text-primary hover:underline text-sm">
+                                <i class="fas fa-user mr-1"></i>View Profile
+                            </a>
+                            <a href="{% url 'accounts:view_user_gallery' bid.bidder.id %}" class="text-primary hover:underline text-sm">
+                                <i class="fas fa-images mr-1"></i>View Gallery
+                            </a>
+                            {% if bid.status == 'PENDING' %}
+                                <a href="{% url 'offers:choose_bid' offer.id bid.id %}" class="ml-auto bg-gradient-to-r from-primary to-secondary text-white px-6 py-2 rounded-lg hover:opacity-90">
+                                    <i class="fas fa-check mr-2"></i>Choose This Bid
+                                </a>
+                            {% endif %}
+                        </div>
+                    </div>
+                {% endfor %}
+            </div>
+        {% else %}
+            <div class="text-center py-12">
+                <div class="text-6xl text-gray-300 mb-4">💰</div>
+                <h3 class="text-xl font-semibold text-gray-600 mb-2">No bids yet</h3>
+                <p class="text-gray-500">Share your offer to get more visibility!</p>
+            </div>
+        {% endif %}
+    </div>
+</div>
+{% endblock %}
+

@@ -1,0 +1,199 @@
+{% extends 'base.html' %}
+
+{% block title %}{{ offer.title }} - MjoloBid{% endblock %}
+
+{% block content %}
+<div class="max-w-4xl mx-auto">
+    <div class="mb-6">
+        <a href="{% url 'offers:browse_offers' %}" class="text-primary hover:text-purple-700 flex items-center">
+            <i class="fas fa-arrow-left mr-2"></i>Back to Offers
+        </a>
+    </div>
+
+    <div class="grid grid-cols-1 lg:grid-cols-3 gap-8">
+        <div class="lg:col-span-2">
+            <div class="bg-white rounded-lg shadow-lg overflow-hidden mb-6">
+                <div class="bg-gradient-to-r from-secondary to-primary p-6 text-white">
+                    <div class="flex items-center justify-between mb-4">
+                        <div class="flex items-center">
+                            {% if offer_creator.profile_picture %}
+                                <img src="{{ offer_creator.get_profile_picture_url }}" alt="{{ offer_creator.username }}" class="w-16 h-16 rounded-full object-cover mr-4">
+                            {% else %}
+                                <div class="w-16 h-16 bg-white bg-opacity-20 rounded-full flex items-center justify-center mr-4">
+                                    <i class="fas fa-user text-2xl"></i>
+                                </div>
+                            {% endif %}
+                            <div>
+                                <h1 class="text-2xl font-bold">{{ offer_creator.username }}</h1>
+                                {% if offer_creator.age %}
+                                    <p class="opacity-90">{{ offer_creator.age }} years old • {{ offer_creator.city }}</p>
+                                {% endif %}
+                            </div>
+                        </div>
+                        {% if request.user.user_type == 'M' and request.user != offer.user %}
+                            <div class="flex space-x-2">
+                                <a href="{% url 'accounts:view_user_profile' offer_creator.id %}" 
+                                   class="bg-white bg-opacity-20 hover:bg-opacity-30 text-white px-4 py-2 rounded-lg text-sm font-semibold">
+                                    <i class="fas fa-user mr-1"></i>Profile
+                                </a>
+                                <a href="{% url 'accounts:view_user_gallery' offer_creator.id %}" 
+                                   class="bg-white bg-opacity-20 hover:bg-opacity-30 text-white px-4 py-2 rounded-lg text-sm font-semibold">
+                                    <i class="fas fa-images mr-1"></i>Gallery
+                                </a>
+                            </div>
+                        {% endif %}
+                    </div>
+                    <div class="flex items-center">
+                        {% if offer.event_category %}
+                            <span class="text-3xl mr-3">{{ offer.event_category.icon }}</span>
+                        {% endif %}
+                        <div>
+                            <h2 class="text-xl font-semibold">{{ offer.title }}</h2>
+                            {% if offer.event_category %}
+                                <p class="opacity-90">{{ offer.event_category.name }}</p>
+                            {% endif %}
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="p-6">
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                        <div>
+                            <h3 class="text-lg font-semibold mb-4">Offer Details</h3>
+                            <div class="space-y-3">
+                                {% if offer.event_date %}
+                                    <div class="flex items-center">
+                                        <i class="fas fa-calendar-alt text-primary mr-3"></i>
+                                        <div>
+                                            <p class="font-medium">{{ offer.event_date|date:"l, F d, Y" }}</p>
+                                            <p class="text-sm text-gray-600">{{ offer.event_date|date:"g:i A" }}</p>
+                                        </div>
+                                    </div>
+                                {% elif offer.available_date %}
+                                    <div class="flex items-center">
+                                        <i class="fas fa-calendar-alt text-primary mr-3"></i>
+                                        <p class="font-medium">Available: {{ offer.available_date|date:"l, F d, Y" }}</p>
+                                    </div>
+                                {% endif %}
+                                {% if offer.event_location %}
+                                    <div class="flex items-center">
+                                        <i class="fas fa-map-marker-alt text-primary mr-3"></i>
+                                        <p class="font-medium">{{ offer.event_location }}</p>
+                                    </div>
+                                {% endif %}
+                            </div>
+                        </div>
+                        
+                        <div>
+                            <h3 class="text-lg font-semibold mb-4">Bid Information</h3>
+                            <div class="bg-blue-50 border border-blue-200 rounded-lg p-4">
+                                <div class="text-center">
+                                    <p class="text-sm text-blue-700 mb-1">Minimum Bid</p>
+                                    <p class="text-3xl font-bold text-blue-600">${{ offer.minimum_bid }}</p>
+                                    {% if offer.bid_count > 0 %}
+                                        <p class="text-xs text-blue-600 mt-2">{{ offer.bid_count }} bid{{ offer.bid_count|pluralize }} received</p>
+                                    {% endif %}
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="bg-white rounded-lg shadow-lg p-6 mb-6">
+                <h3 class="text-lg font-semibold mb-4">Description</h3>
+                <p class="text-gray-700">{{ offer.description }}</p>
+            </div>
+            
+            {% if gallery_images %}
+                <div class="bg-white rounded-lg shadow-lg p-6 mb-6">
+                    <h3 class="text-lg font-semibold mb-4">Gallery Preview</h3>
+                    <div class="grid grid-cols-3 gap-4">
+                        {% for image in gallery_images %}
+                            <a href="{% url 'accounts:view_user_gallery' offer_creator.id %}">
+                                <img src="{{ image.get_image_url }}" alt="Gallery" class="w-full h-32 object-cover rounded-lg">
+                            </a>
+                        {% endfor %}
+                    </div>
+                    <div class="mt-4 text-center">
+                        <a href="{% url 'accounts:view_user_gallery' offer_creator.id %}" class="text-primary hover:underline">
+                            View Full Gallery <i class="fas fa-arrow-right ml-1"></i>
+                        </a>
+                    </div>
+                </div>
+            {% endif %}
+            
+            {% if request.user == offer.user and all_bids %}
+                <div class="bg-white rounded-lg shadow-lg p-6">
+                    <h3 class="text-lg font-semibold mb-4">All Bids ({{ all_bids|length }})</h3>
+                    <div class="space-y-4">
+                        {% for bid in all_bids %}
+                            <div class="border border-gray-200 rounded-lg p-4">
+                                <div class="flex justify-between items-start">
+                                    <div>
+                                        <p class="font-semibold">{{ bid.bidder.username }}</p>
+                                        <p class="text-2xl font-bold text-green-600">${{ bid.bid_amount }}</p>
+                                        {% if bid.message %}
+                                            <p class="text-gray-600 mt-2">{{ bid.message }}</p>
+                                        {% endif %}
+                                    </div>
+                                    <span class="px-3 py-1 rounded-full text-sm {% if bid.status == 'SELECTED' %}bg-green-100 text-green-800{% else %}bg-gray-100 text-gray-800{% endif %}">
+                                        {{ bid.get_status_display }}
+                                    </span>
+                                </div>
+                                {% if bid.status == 'PENDING' %}
+                                    <div class="mt-4">
+                                        <a href="{% url 'offers:choose_bid' offer.id bid.id %}" class="bg-primary text-white px-4 py-2 rounded-lg text-sm hover:bg-purple-700">
+                                            Choose This Bid
+                                        </a>
+                                    </div>
+                                {% endif %}
+                            </div>
+                        {% endfor %}
+                    </div>
+                    <div class="mt-4">
+                        <a href="{% url 'offers:view_offer_bids' offer.id %}" class="text-primary hover:underline">
+                            View All Bids <i class="fas fa-arrow-right ml-1"></i>
+                        </a>
+                    </div>
+                </div>
+            {% endif %}
+        </div>
+        
+        <div>
+            {% if can_bid %}
+                <div class="bg-white rounded-lg shadow-lg p-6 mb-6">
+                    <h3 class="text-lg font-semibold mb-4">Place a Bid</h3>
+                    <a href="{% url 'offers:place_bid' offer.id %}" class="block w-full bg-gradient-to-r from-primary to-secondary text-white text-center py-3 rounded-lg font-semibold hover:opacity-90">
+                        <i class="fas fa-gavel mr-2"></i>Place Bid
+                    </a>
+                    <p class="text-sm text-gray-600 mt-2 text-center">Minimum: ${{ offer.minimum_bid }}</p>
+                </div>
+            {% elif existing_bid %}
+                <div class="bg-white rounded-lg shadow-lg p-6">
+                    <h3 class="text-lg font-semibold mb-4">Your Bid</h3>
+                    <div class="bg-green-50 border border-green-200 rounded-lg p-4">
+                        <p class="text-2xl font-bold text-green-600">${{ existing_bid.bid_amount }}</p>
+                        <p class="text-sm text-gray-600 mt-2">Status: {{ existing_bid.get_status_display }}</p>
+                    </div>
+                </div>
+            {% endif %}
+            
+            {% if request.user == offer.user %}
+                <div class="bg-white rounded-lg shadow-lg p-6">
+                    <h3 class="text-lg font-semibold mb-4">Manage Offer</h3>
+                    <div class="space-y-2">
+                        <a href="{% url 'offers:view_offer_bids' offer.id %}" class="block w-full bg-primary text-white text-center py-2 rounded-lg hover:bg-purple-700">
+                            View All Bids
+                        </a>
+                        <a href="{% url 'offers:edit_offer' offer.id %}" class="block w-full border border-gray-300 text-gray-700 text-center py-2 rounded-lg hover:bg-gray-50">
+                            Edit Offer
+                        </a>
+                    </div>
+                </div>
+            {% endif %}
+        </div>
+    </div>
+</div>
+{% endblock %}
+

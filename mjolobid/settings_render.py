@@ -29,6 +29,7 @@ INSTALLED_APPS = [
     'corsheaders',
     'accounts',
     'bids',
+    'offers',
     'payments',
     'notifications',
     'messaging',

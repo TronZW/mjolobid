@@ -1,0 +1,75 @@
+{% extends 'base.html' %}
+
+{% block title %}My Offers - MjoloBid{% endblock %}
+
+{% block content %}
+<div class="max-w-6xl mx-auto">
+    <div class="flex justify-between items-center mb-8">
+        <div>
+            <h1 class="text-3xl font-bold text-gray-900 mb-2">My Offers</h1>
+            <p class="text-gray-600">Manage your offers and see bids from interested guys</p>
+        </div>
+        <a href="{% url 'offers:create_offer' %}" class="bg-gradient-to-r from-primary to-secondary text-white px-6 py-3 rounded-lg font-semibold hover:opacity-90">
+            <i class="fas fa-plus mr-2"></i>Create Offer
+        </a>
+    </div>
+
+    {% if page_obj %}
+        <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+            {% for offer in page_obj %}
+                <div class="bg-white rounded-lg shadow-lg overflow-hidden">
+                    <div class="bg-gradient-to-r from-secondary to-primary p-4 text-white">
+                        <h3 class="font-semibold text-lg">{{ offer.title }}</h3>
+                        <p class="text-sm opacity-90">{{ offer.get_status_display }}</p>
+                    </div>
+                    <div class="p-4">
+                        <p class="text-gray-700 mb-4">{{ offer.description|truncatewords:15 }}</p>
+                        <div class="space-y-2 mb-4">
+                            {% if offer.event_date %}
+                                <p class="text-sm text-gray-600"><i class="fas fa-calendar-alt mr-2"></i>{{ offer.event_date|date:"M d, Y" }}</p>
+                            {% elif offer.available_date %}
+                                <p class="text-sm text-gray-600"><i class="fas fa-calendar-alt mr-2"></i>{{ offer.available_date|date:"M d, Y" }}</p>
+                            {% endif %}
+                            <p class="text-sm text-gray-600"><i class="fas fa-dollar-sign mr-2"></i>Min: ${{ offer.minimum_bid }}</p>
+                            <p class="text-sm text-gray-600"><i class="fas fa-users mr-2"></i>{{ offer.bid_count }} bid{{ offer.bid_count|pluralize }}</p>
+                        </div>
+                        <div class="flex space-x-2">
+                            <a href="{% url 'offers:offer_detail' offer.id %}" class="flex-1 bg-primary text-white text-center py-2 rounded-lg text-sm hover:bg-purple-700">
+                                View
+                            </a>
+                            {% if offer.status == 'PENDING' %}
+                                <a href="{% url 'offers:view_offer_bids' offer.id %}" class="flex-1 bg-green-500 text-white text-center py-2 rounded-lg text-sm hover:bg-green-600">
+                                    Bids ({{ offer.bid_count }})
+                                </a>
+                            {% endif %}
+                        </div>
+                    </div>
+                </div>
+            {% endfor %}
+        </div>
+        
+        {% if page_obj.has_other_pages %}
+            <div class="mt-8 flex justify-center">
+                <nav class="flex space-x-2">
+                    {% if page_obj.has_previous %}
+                        <a href="?page={{ page_obj.previous_page_number }}" class="px-3 py-2 border border-gray-300 rounded-lg">Previous</a>
+                    {% endif %}
+                    {% if page_obj.has_next %}
+                        <a href="?page={{ page_obj.next_page_number }}" class="px-3 py-2 border border-gray-300 rounded-lg">Next</a>
+                    {% endif %}
+                </nav>
+            </div>
+        {% endif %}
+    {% else %}
+        <div class="bg-white rounded-lg shadow-lg p-12 text-center">
+            <div class="text-6xl text-gray-300 mb-4">🎁</div>
+            <h3 class="text-xl font-semibold text-gray-600 mb-2">No offers yet</h3>
+            <p class="text-gray-500 mb-6">Create your first offer to let guys know you're available!</p>
+            <a href="{% url 'offers:create_offer' %}" class="inline-block bg-gradient-to-r from-primary to-secondary text-white px-6 py-3 rounded-lg font-semibold hover:opacity-90">
+                <i class="fas fa-plus mr-2"></i>Create Your First Offer
+            </a>
+        </div>
+    {% endif %}
+</div>
+{% endblock %}
+

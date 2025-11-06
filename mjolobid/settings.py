@@ -30,6 +30,7 @@ INSTALLED_APPS = [
     'channels',
     'accounts',
     'bids',
+    'offers',
     'payments',
     'notifications',
     'messaging',

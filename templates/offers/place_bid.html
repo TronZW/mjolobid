@@ -1,0 +1,96 @@
+{% extends 'base.html' %}
+
+{% block title %}Place Bid on Offer - MjoloBid{% endblock %}
+
+{% block content %}
+<div class="max-w-4xl mx-auto">
+    <div class="mb-6">
+        <a href="{% url 'offers:offer_detail' offer.id %}" class="text-primary hover:text-purple-700 flex items-center">
+            <i class="fas fa-arrow-left mr-2"></i>Back to Offer
+        </a>
+    </div>
+
+    <div class="grid grid-cols-1 lg:grid-cols-3 gap-8">
+        <div class="lg:col-span-2">
+            <div class="bg-white rounded-lg shadow-lg p-6 mb-6">
+                <h2 class="text-2xl font-bold mb-4">{{ offer.title }}</h2>
+                <p class="text-gray-600 mb-4">{{ offer.description }}</p>
+                <div class="bg-blue-50 border border-blue-200 rounded-lg p-4">
+                    <p class="text-sm text-blue-700">Minimum Bid Required: <span class="font-bold text-lg">${{ offer.minimum_bid }}</span></p>
+                </div>
+            </div>
+            
+            {% if gallery_images %}
+                <div class="bg-white rounded-lg shadow-lg p-6 mb-6">
+                    <h3 class="text-lg font-semibold mb-4">Gallery Preview</h3>
+                    <div class="grid grid-cols-3 gap-4">
+                        {% for image in gallery_images %}
+                            <img src="{{ image.get_image_url }}" alt="Gallery" class="w-full h-32 object-cover rounded-lg">
+                        {% endfor %}
+                    </div>
+                    <div class="mt-4 text-center">
+                        <a href="{% url 'accounts:view_user_profile' offer_creator.id %}" class="text-primary hover:underline">
+                            View Full Profile & Gallery <i class="fas fa-arrow-right ml-1"></i>
+                        </a>
+                    </div>
+                </div>
+            {% endif %}
+            
+            <form method="POST" class="bg-white rounded-lg shadow-lg p-6">
+                {% csrf_token %}
+                <h3 class="text-lg font-semibold mb-4">Place Your Bid</h3>
+                
+                <div class="space-y-4">
+                    <div>
+                        <label for="{{ form.bid_amount.id_for_label }}" class="block text-sm font-semibold text-gray-700 mb-2">
+                            Bid Amount *
+                        </label>
+                        {{ form.bid_amount }}
+                        {% if form.bid_amount.errors %}
+                            <div class="text-red-600 text-sm mt-1">{{ form.bid_amount.errors.0 }}</div>
+                        {% endif %}
+                        <p class="text-sm text-gray-500 mt-1">Minimum: ${{ offer.minimum_bid }}</p>
+                    </div>
+                    
+                    <div>
+                        <label for="{{ form.message.id_for_label }}" class="block text-sm font-semibold text-gray-700 mb-2">
+                            Message (Optional)
+                        </label>
+                        {{ form.message }}
+                        {% if form.message.errors %}
+                            <div class="text-red-600 text-sm mt-1">{{ form.message.errors.0 }}</div>
+                        {% endif %}
+                    </div>
+                </div>
+                
+                <div class="mt-6 flex space-x-4">
+                    <a href="{% url 'offers:offer_detail' offer.id %}" class="px-6 py-3 border border-gray-300 rounded-lg text-gray-700 hover:bg-gray-50">
+                        Cancel
+                    </a>
+                    <button type="submit" class="px-6 py-3 bg-gradient-to-r from-primary to-secondary text-white rounded-lg font-semibold hover:opacity-90">
+                        <i class="fas fa-gavel mr-2"></i>Place Bid
+                    </button>
+                </div>
+            </form>
+        </div>
+        
+        <div>
+            <div class="bg-white rounded-lg shadow-lg p-6 sticky top-4">
+                <h3 class="text-lg font-semibold mb-4">About {{ offer_creator.username }}</h3>
+                {% if offer_creator.profile_picture %}
+                    <img src="{{ offer_creator.get_profile_picture_url }}" alt="{{ offer_creator.username }}" class="w-full h-48 object-cover rounded-lg mb-4">
+                {% endif %}
+                <p class="text-gray-600 mb-2"><strong>Age:</strong> {{ offer_creator.age }} years old</p>
+                <p class="text-gray-600 mb-4"><strong>Location:</strong> {{ offer_creator.city }}</p>
+                <a href="{% url 'accounts:view_user_profile' offer_creator.id %}" class="block w-full bg-primary text-white text-center py-2 rounded-lg hover:bg-purple-700 mb-2">
+                    View Full Profile
+                </a>
+                <a href="{% url 'accounts:view_user_gallery' offer_creator.id %}" class="block w-full border border-gray-300 text-gray-700 text-center py-2 rounded-lg hover:bg-gray-50">
+                    View Gallery
+                </a>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+

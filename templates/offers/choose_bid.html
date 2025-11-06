@@ -1,0 +1,86 @@
+{% extends 'base.html' %}
+
+{% block title %}Choose Bid - MjoloBid{% endblock %}
+
+{% block content %}
+<div class="max-w-4xl mx-auto">
+    <div class="mb-6">
+        <a href="{% url 'offers:view_offer_bids' offer.id %}" class="text-primary hover:text-purple-700 flex items-center">
+            <i class="fas fa-arrow-left mr-2"></i>Back to Bids
+        </a>
+    </div>
+
+    <div class="bg-white rounded-lg shadow-lg p-6 mb-6">
+        <h1 class="text-2xl font-bold mb-2">{{ offer.title }}</h1>
+        <div class="bg-blue-50 border border-blue-200 rounded-lg p-4">
+            <p class="text-2xl font-bold text-blue-600">${{ bid.bid_amount }}</p>
+            <p class="text-sm text-blue-700">Bid from {{ bid.bidder.username }}</p>
+        </div>
+    </div>
+
+    <div class="grid grid-cols-1 lg:grid-cols-3 gap-8">
+        <div class="lg:col-span-2">
+            <div class="bg-white rounded-lg shadow-lg p-6 mb-6">
+                <h2 class="text-xl font-semibold mb-4">About {{ bid.bidder.username }}</h2>
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                    <div>
+                        {% if bid.bidder.profile_picture %}
+                            <img src="{{ bid.bidder.get_profile_picture_url }}" alt="{{ bid.bidder.username }}" class="w-32 h-32 rounded-full object-cover mb-4">
+                        {% endif %}
+                        <p class="text-gray-700 mb-2"><strong>Age:</strong> {{ bid.bidder.age }} years old</p>
+                        <p class="text-gray-700 mb-2"><strong>Location:</strong> {{ bid.bidder.city }}</p>
+                        {% if bid.bidder.bio %}
+                            <p class="text-gray-700 mt-4"><strong>Bio:</strong></p>
+                            <p class="text-gray-600">{{ bid.bidder.bio }}</p>
+                        {% endif %}
+                    </div>
+                    <div>
+                        <a href="{% url 'accounts:view_user_profile' bid.bidder.id %}" class="block w-full bg-primary text-white text-center py-2 rounded-lg hover:bg-purple-700 mb-2">
+                            View Full Profile
+                        </a>
+                        <a href="{% url 'accounts:view_user_gallery' bid.bidder.id %}" class="block w-full border border-gray-300 text-gray-700 text-center py-2 rounded-lg hover:bg-gray-50">
+                            View Gallery
+                        </a>
+                    </div>
+                </div>
+            </div>
+            
+            {% if gallery_images %}
+                <div class="bg-white rounded-lg shadow-lg p-6 mb-6">
+                    <h3 class="text-lg font-semibold mb-4">Gallery Preview</h3>
+                    <div class="grid grid-cols-3 gap-4">
+                        {% for image in gallery_images %}
+                            <img src="{{ image.get_image_url }}" alt="Gallery" class="w-full h-32 object-cover rounded-lg">
+                        {% endfor %}
+                    </div>
+                </div>
+            {% endif %}
+            
+            {% if bid.message %}
+                <div class="bg-white rounded-lg shadow-lg p-6">
+                    <h3 class="text-lg font-semibold mb-4">Message from {{ bid.bidder.username }}</h3>
+                    <p class="text-gray-700">{{ bid.message }}</p>
+                </div>
+            {% endif %}
+        </div>
+        
+        <div>
+            <div class="bg-white rounded-lg shadow-lg p-6 sticky top-4">
+                <h3 class="text-lg font-semibold mb-4">Confirm Selection</h3>
+                <div class="bg-green-50 border border-green-200 rounded-lg p-4 mb-4">
+                    <p class="text-sm text-green-700 mb-1">Bid Amount</p>
+                    <p class="text-3xl font-bold text-green-600">${{ bid.bid_amount }}</p>
+                </div>
+                <form method="POST">
+                    {% csrf_token %}
+                    <p class="text-sm text-gray-600 mb-4">By choosing this bid, you accept this offer and all other bids will be rejected.</p>
+                    <button type="submit" class="w-full bg-gradient-to-r from-primary to-secondary text-white py-3 rounded-lg font-semibold hover:opacity-90">
+                        <i class="fas fa-check mr-2"></i>Choose This Bid
+                    </button>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
