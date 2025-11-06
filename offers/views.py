@@ -262,7 +262,8 @@ def place_bid_on_offer(request, offer_id):
                 user=offer.user,
                 title='New Bid on Your Offer!',
                 message=f'{request.user.username} has placed a ${bid.bid_amount} bid on your offer: {offer.title}',
-                notification_type='OFFER_BID',
+                notification_type='BID_ACCEPTED',  # Using existing type
+                related_object_type='offer',
                 related_object_id=offer.id
             )
             
@@ -365,7 +366,8 @@ def choose_bid(request, offer_id, bid_id):
             user=bid.bidder,
             title='Your Bid Was Selected!',
             message=f'Congratulations! {request.user.username} has selected your bid for their offer: {offer.title}',
-            notification_type='OFFER_ACCEPTED',
+            notification_type='BID_ACCEPTED',
+            related_object_type='offer',
             related_object_id=offer.id
         )
         
@@ -376,7 +378,8 @@ def choose_bid(request, offer_id, bid_id):
                 user=rejected_bid.bidder,
                 title='Bid Selection Update',
                 message=f'Sorry, {request.user.username} has selected someone else for their offer: {offer.title}',
-                notification_type='OFFER_CANCELLED',
+                notification_type='BID_CANCELLED',
+                related_object_type='offer',
                 related_object_id=offer.id
             )
         
@@ -510,7 +513,8 @@ def delete_offer(request, offer_id):
                 user=bid.bidder,
                 title='Offer Cancelled',
                 message=f'{request.user.username} has cancelled their offer: {offer.title}',
-                notification_type='OFFER_CANCELLED',
+                notification_type='BID_CANCELLED',
+                related_object_type='offer',
                 related_object_id=offer.id
             )
         

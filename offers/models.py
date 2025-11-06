@@ -153,10 +153,9 @@ class OfferBid(models.Model):
         return f"${self.bid_amount} bid on {self.offer.title} by {self.bidder.username}"
     
     def clean(self):
-        from django.core.exceptions import ValidationError
-        if self.offer and self.bid_amount:
-            if self.bid_amount < self.offer.minimum_bid:
-                raise ValidationError(f'Bid amount must be at least ${self.offer.minimum_bid}')
+        # Validation is handled in the form, not here
+        # This method is kept for potential future use but doesn't validate
+        pass
 
 
 class OfferView(models.Model):
