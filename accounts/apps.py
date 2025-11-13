@@ -27,14 +27,13 @@ class AccountsConfig(AppConfig):
             password = "admin123"
             
             if not User.objects.filter(username=username).exists():
-                user = User.objects.create_superuser(
+                User.objects.create_superuser(
                     username=username,
                     email=email,
                     password=password
                 )
-                print(f"✅ Superuser '{username}' created successfully!")
+                print(f"Superuser '{username}' created successfully.")
             else:
-                print(f"✅ Superuser '{username}' already exists!")
-                
+                print(f"Superuser '{username}' already exists.")
         except Exception as e:
-            print(f"❌ Error creating superuser: {e}")
+            print(f"Error creating superuser: {e}")
