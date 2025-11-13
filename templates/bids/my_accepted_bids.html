@@ -180,9 +180,15 @@
                 <div class="text-gray-600">
                     You will receive <span class="font-semibold text-gray-900">${{ acc.bid.bid_amount }}</span>
                 </div>
-                <a href="{% url 'bids:bid_detail' acc.bid.id %}" class="text-primary hover:text-purple-700 font-medium">
-                    View details <i class="fas fa-arrow-right ml-1"></i>
-                </a>
+                <div class="flex items-center space-x-3">
+                    <a href="{% url 'messaging:start_conversation' acc.bid.id %}?user={{ acc.bid.user.id }}" 
+                       class="inline-flex items-center px-3 py-1.5 rounded-lg text-xs font-semibold bg-blue-500 text-white hover:bg-blue-600 transition-colors">
+                        <i class="fas fa-comment mr-1"></i>Message Poster
+                    </a>
+                    <a href="{% url 'bids:bid_detail' acc.bid.id %}" class="text-primary hover:text-purple-700 font-medium">
+                        View details <i class="fas fa-arrow-right ml-1"></i>
+                    </a>
+                </div>
             </div>
         </div>
         {% empty %}

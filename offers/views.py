@@ -220,6 +220,12 @@ def offer_detail(request, offer_id):
             request.user != offer.user and
             not existing_bid
         ),
+        'can_message': (
+            offer.status == 'ACCEPTED' and (
+                request.user == offer.user or 
+                request.user == offer.accepted_by
+            )
+        ),
     }
     
     return render(request, 'offers/offer_detail.html', context)

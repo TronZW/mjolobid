@@ -9,7 +9,8 @@ User = get_user_model()
 class Conversation(models.Model):
     """Chat conversation between two users"""
     
-    bid = models.ForeignKey(Bid, on_delete=models.CASCADE, related_name='conversations')
+    bid = models.ForeignKey(Bid, on_delete=models.CASCADE, related_name='conversations', null=True, blank=True)
+    offer = models.ForeignKey('offers.Offer', on_delete=models.CASCADE, related_name='conversations', null=True, blank=True)
     participants = models.ManyToManyField(User, related_name='conversations')
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
@@ -17,10 +18,22 @@ class Conversation(models.Model):
     
     class Meta:
         ordering = ['-updated_at']
-        unique_together = ['bid']
+        unique_together = [['bid'], ['offer']]
     
     def __str__(self):
-        return f"Conversation for {self.bid.title}"
+        if self.bid:
+            return f"Conversation for {self.bid.title}"
+        elif self.offer:
+            return f"Conversation for {self.offer.title}"
+        return "Conversation"
+    
+    def get_title(self):
+        """Get the title of the related bid or offer"""
+        if self.bid:
+            return self.bid.title
+        elif self.offer:
+            return self.offer.title
+        return "Conversation"
     
     def get_other_participant(self, user):
         """Get the other participant in the conversation"""
@@ -53,7 +66,8 @@ class Message(models.Model):
         ordering = ['created_at']
     
     def __str__(self):
-        return f"Message from {self.sender.username} in {self.conversation.bid.title}"
+        title = self.conversation.get_title()
+        return f"Message from {self.sender.username} in {title}"
     
     def mark_as_read(self):
         """Mark message as read"""
@@ -89,4 +103,5 @@ class TypingIndicator(models.Model):
         unique_together = ['conversation', 'user']
     
     def __str__(self):
-        return f"{self.user.username} typing in {self.conversation.bid.title}"
+        title = self.conversation.get_title()
+        return f"{self.user.username} typing in {title}"

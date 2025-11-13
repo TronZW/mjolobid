@@ -1,6 +1,6 @@
 from django.shortcuts import render, get_object_or_404, redirect
 from django.contrib.auth.decorators import login_required
-from django.http import JsonResponse
+from django.http import JsonResponse, HttpResponseForbidden
 from django.views.decorators.http import require_http_methods
 from django.views.decorators.csrf import csrf_exempt
 from django.utils import timezone
@@ -8,9 +8,20 @@ from django.db.models import Q, Prefetch
 from django.core.paginator import Paginator
 import json
 
+from django.contrib.auth import get_user_model
+
 from .models import Conversation, Message, MessageAttachment, TypingIndicator
 from .forms import MessageForm
-from bids.models import Bid
+from bids.models import Bid, BidAcceptance
+
+User = get_user_model()
+
+# Import Offer model if available
+try:
+    from offers.models import Offer, OfferBid
+except ImportError:
+    Offer = None
+    OfferBid = None
 
 
 @login_required
@@ -19,7 +30,7 @@ def conversation_list(request):
     conversations = Conversation.objects.filter(
         participants=request.user,
         is_active=True
-    ).select_related('bid', 'bid__user', 'bid__accepted_by').prefetch_related(
+    ).select_related('bid', 'bid__user', 'bid__accepted_by', 'offer', 'offer__user', 'offer__accepted_by').prefetch_related(
         'messages__sender'
     ).order_by('-updated_at')
     
@@ -41,7 +52,7 @@ def conversation_list(request):
 def conversation_detail(request, conversation_id):
     """View individual conversation"""
     conversation = get_object_or_404(
-        Conversation.objects.select_related('bid', 'bid__user', 'bid__accepted_by'),
+        Conversation.objects.select_related('bid', 'bid__user', 'bid__accepted_by', 'offer', 'offer__user', 'offer__accepted_by'),
         id=conversation_id,
         participants=request.user,
         is_active=True
@@ -76,10 +87,33 @@ def conversation_detail(request, conversation_id):
 def start_conversation(request, bid_id):
     """Start a new conversation for a bid"""
     bid = get_object_or_404(Bid, id=bid_id)
-    
-    # Check if user can start conversation
-    if request.user not in [bid.user, bid.accepted_by]:
-        return JsonResponse({'error': 'You cannot start a conversation for this bid'}, status=403)
+
+    # Determine which users are allowed to join a conversation for this bid
+    acceptance_user_ids = set(
+        BidAcceptance.objects.filter(bid=bid).values_list('accepted_by_id', flat=True)
+    )
+    acceptance_user_ids.discard(None)
+
+    allowed_user_ids = {bid.user_id}
+    if bid.accepted_by_id:
+        allowed_user_ids.add(bid.accepted_by_id)
+    allowed_user_ids.update(acceptance_user_ids)
+
+    if request.user.id not in allowed_user_ids:
+        return HttpResponseForbidden('You cannot start a conversation for this bid')
+
+    participant_id = request.GET.get('user')
+    extra_user = None
+    if participant_id:
+        try:
+            participant_id = int(participant_id)
+        except (TypeError, ValueError):
+            participant_id = None
+
+        if participant_id and participant_id in allowed_user_ids:
+            extra_user = get_object_or_404(User, id=participant_id)
+        else:
+            return HttpResponseForbidden('You cannot start a conversation with this participant for this bid')
     
     # Check if conversation already exists
     conversation, created = Conversation.objects.get_or_create(
@@ -94,6 +128,64 @@ def start_conversation(request, bid_id):
         conversation.participants.add(bid.user)
     if bid.accepted_by and bid.accepted_by not in conversation.participants.all():
         conversation.participants.add(bid.accepted_by)
+    if extra_user and extra_user not in conversation.participants.all():
+        conversation.participants.add(extra_user)
+    
+    return redirect('messaging:conversation_detail', conversation_id=conversation.id)
+
+
+@login_required
+def start_conversation_for_offer(request, offer_id):
+    """Start a new conversation for an offer"""
+    if not Offer:
+        return HttpResponseForbidden('Offers feature not available')
+    
+    offer = get_object_or_404(Offer, id=offer_id)
+    
+    # Determine which users are allowed to join a conversation for this offer
+    # Only the offer creator and the selected bidder (if offer is accepted)
+    allowed_user_ids = {offer.user_id}
+    if offer.accepted_by_id:
+        allowed_user_ids.add(offer.accepted_by_id)
+    
+    # Also allow users who have placed bids on this offer
+    if OfferBid:
+        bidder_ids = set(
+            OfferBid.objects.filter(offer=offer, status__in=['PENDING', 'SELECTED']).values_list('bidder_id', flat=True)
+        )
+        allowed_user_ids.update(bidder_ids)
+    
+    if request.user.id not in allowed_user_ids:
+        return HttpResponseForbidden('You cannot start a conversation for this offer')
+    
+    participant_id = request.GET.get('user')
+    extra_user = None
+    if participant_id:
+        try:
+            participant_id = int(participant_id)
+        except (TypeError, ValueError):
+            participant_id = None
+        
+        if participant_id and participant_id in allowed_user_ids:
+            extra_user = get_object_or_404(User, id=participant_id)
+        else:
+            return HttpResponseForbidden('You cannot start a conversation with this participant for this offer')
+    
+    # Check if conversation already exists
+    conversation, created = Conversation.objects.get_or_create(
+        offer=offer,
+        defaults={'is_active': True}
+    )
+    
+    # Add participants if not already added
+    if request.user not in conversation.participants.all():
+        conversation.participants.add(request.user)
+    if offer.user not in conversation.participants.all():
+        conversation.participants.add(offer.user)
+    if offer.accepted_by and offer.accepted_by not in conversation.participants.all():
+        conversation.participants.add(offer.accepted_by)
+    if extra_user and extra_user not in conversation.participants.all():
+        conversation.participants.add(extra_user)
     
     return redirect('messaging:conversation_detail', conversation_id=conversation.id)
 

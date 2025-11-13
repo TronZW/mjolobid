@@ -61,6 +61,11 @@
                                 <a href="{% url 'offers:choose_bid' offer.id bid.id %}" class="ml-auto bg-gradient-to-r from-primary to-secondary text-white px-6 py-2 rounded-lg hover:opacity-90">
                                     <i class="fas fa-check mr-2"></i>Choose This Bid
                                 </a>
+                            {% elif bid.status == 'SELECTED' %}
+                                <a href="{% url 'messaging:start_conversation_for_offer' offer.id %}?user={{ bid.bidder.id }}" 
+                                   class="ml-auto bg-blue-500 text-white px-6 py-2 rounded-lg hover:bg-blue-600">
+                                    <i class="fas fa-comment mr-2"></i>Send Message
+                                </a>
                             {% endif %}
                         </div>
                     </div>

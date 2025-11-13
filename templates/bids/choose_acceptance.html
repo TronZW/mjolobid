@@ -130,6 +130,10 @@
                                        class="bg-blue-500 text-white px-3 py-1.5 rounded-lg text-xs font-semibold hover:bg-blue-600 transition-colors">
                                         <i class="fas fa-images mr-1"></i>View Gallery
                                     </a>
+                                    <a href="{% url 'messaging:start_conversation' bid.id %}?user={{ acceptance.accepted_by.id }}"
+                                       class="bg-green-500 text-white px-3 py-1.5 rounded-lg text-xs font-semibold hover:bg-green-600 transition-colors">
+                                        <i class="fas fa-comment mr-1"></i>Message
+                                    </a>
                                 </div>
                                 
                                 {% if acceptance.message %}

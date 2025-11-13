@@ -466,6 +466,11 @@ def male_homepage(request):
         bids_accepted__user=request.user
     ).distinct().select_related('profile')
     
+    accepted_bids = Bid.objects.filter(
+        user=request.user,
+        status='ACCEPTED'
+    ).select_related('accepted_by').order_by('-accepted_at')
+
     # Get recent bids for context
     recent_bids = Bid.objects.filter(user=request.user).order_by('-created_at')[:5]
     
@@ -478,6 +483,7 @@ def male_homepage(request):
     context = {
         'viewed_women': viewed_women,
         'accepted_women': accepted_women,
+        'accepted_bids': accepted_bids,
         'recent_bids': recent_bids,
         'pending_acceptances': pending_acceptances,
         'bids_with_pending': bids_with_pending,

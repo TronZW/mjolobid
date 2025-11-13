@@ -34,8 +34,8 @@
                         <i class="fas fa-check-circle text-xl"></i>
                     </div>
                     <div class="ml-4">
-                        <p class="text-sm font-medium text-gray-600">Accepted Offers</p>
-                        <p class="text-2xl font-bold text-gray-900">{{ accepted_women.count }}</p>
+                        <p class="text-sm font-medium text-gray-600">Accepted Matches</p>
+                        <p class="text-2xl font-bold text-gray-900">{{ accepted_bids|length }}</p>
                     </div>
                 </div>
             </div>
@@ -160,40 +160,52 @@
                     <p class="text-gray-600 text-sm mt-1">These women have accepted your offers</p>
                 </div>
                 <div class="p-6">
-                    {% if accepted_women %}
+                    {% if accepted_bids %}
                         <div class="space-y-4">
-                            {% for woman in accepted_women %}
-                                <div class="flex items-center space-x-4 p-4 bg-gray-50 rounded-lg hover:bg-gray-100 transition-colors">
-                                    <div class="flex-shrink-0">
-                                        {% if woman.profile_picture %}
-                                            <img src="{{ woman.profile_picture.url }}" 
-                                                 alt="{{ woman.username }}" 
-                                                 class="w-12 h-12 rounded-full object-cover">
-                                        {% else %}
-                                            <div class="w-12 h-12 bg-primary rounded-full flex items-center justify-center">
-                                                <i class="fas fa-user text-white"></i>
-                                            </div>
-                                        {% endif %}
-                                    </div>
-                                    <div class="flex-1 min-w-0">
-                                        <p class="text-sm font-medium text-gray-900">
-                                            {% if woman.first_name or woman.last_name %}
-                                                {{ woman.first_name }} {{ woman.last_name }}
+                            {% for accepted_bid in accepted_bids %}
+                                {% with woman=accepted_bid.accepted_by %}
+                                <div class="flex items-center justify-between p-4 bg-gray-50 rounded-lg hover:bg-gray-100 transition-colors">
+                                    <div class="flex items-center space-x-4">
+                                        <div class="flex-shrink-0">
+                                            {% if woman.profile_picture %}
+                                                <img src="{{ woman.profile_picture.url }}" 
+                                                     alt="{{ woman.username }}" 
+                                                     class="w-12 h-12 rounded-full object-cover">
                                             {% else %}
-                                                {{ woman.username }}
+                                                <div class="w-12 h-12 bg-primary rounded-full flex items-center justify-center">
+                                                    <i class="fas fa-user text-white"></i>
+                                                </div>
                                             {% endif %}
-                                        </p>
-                                        <p class="text-sm text-gray-500">
-                                            <i class="fas fa-map-marker-alt mr-1"></i>
-                                            {{ woman.city|default:"Location not set" }}
-                                        </p>
+                                        </div>
+                                        <div class="min-w-0">
+                                            <p class="text-sm font-medium text-gray-900">
+                                                {% if woman.first_name or woman.last_name %}
+                                                    {{ woman.first_name }} {{ woman.last_name }}
+                                                {% else %}
+                                                    {{ woman.username }}
+                                                {% endif %}
+                                            </p>
+                                            <p class="text-sm text-gray-500">
+                                                <i class="fas fa-map-marker-alt mr-1"></i>
+                                                {{ woman.city|default:"Location not set" }}
+                                            </p>
+                                            <p class="text-xs text-gray-400 mt-1">
+                                                Accepted bid: <span class="font-semibold text-gray-600">{{ accepted_bid.title }}</span>
+                                            </p>
+                                        </div>
                                     </div>
-                                    <div class="flex-shrink-0">
-                                        <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-800">
-                                            Accepted
-                                        </span>
+                                    <div class="flex items-center space-x-2">
+                                        <a href="{% url 'messaging:start_conversation' accepted_bid.id %}" 
+                                           class="inline-flex items-center px-3 py-1.5 rounded-lg text-xs font-semibold bg-blue-500 text-white hover:bg-blue-600 transition-colors">
+                                            <i class="fas fa-comment mr-1"></i>Message
+                                        </a>
+                                        <a href="{% url 'bids:bid_detail' accepted_bid.id %}" 
+                                           class="inline-flex items-center px-3 py-1.5 rounded-lg text-xs font-semibold bg-green-500 text-white hover:bg-green-600 transition-colors">
+                                            <i class="fas fa-eye mr-1"></i>View Bid
+                                        </a>
                                     </div>
                                 </div>
+                                {% endwith %}
                             {% endfor %}
                         </div>
                     {% else %}
