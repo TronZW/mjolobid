@@ -62,6 +62,7 @@ TEMPLATES = [
                 'django.template.context_processors.request',
                 'django.contrib.auth.context_processors.auth',
                 'django.contrib.messages.context_processors.messages',
+                'notifications.context_processors.webpush_settings',
             ],
         },
     },
@@ -160,6 +161,11 @@ MJOLOBID_SETTINGS = {
     'MIN_BID_AMOUNT': 5.00,  # Minimum bid amount
     'MAX_BID_AMOUNT': 500.00,  # Maximum bid amount
 }
+
+# Web push (VAPID) settings
+WEBPUSH_VAPID_PUBLIC_KEY = config('WEBPUSH_VAPID_PUBLIC_KEY', default='')
+WEBPUSH_VAPID_PRIVATE_KEY = config('WEBPUSH_VAPID_PRIVATE_KEY', default='')
+WEBPUSH_VAPID_CONTACT_EMAIL = config('WEBPUSH_VAPID_CONTACT_EMAIL', default='support@mjolobid.com')
 
 # Logging
 LOGGING = {

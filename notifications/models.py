@@ -83,3 +83,23 @@ class NotificationSettings(models.Model):
     
     def __str__(self):
         return f"{self.user.username}'s Notification Settings"
+
+
+class WebPushSubscription(models.Model):
+    """Store web push subscriptions (VAPID) for users"""
+
+    user = models.ForeignKey(User, on_delete=models.CASCADE, related_name='webpush_subscriptions')
+    endpoint = models.URLField(unique=True)
+    auth_key = models.CharField(max_length=256)
+    p256dh_key = models.CharField(max_length=256)
+    user_agent = models.CharField(max_length=512, blank=True)
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        verbose_name = "Web Push Subscription"
+        verbose_name_plural = "Web Push Subscriptions"
+        ordering = ['-created_at']
+
+    def __str__(self):
+        return f"WebPush subscription for {self.user.username}"

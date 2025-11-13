@@ -312,7 +312,8 @@
     </div>
 
     <script>
-        
+        const WEBPUSH_PUBLIC_KEY = "{{ WEBPUSH_PUBLIC_KEY|default:''|escapejs }}";
+        const PUSH_ENDPOINT_STORAGE_KEY = 'mjolobid-push-endpoint';
 
         // Notification functions
         function showNotification(message) {
@@ -404,7 +405,115 @@
                     }
                 }, 6000 + (index * 500));
             });
+
+            initWebPush();
         });
+
+        function urlBase64ToUint8Array(base64String) {
+            const padding = '='.repeat((4 - (base64String.length % 4)) % 4);
+            const base64 = (base64String + padding).replace(/-/g, '+').replace(/_/g, '/');
+            const rawData = window.atob(base64);
+            const outputArray = new Uint8Array(rawData.length);
+
+            for (let i = 0; i < rawData.length; ++i) {
+                outputArray[i] = rawData.charCodeAt(i);
+            }
+            return outputArray;
+        }
+
+        async function initWebPush() {
+            if (!WEBPUSH_PUBLIC_KEY) {
+                return;
+            }
+
+            if (!('serviceWorker' in navigator) || !('PushManager' in window) || !window.Notification) {
+                return;
+            }
+
+            try {
+                const registration = await navigator.serviceWorker.register('/service-worker.js');
+                await navigator.serviceWorker.ready;
+
+                let permission = Notification.permission;
+                if (permission === 'default') {
+                    permission = await Notification.requestPermission();
+                }
+
+                if (permission !== 'granted') {
+                    if (permission === 'denied') {
+                        await removeStoredSubscription(registration);
+                        await notifyServerUnsubscribe(localStorage.getItem(PUSH_ENDPOINT_STORAGE_KEY));
+                    }
+                    return;
+                }
+
+                const existingSubscription = await registration.pushManager.getSubscription();
+                if (existingSubscription) {
+                    await sendSubscriptionToServer(existingSubscription);
+                    localStorage.setItem(PUSH_ENDPOINT_STORAGE_KEY, existingSubscription.endpoint);
+                    return;
+                }
+
+                const newSubscription = await registration.pushManager.subscribe({
+                    userVisibleOnly: true,
+                    applicationServerKey: urlBase64ToUint8Array(WEBPUSH_PUBLIC_KEY),
+                });
+
+                await sendSubscriptionToServer(newSubscription);
+                localStorage.setItem(PUSH_ENDPOINT_STORAGE_KEY, newSubscription.endpoint);
+            } catch (error) {
+                console.warn('Web push registration failed:', error);
+            }
+        }
+
+        async function sendSubscriptionToServer(subscription) {
+            if (!subscription) {
+                return;
+            }
+
+            const payload = subscription.toJSON();
+            payload.user_agent = navigator.userAgent;
+
+            await fetch('{% url "notifications:push_subscribe" %}', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                credentials: 'include',
+                body: JSON.stringify(payload),
+            }).catch((error) => {
+                console.warn('Failed to store subscription:', error);
+            });
+        }
+
+        async function removeStoredSubscription(registration) {
+            try {
+                const subscription = await registration.pushManager.getSubscription();
+                if (subscription) {
+                    await subscription.unsubscribe();
+                }
+            } catch (error) {
+                console.warn('Error unsubscribing push subscription', error);
+            }
+        }
+
+        async function notifyServerUnsubscribe(endpoint) {
+            if (!endpoint) {
+                return;
+            }
+            return fetch('{% url "notifications:push_unsubscribe" %}', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                credentials: 'include',
+                body: JSON.stringify({ endpoint }),
+            }).catch((error) => {
+                console.warn('Failed to remove subscription server-side:', error);
+            }).finally(() => {
+                localStorage.removeItem(PUSH_ENDPOINT_STORAGE_KEY);
+            });
+        }
 
         // WebSocket connection for real-time notifications
         {% if user.is_authenticated %}

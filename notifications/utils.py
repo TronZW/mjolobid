@@ -1,5 +1,6 @@
 from django.utils import timezone
-from .models import Notification, NotificationSettings
+from django.conf import settings
+from .models import Notification, NotificationSettings, WebPushSubscription
 import json
 
 # Try to import channels, but don't fail if it's not available
@@ -9,6 +10,13 @@ try:
     CHANNELS_AVAILABLE = True
 except ImportError:
     CHANNELS_AVAILABLE = False
+
+# Try to import pywebpush for web push notifications
+try:
+    from pywebpush import webpush, WebPushException
+    WEBPUSH_AVAILABLE = True
+except ImportError:
+    WEBPUSH_AVAILABLE = False
 
 
 def send_notification(user, title, message, notification_type, related_object_type='', related_object_id=None):
@@ -33,6 +41,7 @@ def send_notification(user, title, message, notification_type, related_object_ty
     # Send real-time notification via WebSocket
     if _should_send_push_notification(notification_type, settings):
         send_websocket_notification(user, notification)
+        send_web_push_notification(user, notification)
     
     # Send email notification (if enabled)
     if _should_send_email_notification(notification_type, settings):
@@ -68,6 +77,67 @@ def send_websocket_notification(user, notification):
         # Log error but don't fail the notification
         print(f"WebSocket notification failed: {e}")
         pass
+
+
+def send_web_push_notification(user, notification):
+    """Send push notification using the Web Push protocol"""
+    if not WEBPUSH_AVAILABLE:
+        return
+
+    vapid_public_key = getattr(settings, 'WEBPUSH_VAPID_PUBLIC_KEY', '')
+    vapid_private_key = getattr(settings, 'WEBPUSH_VAPID_PRIVATE_KEY', '')
+    vapid_contact_email = getattr(settings, 'WEBPUSH_VAPID_CONTACT_EMAIL', '')
+
+    if not vapid_public_key or not vapid_private_key:
+        return
+
+    payload = {
+        'title': notification.title,
+        'body': notification.message,
+        'url': notification_payload_url(notification),
+        'tag': f"{notification.notification_type}-{notification.id}",
+        'data': {
+            'notification_id': notification.id,
+            'type': notification.notification_type,
+        },
+    }
+
+    subscriptions = WebPushSubscription.objects.filter(user=user)
+    for subscription in subscriptions:
+        try:
+            webpush(
+                subscription_info={
+                    "endpoint": subscription.endpoint,
+                    "keys": {
+                        "p256dh": subscription.p256dh_key,
+                        "auth": subscription.auth_key,
+                    },
+                },
+                data=json.dumps(payload),
+                vapid_private_key=vapid_private_key,
+                vapid_public_key=vapid_public_key,
+                vapid_claims={"sub": f"mailto:{vapid_contact_email}"} if vapid_contact_email else None,
+            )
+        except WebPushException as exc:
+            # Remove stale subscriptions (410 Gone or 404 Not Found)
+            status = getattr(exc.response, 'status_code', None)
+            if status in (404, 410):
+                subscription.delete()
+            else:
+                print(f"Web push failed: {exc}")
+        except Exception as exc:
+            print(f"Unexpected web push error: {exc}")
+
+
+def notification_payload_url(notification):
+    """Determine a reasonable URL to open when a notification is clicked."""
+    if notification.related_object_type == 'bid' and notification.related_object_id:
+        return f"/bids/bid/{notification.related_object_id}/"
+    if notification.related_object_type == 'offer' and notification.related_object_id:
+        return f"/offers/offer/{notification.related_object_id}/"
+    if notification.related_object_type == 'transaction' and notification.related_object_id:
+        return f"/payments/wallet/"
+    return "/notifications/"
 
 
 def send_email_notification(user, notification):

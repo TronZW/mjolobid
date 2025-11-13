@@ -1,5 +1,5 @@
 from django.contrib import admin
-from .models import Notification, NotificationSettings
+from .models import Notification, NotificationSettings, WebPushSubscription
 
 
 @admin.register(Notification)
@@ -32,3 +32,12 @@ class NotificationSettingsAdmin(admin.ModelAdmin):
     list_filter = ('email_bid_updates', 'push_bid_updates', 'sms_payments')
     search_fields = ('user__username',)
     raw_id_fields = ('user',)
+
+
+@admin.register(WebPushSubscription)
+class WebPushSubscriptionAdmin(admin.ModelAdmin):
+    list_display = ('user', 'endpoint', 'created_at')
+    search_fields = ('user__username', 'endpoint')
+    readonly_fields = ('created_at', 'updated_at')
+    raw_id_fields = ('user',)
+    list_filter = ('created_at',)

@@ -1,10 +1,12 @@
 from django.shortcuts import render, redirect
 from django.contrib.auth.decorators import login_required
-from django.http import JsonResponse
+from django.http import JsonResponse, HttpResponseBadRequest
 from django.views.decorators.csrf import csrf_exempt
+from django.views.decorators.http import require_POST
 from django.utils import timezone
 from django.core.paginator import Paginator
-from .models import Notification, NotificationSettings
+import json
+from .models import Notification, NotificationSettings, WebPushSubscription
 from .utils import send_notification
 
 
@@ -100,6 +102,53 @@ def get_unread_count(request):
     """Get unread notification count via AJAX"""
     count = Notification.objects.filter(user=request.user, is_read=False).count()
     return JsonResponse({'count': count})
+
+
+@csrf_exempt
+@login_required
+@require_POST
+def save_push_subscription(request):
+    """Save or update a web push subscription for the current user"""
+    try:
+        payload = json.loads(request.body.decode('utf-8'))
+        endpoint = payload['endpoint']
+        keys = payload.get('keys', {})
+        auth_key = keys.get('auth')
+        p256dh_key = keys.get('p256dh')
+        user_agent = payload.get('user_agent', '')
+    except (json.JSONDecodeError, KeyError):
+        return HttpResponseBadRequest('Invalid subscription payload')
+
+    if not endpoint or not auth_key or not p256dh_key:
+        return HttpResponseBadRequest('Missing subscription keys')
+
+    WebPushSubscription.objects.update_or_create(
+        user=request.user,
+        endpoint=endpoint,
+        defaults={
+            'auth_key': auth_key,
+            'p256dh_key': p256dh_key,
+            'user_agent': user_agent or request.META.get('HTTP_USER_AGENT', ''),
+        }
+    )
+
+    return JsonResponse({'status': 'success'})
+
+
+@csrf_exempt
+@login_required
+@require_POST
+def delete_push_subscription(request):
+    """Delete a web push subscription for the current user"""
+    try:
+        payload = json.loads(request.body.decode('utf-8'))
+        endpoint = payload['endpoint']
+    except (json.JSONDecodeError, KeyError):
+        return HttpResponseBadRequest('Invalid subscription payload')
+
+    WebPushSubscription.objects.filter(user=request.user, endpoint=endpoint).delete()
+
+    return JsonResponse({'status': 'success'})
 
 
 # Utility functions for sending notifications
