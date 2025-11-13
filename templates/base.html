@@ -179,6 +179,77 @@
 
     <!-- Main Content -->
     <main class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+        {% if messages %}
+            {% with
+                success_classes="bg-green-50 border border-green-200 text-green-900",
+                error_classes="bg-red-50 border border-red-200 text-red-900",
+                warning_classes="bg-yellow-50 border border-yellow-200 text-yellow-900",
+                info_classes="bg-blue-50 border border-blue-200 text-blue-900"
+            %}
+            <div id="flash-messages" class="space-y-3 mb-8" aria-live="polite" aria-atomic="true">
+                {% for message in messages %}
+                    {% if 'success' in message.tags %}
+                        {% with alert_classes=success_classes icon_class="fas fa-check-circle text-green-500" %}
+                            <div class="flash-message {{ alert_classes }} rounded-xl px-4 py-3 shadow-sm flex items-start justify-between transition ease-out duration-200 transform">
+                                <div class="flex items-start space-x-3">
+                                    <i class="{{ icon_class }} mt-1"></i>
+                                    <div>
+                                        <p class="font-semibold">{{ message|safe }}</p>
+                                    </div>
+                                </div>
+                                <button type="button" class="flash-dismiss text-current hover:text-gray-600 rounded-full p-1 transition-colors" aria-label="Dismiss message">
+                                    <i class="fas fa-times"></i>
+                                </button>
+                            </div>
+                        {% endwith %}
+                    {% elif 'error' in message.tags %}
+                        {% with alert_classes=error_classes icon_class="fas fa-exclamation-circle text-red-500" %}
+                            <div class="flash-message {{ alert_classes }} rounded-xl px-4 py-3 shadow-sm flex items-start justify-between transition ease-out duration-200 transform">
+                                <div class="flex items-start space-x-3">
+                                    <i class="{{ icon_class }} mt-1"></i>
+                                    <div>
+                                        <p class="font-semibold">{{ message|safe }}</p>
+                                    </div>
+                                </div>
+                                <button type="button" class="flash-dismiss text-current hover:text-gray-600 rounded-full p-1 transition-colors" aria-label="Dismiss message">
+                                    <i class="fas fa-times"></i>
+                                </button>
+                            </div>
+                        {% endwith %}
+                    {% elif 'warning' in message.tags %}
+                        {% with alert_classes=warning_classes icon_class="fas fa-exclamation-triangle text-yellow-500" %}
+                            <div class="flash-message {{ alert_classes }} rounded-xl px-4 py-3 shadow-sm flex items-start justify-between transition ease-out duration-200 transform">
+                                <div class="flex items-start space-x-3">
+                                    <i class="{{ icon_class }} mt-1"></i>
+                                    <div>
+                                        <p class="font-semibold">{{ message|safe }}</p>
+                                    </div>
+                                </div>
+                                <button type="button" class="flash-dismiss text-current hover:text-gray-600 rounded-full p-1 transition-colors" aria-label="Dismiss message">
+                                    <i class="fas fa-times"></i>
+                                </button>
+                            </div>
+                        {% endwith %}
+                    {% else %}
+                        {% with alert_classes=info_classes icon_class="fas fa-info-circle text-blue-500" %}
+                            <div class="flash-message {{ alert_classes }} rounded-xl px-4 py-3 shadow-sm flex items-start justify-between transition ease-out duration-200 transform">
+                                <div class="flex items-start space-x-3">
+                                    <i class="{{ icon_class }} mt-1"></i>
+                                    <div>
+                                        <p class="font-semibold">{{ message|safe }}</p>
+                                    </div>
+                                </div>
+                                <button type="button" class="flash-dismiss text-current hover:text-gray-600 rounded-full p-1 transition-colors" aria-label="Dismiss message">
+                                    <i class="fas fa-times"></i>
+                                </button>
+                            </div>
+                        {% endwith %}
+                    {% endif %}
+                {% endfor %}
+            </div>
+            {% endwith %}
+        {% endif %}
+
         {% block content %}{% endblock %}
     </main>
 
@@ -315,6 +386,24 @@
             updateUnreadBadge();
             setInterval(updateUnreadBadge, 10000); // poll every 10s
             {% endif %}
+
+            // Flash messages dismiss + auto-hide
+            const flashMessages = document.querySelectorAll('.flash-message');
+            flashMessages.forEach((flash, index) => {
+                const dismissBtn = flash.querySelector('.flash-dismiss');
+                if (dismissBtn) {
+                    dismissBtn.addEventListener('click', () => {
+                        flash.classList.add('opacity-0', 'translate-y-1');
+                        setTimeout(() => flash.remove(), 200);
+                    });
+                }
+                setTimeout(() => {
+                    if (flash && flash.parentElement) {
+                        flash.classList.add('opacity-0', 'translate-y-1');
+                        setTimeout(() => flash.remove(), 200);
+                    }
+                }, 6000 + (index * 500));
+            });
         });
 
         // WebSocket connection for real-time notifications
