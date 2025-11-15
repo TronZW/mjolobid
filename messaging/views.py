@@ -115,11 +115,15 @@ def start_conversation(request, bid_id):
         else:
             return HttpResponseForbidden('You cannot start a conversation with this participant for this bid')
     
-    # Check if conversation already exists
-    conversation, created = Conversation.objects.get_or_create(
-        bid=bid,
-        defaults={'is_active': True}
-    )
+    # Check if conversation already exists (handle multiple if they exist)
+    conversation = Conversation.objects.filter(bid=bid).first()
+    if not conversation:
+        conversation = Conversation.objects.create(bid=bid, is_active=True)
+    else:
+        # Reactivate if it was inactive
+        if not conversation.is_active:
+            conversation.is_active = True
+            conversation.save()
     
     # Add participants if not already added
     if request.user not in conversation.participants.all():
@@ -171,11 +175,15 @@ def start_conversation_for_offer(request, offer_id):
         else:
             return HttpResponseForbidden('You cannot start a conversation with this participant for this offer')
     
-    # Check if conversation already exists
-    conversation, created = Conversation.objects.get_or_create(
-        offer=offer,
-        defaults={'is_active': True}
-    )
+    # Check if conversation already exists (handle multiple if they exist)
+    conversation = Conversation.objects.filter(offer=offer).first()
+    if not conversation:
+        conversation = Conversation.objects.create(offer=offer, is_active=True)
+    else:
+        # Reactivate if it was inactive
+        if not conversation.is_active:
+            conversation.is_active = True
+            conversation.save()
     
     # Add participants if not already added
     if request.user not in conversation.participants.all():

@@ -18,7 +18,6 @@ class Conversation(models.Model):
     
     class Meta:
         ordering = ['-updated_at']
-        unique_together = [['bid'], ['offer']]
     
     def __str__(self):
         if self.bid:
