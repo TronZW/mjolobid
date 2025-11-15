@@ -306,6 +306,33 @@
         </div>
     </div>
 
+    <!-- Push Notification Prompt Banner -->
+    {% if user.is_authenticated %}
+    <div id="push-notification-prompt" class="fixed bottom-4 left-4 right-4 md:left-auto md:right-4 md:w-96 bg-white border-2 border-primary rounded-lg shadow-xl z-50 hidden">
+        <div class="p-4">
+            <div class="flex items-start">
+                <div class="flex-shrink-0">
+                    <i class="fas fa-bell text-primary text-2xl"></i>
+                </div>
+                <div class="ml-3 flex-1">
+                    <h3 class="text-sm font-semibold text-gray-900">Enable Push Notifications</h3>
+                    <p class="mt-1 text-sm text-gray-600">Get notified about new bids, offers, and messages even when you're not on the site!</p>
+                    <div class="mt-3 flex space-x-2">
+                        <button onclick="enablePushNotifications()" 
+                                class="flex-1 bg-primary text-white px-4 py-2 rounded-md text-sm font-medium hover:bg-purple-700 transition-colors">
+                            <i class="fas fa-check mr-1"></i>Enable
+                        </button>
+                        <button onclick="dismissPushPrompt()" 
+                                class="flex-1 bg-gray-200 text-gray-700 px-4 py-2 rounded-md text-sm font-medium hover:bg-gray-300 transition-colors">
+                            <i class="fas fa-times mr-1"></i>Not Now
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    {% endif %}
+
     <script>
         const WEBPUSH_PUBLIC_KEY = "{{ WEBPUSH_PUBLIC_KEY|default:''|escapejs }}";
         const PUSH_ENDPOINT_STORAGE_KEY = 'mjolobid-push-endpoint';
@@ -429,26 +456,38 @@
                 const registration = await navigator.serviceWorker.register('/service-worker.js');
                 await navigator.serviceWorker.ready;
 
-                let permission = Notification.permission;
-                if (permission === 'default') {
-                    permission = await Notification.requestPermission();
-                }
-
-                if (permission !== 'granted') {
-                    if (permission === 'denied') {
-                        await removeStoredSubscription(registration);
-                        await notifyServerUnsubscribe(localStorage.getItem(PUSH_ENDPOINT_STORAGE_KEY));
-                    }
-                    return;
-                }
-
+                // Check if user already has a subscription
                 const existingSubscription = await registration.pushManager.getSubscription();
                 if (existingSubscription) {
                     await sendSubscriptionToServer(existingSubscription);
                     localStorage.setItem(PUSH_ENDPOINT_STORAGE_KEY, existingSubscription.endpoint);
+                    localStorage.setItem('mjolobid-push-enabled', 'true');
                     return;
                 }
 
+                // Check permission status
+                const permission = Notification.permission;
+                if (permission === 'granted') {
+                    // Permission granted but no subscription - create one
+                    await subscribeToPush(registration);
+                } else if (permission === 'default') {
+                    // Show prompt banner if not dismissed
+                    const promptDismissed = localStorage.getItem('mjolobid-push-prompt-dismissed');
+                    if (!promptDismissed) {
+                        showPushPrompt();
+                    }
+                } else if (permission === 'denied') {
+                    // Permission denied - clean up
+                    await removeStoredSubscription(registration);
+                    await notifyServerUnsubscribe(localStorage.getItem(PUSH_ENDPOINT_STORAGE_KEY));
+                }
+            } catch (error) {
+                console.warn('Web push registration failed:', error);
+            }
+        }
+
+        async function subscribeToPush(registration) {
+            try {
                 const newSubscription = await registration.pushManager.subscribe({
                     userVisibleOnly: true,
                     applicationServerKey: urlBase64ToUint8Array(WEBPUSH_PUBLIC_KEY),
@@ -456,8 +495,91 @@
 
                 await sendSubscriptionToServer(newSubscription);
                 localStorage.setItem(PUSH_ENDPOINT_STORAGE_KEY, newSubscription.endpoint);
+                localStorage.setItem('mjolobid-push-enabled', 'true');
+                hidePushPrompt();
+                showSuccessMessage('Push notifications enabled! You\'ll now receive notifications even when you\'re away.');
+                return true;
             } catch (error) {
-                console.warn('Web push registration failed:', error);
+                console.error('Failed to subscribe to push:', error);
+                showErrorMessage('Failed to enable push notifications. Please try again.');
+                return false;
+            }
+        }
+
+        async function enablePushNotifications() {
+            if (!WEBPUSH_PUBLIC_KEY) {
+                showErrorMessage('Push notifications are not configured.');
+                return;
+            }
+
+            if (!('serviceWorker' in navigator) || !('PushManager' in window) || !window.Notification) {
+                showErrorMessage('Your browser does not support push notifications.');
+                return;
+            }
+
+            try {
+                const registration = await navigator.serviceWorker.register('/service-worker.js');
+                await navigator.serviceWorker.ready;
+
+                // Request permission
+                const permission = await Notification.requestPermission();
+                
+                if (permission === 'granted') {
+                    await subscribeToPush(registration);
+                } else if (permission === 'denied') {
+                    showErrorMessage('Notification permission was denied. Please enable it in your browser settings.');
+                    hidePushPrompt();
+                } else {
+                    showErrorMessage('Notification permission was not granted.');
+                }
+            } catch (error) {
+                console.error('Failed to enable push notifications:', error);
+                showErrorMessage('Failed to enable push notifications. Please try again.');
+            }
+        }
+
+        function showPushPrompt() {
+            const prompt = document.getElementById('push-notification-prompt');
+            if (prompt) {
+                prompt.classList.remove('hidden');
+            }
+        }
+
+        function hidePushPrompt() {
+            const prompt = document.getElementById('push-notification-prompt');
+            if (prompt) {
+                prompt.classList.add('hidden');
+            }
+        }
+
+        function dismissPushPrompt() {
+            hidePushPrompt();
+            localStorage.setItem('mjolobid-push-prompt-dismissed', 'true');
+        }
+
+        function showSuccessMessage(message) {
+            const banner = document.getElementById('notification-banner');
+            const messageEl = document.getElementById('notification-message');
+            if (banner && messageEl) {
+                banner.className = 'fixed top-24 left-4 right-4 bg-green-600 text-white p-4 rounded-lg shadow-lg z-50';
+                messageEl.textContent = message;
+                banner.classList.remove('hidden');
+                setTimeout(() => {
+                    banner.classList.add('hidden');
+                }, 5000);
+            }
+        }
+
+        function showErrorMessage(message) {
+            const banner = document.getElementById('notification-banner');
+            const messageEl = document.getElementById('notification-message');
+            if (banner && messageEl) {
+                banner.className = 'fixed top-24 left-4 right-4 bg-red-600 text-white p-4 rounded-lg shadow-lg z-50';
+                messageEl.textContent = message;
+                banner.classList.remove('hidden');
+                setTimeout(() => {
+                    banner.classList.add('hidden');
+                }, 5000);
             }
         }
 

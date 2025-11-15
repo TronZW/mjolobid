@@ -43,23 +43,39 @@ self.addEventListener('push', (event) => {
 
 self.addEventListener('notificationclick', (event) => {
     event.notification.close();
+    
     const notificationData = event.notification.data || {};
-    const targetUrl = notificationData.url || '/notifications/';
-
-    event.waitUntil(
-        self.clients.matchAll({ type: 'window', includeUncontrolled: true }).then((clientList) => {
-            for (const client of clientList) {
-                const url = new URL(client.url);
-                if (url.pathname === new URL(targetUrl, url.origin).pathname) {
-                    client.focus();
-                    return;
+    let targetUrl = notificationData.url || '/notifications/';
+    
+    // Make sure URL is absolute
+    if (!targetUrl.startsWith('http')) {
+        // Get the origin from any existing client or use a default
+        event.waitUntil(
+            self.clients.matchAll({ type: 'window', includeUncontrolled: true }).then((clientList) => {
+                let origin = '/';
+                if (clientList.length > 0) {
+                    const url = new URL(clientList[0].url);
+                    origin = url.origin;
                 }
-            }
-            if (self.clients.openWindow) {
-                return self.clients.openWindow(targetUrl);
-            }
-        })
-    );
+                targetUrl = origin + (targetUrl.startsWith('/') ? targetUrl : '/' + targetUrl);
+                
+                // Try to focus existing window or open new one
+                for (const client of clientList) {
+                    if (client.url.includes(targetUrl) || client.url === targetUrl) {
+                        return client.focus();
+                    }
+                }
+                
+                if (self.clients.openWindow) {
+                    return self.clients.openWindow(targetUrl);
+                }
+            })
+        );
+    } else {
+        event.waitUntil(
+            self.clients.openWindow(targetUrl)
+        );
+    }
 });
 
 self.addEventListener('pushsubscriptionchange', (event) => {
