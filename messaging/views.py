@@ -4,7 +4,7 @@ from django.http import JsonResponse, HttpResponseForbidden
 from django.views.decorators.http import require_http_methods
 from django.views.decorators.csrf import csrf_exempt
 from django.utils import timezone
-from django.db.models import Q, Prefetch
+from django.db.models import Q, Prefetch, Count
 from django.core.paginator import Paginator
 import json
 
@@ -26,13 +26,25 @@ except ImportError:
 
 @login_required
 def conversation_list(request):
-    """List all conversations for the current user"""
-    conversations = Conversation.objects.filter(
+    """List all conversations for the current user - only 1-on-1 conversations"""
+    # Get all conversations where user is a participant
+    all_conversations = Conversation.objects.filter(
         participants=request.user,
         is_active=True
     ).select_related('bid', 'bid__user', 'bid__accepted_by', 'offer', 'offer__user', 'offer__accepted_by').prefetch_related(
-        'messages__sender'
+        'messages__sender', 'participants'
+    ).annotate(
+        participant_count=Count('participants')
+    ).filter(
+        participant_count=2  # Only show 1-on-1 conversations
     ).order_by('-updated_at')
+    
+    # Filter to ensure exactly 2 participants
+    conversations = []
+    for conversation in all_conversations:
+        participants = list(conversation.participants.all())
+        if len(participants) == 2 and request.user in participants:
+            conversations.append(conversation)
     
     # Add unread counts and latest messages
     for conversation in conversations:
@@ -133,12 +145,25 @@ def start_conversation(request, bid_id):
     
     # Find or create a conversation between these two specific users for this bid
     # Each conversation should have exactly 2 participants
-    conversation = Conversation.objects.filter(
+    # Filter conversations that have BOTH users as participants
+    conversations = Conversation.objects.filter(
         bid=bid,
         participants=request.user
     ).filter(
         participants=other_participant
-    ).distinct().first()
+    ).annotate(
+        participant_count=Count('participants')
+    ).filter(
+        participant_count=2
+    )
+    
+    # Get the first conversation that has exactly these 2 participants
+    conversation = None
+    for conv in conversations:
+        participants = list(conv.participants.all())
+        if len(participants) == 2 and request.user in participants and other_participant in participants:
+            conversation = conv
+            break
     
     if not conversation:
         conversation = Conversation.objects.create(bid=bid, is_active=True)
@@ -211,12 +236,25 @@ def start_conversation_for_offer(request, offer_id):
     
     # Find or create a conversation between these two specific users for this offer
     # Each conversation should have exactly 2 participants
-    conversation = Conversation.objects.filter(
+    # Filter conversations that have BOTH users as participants
+    conversations = Conversation.objects.filter(
         offer=offer,
         participants=request.user
     ).filter(
         participants=other_participant
-    ).distinct().first()
+    ).annotate(
+        participant_count=Count('participants')
+    ).filter(
+        participant_count=2
+    )
+    
+    # Get the first conversation that has exactly these 2 participants
+    conversation = None
+    for conv in conversations:
+        participants = list(conv.participants.all())
+        if len(participants) == 2 and request.user in participants and other_participant in participants:
+            conversation = conv
+            break
     
     if not conversation:
         conversation = Conversation.objects.create(offer=offer, is_active=True)
