@@ -28,24 +28,24 @@ except ImportError:
 def conversation_list(request):
     """List all conversations for the current user - only 1-on-1 conversations"""
     # Get all conversations where user is a participant
+    # Use distinct() to avoid duplicates from the ManyToMany join
     all_conversations = Conversation.objects.filter(
         participants=request.user,
         is_active=True
     ).select_related('bid', 'bid__user', 'bid__accepted_by', 'offer', 'offer__user', 'offer__accepted_by').prefetch_related(
         'messages__sender', 'participants'
-    ).order_by('-updated_at')
+    ).distinct().order_by('-updated_at')
     
     # Filter to ensure exactly 2 participants and user is one of them
     conversations = []
     for conversation in all_conversations:
         participants = list(conversation.participants.all())
         # Show conversations with exactly 2 participants where user is one of them
-        # OR conversations with messages (in case participant count is off)
         if len(participants) == 2 and request.user in participants:
             conversations.append(conversation)
+        # Also show conversations with messages even if participant count seems off
+        # (this handles edge cases where the count might be cached incorrectly)
         elif conversation.messages.exists() and request.user in participants:
-            # If conversation has messages but wrong participant count, still show it
-            # But ensure it only has 2 participants
             if len(participants) <= 2:
                 conversations.append(conversation)
     
