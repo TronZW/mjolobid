@@ -91,22 +91,14 @@ def send_web_push_notification(user, notification):
     if not vapid_public_key or not vapid_private_key:
         return
 
-    # Use a simple SVG icon as data URL (works everywhere)
-    # This is a purple bell icon in SVG format
-    icon_url = 'data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iNjQiIGhlaWdodD0iNjQiIHZpZXdCb3g9IjAgMCA2NCA2NCIgZmlsbD0ibm9uZSIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj4KPGNpcmNsZSBjeD0iMzIiIGN5PSIzMiIgcj0iMzIiIGZpbGw9IiM4QjVDRjYiLz4KPHBhdGggZD0iTTMyIDIwQzI2LjQ3NzEgMjAgMjIgMjQuNDc3MSAyMiAzMEMyMiAzNS41MjI5IDI2LjQ3NzEgNDAgMzIgNDBDMzcuNTIyOSA0MCA0MiAzNS41MjI5IDQyIDMwQzQyIDI0LjQ3NzEgMzcuNTIyOSAyMCAzMiAyMFoiIGZpbGw9IndoaXRlIi8+Cjwvc3ZnPgo='
-    
     payload = {
         'title': notification.title,
         'body': notification.message,
         'url': notification_payload_url(notification),
         'tag': f"{notification.notification_type}-{notification.id}",
-        'icon': icon_url,
-        'badge': icon_url,
-        'vibrate': [200, 100, 200],
         'data': {
             'notification_id': notification.id,
             'type': notification.notification_type,
-            'url': notification_payload_url(notification),
         },
     }
 
@@ -169,6 +161,8 @@ def _should_send_push_notification(notification_type, settings):
     if notification_type == 'BID_ACCEPTED' and settings.push_bid_updates:
         return True
     elif notification_type == 'NEW_MESSAGE' and settings.push_messages:
+        return True
+    elif notification_type in ['OFFER_BID', 'OFFER_ACCEPTED'] and settings.push_bid_updates:
         return True
     elif notification_type in ['PAYMENT_RECEIVED', 'PAYMENT_SENT'] and settings.push_payments:
         return True

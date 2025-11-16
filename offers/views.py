@@ -263,12 +263,12 @@ def place_bid_on_offer(request, offer_id):
             bid.save()
             
             # Send notification to offer creator
-            from notifications.models import Notification
-            Notification.objects.create(
+            from notifications.utils import send_notification
+            send_notification(
                 user=offer.user,
                 title='New Bid on Your Offer!',
                 message=f'{request.user.username} has placed a ${bid.bid_amount} bid on your offer: {offer.title}',
-                notification_type='BID_ACCEPTED',  # Using existing type
+                notification_type='OFFER_BID',
                 related_object_type='offer',
                 related_object_id=offer.id
             )
@@ -365,14 +365,14 @@ def choose_bid(request, offer_id, bid_id):
         offer.save()
         
         # Send notifications
-        from notifications.models import Notification
+        from notifications.utils import send_notification
         
         # Notify selected bidder
-        Notification.objects.create(
+        send_notification(
             user=bid.bidder,
             title='Your Bid Was Selected!',
             message=f'Congratulations! {request.user.username} has selected your bid for their offer: {offer.title}',
-            notification_type='BID_ACCEPTED',
+            notification_type='OFFER_ACCEPTED',
             related_object_type='offer',
             related_object_id=offer.id
         )
@@ -380,7 +380,7 @@ def choose_bid(request, offer_id, bid_id):
         # Notify rejected bidders
         rejected_bids = OfferBid.objects.filter(offer=offer, status='REJECTED')
         for rejected_bid in rejected_bids:
-            Notification.objects.create(
+            send_notification(
                 user=rejected_bid.bidder,
                 title='Bid Selection Update',
                 message=f'Sorry, {request.user.username} has selected someone else for their offer: {offer.title}',
@@ -512,10 +512,10 @@ def delete_offer(request, offer_id):
     
     if request.method == 'POST':
         # Notify all bidders
-        from notifications.models import Notification
+        from notifications.utils import send_notification
         bids = OfferBid.objects.filter(offer=offer)
         for bid in bids:
-            Notification.objects.create(
+            send_notification(
                 user=bid.bidder,
                 title='Offer Cancelled',
                 message=f'{request.user.username} has cancelled their offer: {offer.title}',

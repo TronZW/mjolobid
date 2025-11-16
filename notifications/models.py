@@ -10,6 +10,8 @@ class Notification(models.Model):
         ('BID_ACCEPTED', 'Bid Accepted'),
         ('BID_CANCELLED', 'Bid Cancelled'),
         ('NEW_MESSAGE', 'New Message'),
+        ('OFFER_BID', 'Offer Bid'),
+        ('OFFER_ACCEPTED', 'Offer Accepted'),
         ('PAYMENT_RECEIVED', 'Payment Received'),
         ('PAYMENT_SENT', 'Payment Sent'),
         ('WITHDRAWAL_PROCESSED', 'Withdrawal Processed'),
