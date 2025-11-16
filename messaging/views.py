@@ -85,7 +85,7 @@ def conversation_detail(request, conversation_id):
 
 @login_required
 def start_conversation(request, bid_id):
-    """Start a new conversation for a bid"""
+    """Start a new conversation for a bid - creates a 1-on-1 conversation between two users"""
     bid = get_object_or_404(Bid, id=bid_id)
 
     # Determine which users are allowed to join a conversation for this bid
@@ -102,52 +102,70 @@ def start_conversation(request, bid_id):
     if request.user.id not in allowed_user_ids:
         return HttpResponseForbidden('You cannot start a conversation for this bid')
 
+    # Determine the other participant
     participant_id = request.GET.get('user')
-    extra_user = None
+    other_participant = None
+    
     if participant_id:
         try:
             participant_id = int(participant_id)
         except (TypeError, ValueError):
             participant_id = None
 
-        if participant_id and participant_id in allowed_user_ids:
-            extra_user = get_object_or_404(User, id=participant_id)
+        if participant_id and participant_id in allowed_user_ids and participant_id != request.user.id:
+            other_participant = get_object_or_404(User, id=participant_id)
         else:
             return HttpResponseForbidden('You cannot start a conversation with this participant for this bid')
+    else:
+        # If no user specified, determine the other participant automatically
+        if request.user.id == bid.user_id:
+            # Current user is the bid creator, other participant is the accepted_by
+            if bid.accepted_by_id:
+                other_participant = bid.accepted_by
+            else:
+                return HttpResponseForbidden('No one has accepted this bid yet')
+        else:
+            # Current user is the accepted_by, other participant is the bid creator
+            other_participant = bid.user
     
-    # Check if conversation already exists (handle multiple if they exist)
-    conversation = Conversation.objects.filter(bid=bid).first()
+    if not other_participant or other_participant.id == request.user.id:
+        return HttpResponseForbidden('Invalid conversation participant')
+    
+    # Find or create a conversation between these two specific users for this bid
+    # Each conversation should have exactly 2 participants
+    conversation = Conversation.objects.filter(
+        bid=bid,
+        participants=request.user
+    ).filter(
+        participants=other_participant
+    ).distinct().first()
+    
     if not conversation:
         conversation = Conversation.objects.create(bid=bid, is_active=True)
+        conversation.participants.add(request.user, other_participant)
     else:
         # Reactivate if it was inactive
         if not conversation.is_active:
             conversation.is_active = True
             conversation.save()
-    
-    # Add participants if not already added
-    if request.user not in conversation.participants.all():
-        conversation.participants.add(request.user)
-    if bid.user not in conversation.participants.all():
-        conversation.participants.add(bid.user)
-    if bid.accepted_by and bid.accepted_by not in conversation.participants.all():
-        conversation.participants.add(bid.accepted_by)
-    if extra_user and extra_user not in conversation.participants.all():
-        conversation.participants.add(extra_user)
+        # Ensure both participants are in the conversation
+        if request.user not in conversation.participants.all():
+            conversation.participants.add(request.user)
+        if other_participant not in conversation.participants.all():
+            conversation.participants.add(other_participant)
     
     return redirect('messaging:conversation_detail', conversation_id=conversation.id)
 
 
 @login_required
 def start_conversation_for_offer(request, offer_id):
-    """Start a new conversation for an offer"""
+    """Start a new conversation for an offer - creates a 1-on-1 conversation between two users"""
     if not Offer:
         return HttpResponseForbidden('Offers feature not available')
     
     offer = get_object_or_404(Offer, id=offer_id)
     
     # Determine which users are allowed to join a conversation for this offer
-    # Only the offer creator and the selected bidder (if offer is accepted)
     allowed_user_ids = {offer.user_id}
     if offer.accepted_by_id:
         allowed_user_ids.add(offer.accepted_by_id)
@@ -162,38 +180,57 @@ def start_conversation_for_offer(request, offer_id):
     if request.user.id not in allowed_user_ids:
         return HttpResponseForbidden('You cannot start a conversation for this offer')
     
+    # Determine the other participant
     participant_id = request.GET.get('user')
-    extra_user = None
+    other_participant = None
+    
     if participant_id:
         try:
             participant_id = int(participant_id)
         except (TypeError, ValueError):
             participant_id = None
         
-        if participant_id and participant_id in allowed_user_ids:
-            extra_user = get_object_or_404(User, id=participant_id)
+        if participant_id and participant_id in allowed_user_ids and participant_id != request.user.id:
+            other_participant = get_object_or_404(User, id=participant_id)
         else:
             return HttpResponseForbidden('You cannot start a conversation with this participant for this offer')
+    else:
+        # If no user specified, determine the other participant automatically
+        if request.user.id == offer.user_id:
+            # Current user is the offer creator, other participant is the accepted_by
+            if offer.accepted_by_id:
+                other_participant = offer.accepted_by
+            else:
+                return HttpResponseForbidden('No one has been selected for this offer yet')
+        else:
+            # Current user is a bidder, other participant is the offer creator
+            other_participant = offer.user
     
-    # Check if conversation already exists (handle multiple if they exist)
-    conversation = Conversation.objects.filter(offer=offer).first()
+    if not other_participant or other_participant.id == request.user.id:
+        return HttpResponseForbidden('Invalid conversation participant')
+    
+    # Find or create a conversation between these two specific users for this offer
+    # Each conversation should have exactly 2 participants
+    conversation = Conversation.objects.filter(
+        offer=offer,
+        participants=request.user
+    ).filter(
+        participants=other_participant
+    ).distinct().first()
+    
     if not conversation:
         conversation = Conversation.objects.create(offer=offer, is_active=True)
+        conversation.participants.add(request.user, other_participant)
     else:
         # Reactivate if it was inactive
         if not conversation.is_active:
             conversation.is_active = True
             conversation.save()
-    
-    # Add participants if not already added
-    if request.user not in conversation.participants.all():
-        conversation.participants.add(request.user)
-    if offer.user not in conversation.participants.all():
-        conversation.participants.add(offer.user)
-    if offer.accepted_by and offer.accepted_by not in conversation.participants.all():
-        conversation.participants.add(offer.accepted_by)
-    if extra_user and extra_user not in conversation.participants.all():
-        conversation.participants.add(extra_user)
+        # Ensure both participants are in the conversation
+        if request.user not in conversation.participants.all():
+            conversation.participants.add(request.user)
+        if other_participant not in conversation.participants.all():
+            conversation.participants.add(other_participant)
     
     return redirect('messaging:conversation_detail', conversation_id=conversation.id)
 

@@ -291,20 +291,6 @@
 
     
 
-    <!-- Real-time Notification Banner -->
-    <div id="notification-banner" class="fixed top-24 left-4 right-4 bg-purple-600 text-white p-4 rounded-lg shadow-lg z-50 hidden">
-        <div class="flex items-center justify-between">
-            <div class="flex items-center">
-                <i class="fas fa-bell mr-2"></i>
-                <span id="notification-message">New bid available!</span>
-            </div>
-            <button onclick="closeNotification()" 
-                    class="text-white hover:text-gray-200 transition-colors duration-200 p-1 rounded-full hover:bg-white hover:bg-opacity-20"
-                    title="Close notification">
-                <i class="fas fa-times"></i>
-            </button>
-        </div>
-    </div>
 
     <!-- Push Notification Permission Prompt -->
     {% if user.is_authenticated %}
@@ -333,28 +319,6 @@
         const WEBPUSH_PUBLIC_KEY = "{{ WEBPUSH_PUBLIC_KEY|default:''|escapejs }}";
         const PUSH_ENDPOINT_STORAGE_KEY = 'mjolobid-push-endpoint';
 
-        // Notification functions
-        function showNotification(message) {
-            const banner = document.getElementById('notification-banner');
-            const messageEl = document.getElementById('notification-message');
-            if (banner && messageEl) {
-                messageEl.textContent = message;
-                banner.classList.remove('hidden');
-                // Auto-hide after 8 seconds (increased from 5)
-                setTimeout(() => {
-                    if (!banner.classList.contains('hidden')) {
-                        banner.classList.add('hidden');
-                    }
-                }, 8000);
-            }
-        }
-
-        function closeNotification() {
-            const banner = document.getElementById('notification-banner');
-            if (banner) {
-                banner.classList.add('hidden');
-            }
-        }
 
         function showFlashMessage(message, type = 'info') {
             const flashContainer = document.getElementById('flash-messages');
@@ -664,15 +628,6 @@
             });
         }
 
-        // WebSocket connection for real-time notifications
-        {% if user.is_authenticated %}
-        const ws = new WebSocket('ws://localhost:8000/ws/notifications/{{ user.id }}/');
-        
-        ws.onmessage = function(event) {
-            const data = JSON.parse(event.data);
-            showNotification(data.message);
-        };
-        {% endif %}
     </script>
 
     <style>
