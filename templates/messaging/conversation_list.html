@@ -59,7 +59,13 @@
                                         </div>
                                         
                                         <p class="text-sm text-gray-600 truncate">
-                                            {{ conversation.bid.title }}
+                                            {% if conversation.bid %}
+                                                {{ conversation.bid.title }}
+                                            {% elif conversation.offer %}
+                                                {{ conversation.offer.title }}
+                                            {% else %}
+                                                Conversation
+                                            {% endif %}
                                         </p>
                                         
                                         {% if conversation.latest_message %}

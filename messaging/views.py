@@ -33,18 +33,21 @@ def conversation_list(request):
         is_active=True
     ).select_related('bid', 'bid__user', 'bid__accepted_by', 'offer', 'offer__user', 'offer__accepted_by').prefetch_related(
         'messages__sender', 'participants'
-    ).annotate(
-        participant_count=Count('participants')
-    ).filter(
-        participant_count=2  # Only show 1-on-1 conversations
     ).order_by('-updated_at')
     
-    # Filter to ensure exactly 2 participants
+    # Filter to ensure exactly 2 participants and user is one of them
     conversations = []
     for conversation in all_conversations:
         participants = list(conversation.participants.all())
+        # Show conversations with exactly 2 participants where user is one of them
+        # OR conversations with messages (in case participant count is off)
         if len(participants) == 2 and request.user in participants:
             conversations.append(conversation)
+        elif conversation.messages.exists() and request.user in participants:
+            # If conversation has messages but wrong participant count, still show it
+            # But ensure it only has 2 participants
+            if len(participants) <= 2:
+                conversations.append(conversation)
     
     # Add unread counts and latest messages
     for conversation in conversations:
