@@ -346,6 +346,7 @@
 
     <script>
         const WEBPUSH_PUBLIC_KEY = "{{ WEBPUSH_PUBLIC_KEY|default:''|escapejs }}";
+        const HAS_PUSH_SUBSCRIPTION = {{ HAS_PUSH_SUBSCRIPTION|yesno:"true,false" }};
         const PUSH_ENDPOINT_STORAGE_KEY = 'mjolobid-push-endpoint';
 
 
@@ -523,6 +524,18 @@
                 return;
             }
 
+            // Check if user already has push subscriptions (from server or set after subscription)
+            const hasSubscription = HAS_PUSH_SUBSCRIPTION || window.HAS_PUSH_SUBSCRIPTION;
+            if (hasSubscription) {
+                console.log('User already has push subscription, skipping modal');
+                // Still set up subscription in case browser state changed
+                const permission = Notification.permission;
+                if (permission === 'granted') {
+                    await setupPushSubscription();
+                }
+                return;
+            }
+
             // Check if user has already granted/denied permission
             const permission = Notification.permission;
             console.log('Notification permission:', permission);
@@ -573,6 +586,13 @@
         function showPushNotificationModal() {
             console.log('showPushNotificationModal called');
             
+            // Check if user already has push subscriptions (from server or set after subscription)
+            const hasSubscription = HAS_PUSH_SUBSCRIPTION || window.HAS_PUSH_SUBSCRIPTION;
+            if (hasSubscription) {
+                console.log('User already has push subscription, not showing modal');
+                return;
+            }
+            
             // Check if user has permanently dismissed (only if they explicitly denied)
             const dismissed = localStorage.getItem('mjolobid-push-prompt-dismissed');
             if (dismissed === 'permanent') {
@@ -580,9 +600,9 @@
                 return;
             }
 
-            // Check if already subscribed
+            // Check if already subscribed (localStorage check)
             if (localStorage.getItem(PUSH_ENDPOINT_STORAGE_KEY)) {
-                console.log('Already subscribed');
+                console.log('Already subscribed (localStorage)');
                 return;
             }
 
@@ -688,6 +708,10 @@
                 
                 if (response.ok) {
                     console.log('Subscription saved to server successfully');
+                    // Mark that user has subscribed (prevents modal from showing again in this session)
+                    // Note: On next page load, HAS_PUSH_SUBSCRIPTION from server will be true
+                    window.HAS_PUSH_SUBSCRIPTION = true;
+                    localStorage.setItem(PUSH_ENDPOINT_STORAGE_KEY, subscription.endpoint);
                 } else {
                     console.error('Failed to save subscription:', response.status, response.statusText);
                 }
