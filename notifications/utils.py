@@ -113,6 +113,12 @@ def send_web_push_notification(user, notification):
 
     for subscription in subscriptions:
         try:
+            # New pywebpush API (2.x) - only needs vapid_private_key and vapid_claims
+            # The public key is derived from the private key automatically
+            vapid_claims = {
+                "sub": f"mailto:{vapid_contact_email}" if vapid_contact_email else "mailto:support@mjolobid.com"
+            }
+            
             result = webpush(
                 subscription_info={
                     "endpoint": subscription.endpoint,
@@ -123,8 +129,7 @@ def send_web_push_notification(user, notification):
                 },
                 data=json.dumps(payload),
                 vapid_private_key=vapid_private_key,
-                vapid_public_key=vapid_public_key,
-                vapid_claims={"sub": f"mailto:{vapid_contact_email}"} if vapid_contact_email else None,
+                vapid_claims=vapid_claims,
             )
             print(f"Push notification sent successfully to {subscription.endpoint[:50]}...")
         except WebPushException as exc:
