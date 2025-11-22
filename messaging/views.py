@@ -298,20 +298,19 @@ def send_message(request, conversation_id):
         conversation.updated_at = timezone.now()
         conversation.save()
         
-        # Send real-time notification (if WebSocket is available)
+        # Send real-time notification (if available)
         try:
-            from notifications.utils import send_websocket_notification
+            from notifications.utils import send_notification
             other_participant = conversation.get_other_participant(request.user)
             if other_participant:
-                send_websocket_notification(
-                    other_participant,
-                    {
-                        'type': 'new_message',
-                        'conversation_id': conversation.id,
-                        'message': message.content,
-                        'sender': request.user.username,
-                        'timestamp': message.created_at.isoformat()
-                    }
+                # Create a proper notification for the new message
+                send_notification(
+                    user=other_participant,
+                    title='New Message',
+                    message=f'{request.user.username} sent you a message',
+                    notification_type='NEW_MESSAGE',
+                    related_object_type='conversation',
+                    related_object_id=conversation.id
                 )
         except ImportError:
             pass
