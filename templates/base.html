@@ -503,8 +503,18 @@
         }
 
         async function initWebPush() {
+            console.log('initWebPush called');
+            console.log('WEBPUSH_PUBLIC_KEY:', WEBPUSH_PUBLIC_KEY ? 'SET' : 'NOT SET');
+            
             if (!WEBPUSH_PUBLIC_KEY) {
                 console.log('Web push not configured: missing VAPID public key');
+                // Still show modal for testing - user can see it even without keys
+                // But we'll show a warning
+                const permission = Notification.permission;
+                if (permission === 'default') {
+                    console.log('Showing modal despite missing keys (for testing)');
+                    showPushNotificationModal();
+                }
                 return;
             }
 
@@ -515,12 +525,16 @@
 
             // Check if user has already granted/denied permission
             const permission = Notification.permission;
+            console.log('Notification permission:', permission);
+            
             if (permission === 'granted') {
                 // User has already granted permission, set up subscription
+                console.log('Permission already granted, setting up subscription');
                 await setupPushSubscription();
             } else if (permission === 'default') {
                 // Show blocking modal to user on login
                 // Show every time until permission is granted or permanently denied
+                console.log('Permission is default, showing modal');
                 showPushNotificationModal();
             } else {
                 // Permission denied, don't show prompt
@@ -557,24 +571,32 @@
         }
 
         function showPushNotificationModal() {
+            console.log('showPushNotificationModal called');
+            
             // Check if user has permanently dismissed (only if they explicitly denied)
             const dismissed = localStorage.getItem('mjolobid-push-prompt-dismissed');
             if (dismissed === 'permanent') {
+                console.log('Modal permanently dismissed');
                 return;
             }
 
             // Check if already subscribed
             if (localStorage.getItem(PUSH_ENDPOINT_STORAGE_KEY)) {
+                console.log('Already subscribed');
                 return;
             }
 
             // Check if permission is already granted
             if (Notification.permission === 'granted') {
+                console.log('Permission already granted');
                 return;
             }
 
             const modal = document.getElementById('push-notification-modal');
+            console.log('Modal element:', modal ? 'FOUND' : 'NOT FOUND');
+            
             if (modal) {
+                console.log('Showing modal');
                 modal.classList.remove('hidden');
                 modal.classList.add('flex');
                 // Prevent body scroll and interaction
@@ -586,6 +608,8 @@
                         e.stopPropagation();
                     }
                 });
+            } else {
+                console.error('Push notification modal element not found!');
             }
         }
 
