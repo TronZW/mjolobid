@@ -157,6 +157,22 @@ def delete_push_subscription(request):
 def test_push_notification(request):
     """Test endpoint to send a push notification to the current user"""
     try:
+        from django.conf import settings as django_settings
+        from .utils import WEBPUSH_AVAILABLE
+        
+        # Check configuration
+        vapid_public_key = getattr(django_settings, 'WEBPUSH_VAPID_PUBLIC_KEY', '')
+        vapid_private_key = getattr(django_settings, 'WEBPUSH_VAPID_PRIVATE_KEY', '')
+        
+        diagnostic_info = {
+            'webpush_available': WEBPUSH_AVAILABLE,
+            'vapid_public_key_set': bool(vapid_public_key),
+            'vapid_public_key_length': len(vapid_public_key) if vapid_public_key else 0,
+            'vapid_private_key_set': bool(vapid_private_key),
+            'vapid_private_key_length': len(vapid_private_key) if vapid_private_key else 0,
+            'subscription_count': WebPushSubscription.objects.filter(user=request.user).count(),
+        }
+        
         # Ensure notification settings exist and push is enabled
         settings, created = NotificationSettings.objects.get_or_create(
             user=request.user,
@@ -183,12 +199,15 @@ def test_push_notification(request):
         return JsonResponse({
             'status': 'success',
             'message': 'Test notification sent!',
-            'notification_id': notification.id
+            'notification_id': notification.id,
+            'diagnostics': diagnostic_info
         })
     except Exception as e:
+        import traceback
         return JsonResponse({
             'status': 'error',
-            'message': str(e)
+            'message': str(e),
+            'traceback': traceback.format_exc()
         }, status=500)
 
 
