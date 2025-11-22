@@ -424,78 +424,96 @@
             }, 5000);
         }
 
-        // Initialize
-        document.addEventListener('DOMContentLoaded', function() {
-            // Mobile menu toggle
-            const btn = document.getElementById('mobile-menu-button');
-            const menu = document.getElementById('mobile-menu');
-            if (btn && menu) {
-                btn.addEventListener('click', function() {
-                    const isHidden = menu.classList.contains('hidden');
-                    menu.classList.toggle('hidden');
-                    btn.setAttribute('aria-expanded', String(isHidden));
-                    // swap icon (bars <-> times)
-                    this.innerHTML = isHidden ? '<i class="fas fa-times text-xl"></i>' : '<i class="fas fa-bars text-xl"></i>';
-                });
-            }
-
-            // Unread message badge updater
-            async function updateUnreadBadge() {
-                try {
-                    const resp = await fetch('{% url 'messaging:unread_count' %}', { credentials: 'same-origin' });
-                    if (!resp.ok) return;
-                    const data = await resp.json();
-                    const count = data.count || 0;
-                    const badge = document.getElementById('nav-unread-badge');
-                    const mobileBadge = document.getElementById('mobile-nav-unread-badge');
-                    if (badge) {
-                        if (count > 0) {
-                            badge.textContent = count;
-                            badge.classList.remove('hidden');
-                        } else {
-                            badge.classList.add('hidden');
-                        }
+            // Monitor permission changes (when user resets in browser settings)
+            let lastPermission = Notification.permission;
+            setInterval(() => {
+                const currentPermission = Notification.permission;
+                if (currentPermission !== lastPermission) {
+                    console.log('Notification permission changed from', lastPermission, 'to', currentPermission);
+                    lastPermission = currentPermission;
+                    
+                    // If permission was reset to default, reinitialize
+                    if (currentPermission === 'default') {
+                        localStorage.removeItem(PUSH_ENDPOINT_STORAGE_KEY);
+                        localStorage.removeItem('mjolobid-push-prompt-dismissed');
+                        window.HAS_PUSH_SUBSCRIPTION = false;
+                        initWebPush();
                     }
-                    if (mobileBadge) {
-                        if (count > 0) {
-                            mobileBadge.textContent = count;
-                            mobileBadge.classList.remove('hidden');
-                        } else {
-                            mobileBadge.classList.add('hidden');
-                        }
-                    }
-                } catch (e) {
-                    // ignore
                 }
-            }
+            }, 2000); // Check every 2 seconds
 
-            {% if user.is_authenticated %}
-            updateUnreadBadge();
-            setInterval(updateUnreadBadge, 10000); // poll every 10s
-            {% endif %}
-
-            // Flash messages dismiss + auto-hide
-            const flashMessages = document.querySelectorAll('.flash-message');
-            flashMessages.forEach((flash, index) => {
-                const dismissBtn = flash.querySelector('.flash-dismiss');
-                if (dismissBtn) {
-                    dismissBtn.addEventListener('click', () => {
-                        flash.classList.add('opacity-0', 'translate-y-1');
-                        setTimeout(() => flash.remove(), 200);
+            // Initialize
+            document.addEventListener('DOMContentLoaded', function() {
+                // Mobile menu toggle
+                const btn = document.getElementById('mobile-menu-button');
+                const menu = document.getElementById('mobile-menu');
+                if (btn && menu) {
+                    btn.addEventListener('click', function() {
+                        const isHidden = menu.classList.contains('hidden');
+                        menu.classList.toggle('hidden');
+                        btn.setAttribute('aria-expanded', String(isHidden));
+                        // swap icon (bars <-> times)
+                        this.innerHTML = isHidden ? '<i class="fas fa-times text-xl"></i>' : '<i class="fas fa-bars text-xl"></i>';
                     });
                 }
-                setTimeout(() => {
-                    if (flash && flash.parentElement) {
-                        flash.classList.add('opacity-0', 'translate-y-1');
-                        setTimeout(() => flash.remove(), 200);
-                    }
-                }, 6000 + (index * 500));
-            });
 
-            // Show push notification modal immediately on page load if needed
-            // This ensures it appears right after login
-            initWebPush();
-        });
+                // Unread message badge updater
+                async function updateUnreadBadge() {
+                    try {
+                        const resp = await fetch('{% url 'messaging:unread_count' %}', { credentials: 'same-origin' });
+                        if (!resp.ok) return;
+                        const data = await resp.json();
+                        const count = data.count || 0;
+                        const badge = document.getElementById('nav-unread-badge');
+                        const mobileBadge = document.getElementById('mobile-nav-unread-badge');
+                        if (badge) {
+                            if (count > 0) {
+                                badge.textContent = count;
+                                badge.classList.remove('hidden');
+                            } else {
+                                badge.classList.add('hidden');
+                            }
+                        }
+                        if (mobileBadge) {
+                            if (count > 0) {
+                                mobileBadge.textContent = count;
+                                mobileBadge.classList.remove('hidden');
+                            } else {
+                                mobileBadge.classList.add('hidden');
+                            }
+                        }
+                    } catch (e) {
+                        // ignore
+                    }
+                }
+
+                {% if user.is_authenticated %}
+                updateUnreadBadge();
+                setInterval(updateUnreadBadge, 10000); // poll every 10s
+                {% endif %}
+
+                // Flash messages dismiss + auto-hide
+                const flashMessages = document.querySelectorAll('.flash-message');
+                flashMessages.forEach((flash, index) => {
+                    const dismissBtn = flash.querySelector('.flash-dismiss');
+                    if (dismissBtn) {
+                        dismissBtn.addEventListener('click', () => {
+                            flash.classList.add('opacity-0', 'translate-y-1');
+                            setTimeout(() => flash.remove(), 200);
+                        });
+                    }
+                    setTimeout(() => {
+                        if (flash && flash.parentElement) {
+                            flash.classList.add('opacity-0', 'translate-y-1');
+                            setTimeout(() => flash.remove(), 200);
+                        }
+                    }, 6000 + (index * 500));
+                });
+
+                // Show push notification modal immediately on page load if needed
+                // This ensures it appears right after login
+                initWebPush();
+            });
 
         function urlBase64ToUint8Array(base64String) {
             const padding = '='.repeat((4 - (base64String.length % 4)) % 4);
@@ -509,14 +527,39 @@
             return outputArray;
         }
 
+        async function checkActualSubscriptionStatus() {
+            // Check the actual browser subscription status, not just database/localStorage
+            try {
+                if ('serviceWorker' in navigator && 'PushManager' in window) {
+                    const registration = await navigator.serviceWorker.ready;
+                    const subscription = await registration.pushManager.getSubscription();
+                    
+                    // If no browser subscription exists, clear localStorage
+                    if (!subscription) {
+                        localStorage.removeItem(PUSH_ENDPOINT_STORAGE_KEY);
+                        window.HAS_PUSH_SUBSCRIPTION = false;
+                        return false;
+                    }
+                    
+                    // Verify subscription is still valid
+                    localStorage.setItem(PUSH_ENDPOINT_STORAGE_KEY, subscription.endpoint);
+                    return true;
+                }
+            } catch (error) {
+                console.error('Error checking subscription status:', error);
+                localStorage.removeItem(PUSH_ENDPOINT_STORAGE_KEY);
+                window.HAS_PUSH_SUBSCRIPTION = false;
+                return false;
+            }
+            return false;
+        }
+
         async function initWebPush() {
             console.log('initWebPush called');
             console.log('WEBPUSH_PUBLIC_KEY:', WEBPUSH_PUBLIC_KEY ? 'SET' : 'NOT SET');
             
             if (!WEBPUSH_PUBLIC_KEY) {
                 console.log('Web push not configured: missing VAPID public key');
-                // Still show modal for testing - user can see it even without keys
-                // But we'll show a warning
                 const permission = Notification.permission;
                 if (permission === 'default') {
                     console.log('Showing modal despite missing keys (for testing)');
@@ -530,34 +573,38 @@
                 return;
             }
 
-            // Check if user already has push subscriptions (from server or set after subscription)
-            const hasSubscription = HAS_PUSH_SUBSCRIPTION || window.HAS_PUSH_SUBSCRIPTION;
-            if (hasSubscription) {
-                console.log('User already has push subscription, skipping modal');
-                // Still set up subscription in case browser state changed
-                const permission = Notification.permission;
-                if (permission === 'granted') {
-                    await setupPushSubscription();
-                }
-                return;
-            }
-
-            // Check if user has already granted/denied permission
+            // Check actual browser subscription status first
+            const hasActualSubscription = await checkActualSubscriptionStatus();
+            
+            // Check permission status
             const permission = Notification.permission;
             console.log('Notification permission:', permission);
             
-            if (permission === 'granted') {
-                // User has already granted permission, set up subscription
-                console.log('Permission already granted, setting up subscription');
-                await setupPushSubscription();
-            } else if (permission === 'default') {
-                // Show blocking modal to user on login
-                // Show every time until permission is granted or permanently denied
-                console.log('Permission is default, showing modal');
+            // If permission was reset to default, clear all subscription flags
+            if (permission === 'default') {
+                localStorage.removeItem(PUSH_ENDPOINT_STORAGE_KEY);
+                localStorage.removeItem('mjolobid-push-prompt-dismissed');
+                window.HAS_PUSH_SUBSCRIPTION = false;
+                console.log('Permission reset to default, showing modal');
                 showPushNotificationModal();
-            } else {
-                // Permission denied, don't show prompt
+                return;
+            }
+            
+            // If permission is denied, don't show modal
+            if (permission === 'denied') {
                 console.log('Notification permission denied');
+                return;
+            }
+            
+            // If permission is granted but no actual subscription, set it up
+            if (permission === 'granted') {
+                if (!hasActualSubscription) {
+                    console.log('Permission granted but no subscription, setting up...');
+                    await setupPushSubscription();
+                } else {
+                    console.log('Permission granted and subscription exists');
+                }
+                return;
             }
         }
 
@@ -589,32 +636,31 @@
             }
         }
 
-        function showPushNotificationModal() {
+        async function showPushNotificationModal() {
             console.log('showPushNotificationModal called');
             
-            // Check if user already has push subscriptions (from server or set after subscription)
-            const hasSubscription = HAS_PUSH_SUBSCRIPTION || window.HAS_PUSH_SUBSCRIPTION;
-            if (hasSubscription) {
-                console.log('User already has push subscription, not showing modal');
+            // Check actual browser subscription status
+            const hasActualSubscription = await checkActualSubscriptionStatus();
+            if (hasActualSubscription && Notification.permission === 'granted') {
+                console.log('User already has active subscription, not showing modal');
                 return;
+            }
+            
+            // Check if permission is denied (permanently)
+            if (Notification.permission === 'denied') {
+                console.log('Permission denied, not showing modal');
+                return;
+            }
+            
+            // If permission was reset to default, clear dismissal flag
+            if (Notification.permission === 'default') {
+                localStorage.removeItem('mjolobid-push-prompt-dismissed');
             }
             
             // Check if user has permanently dismissed (only if they explicitly denied)
             const dismissed = localStorage.getItem('mjolobid-push-prompt-dismissed');
-            if (dismissed === 'permanent') {
+            if (dismissed === 'permanent' && Notification.permission === 'denied') {
                 console.log('Modal permanently dismissed');
-                return;
-            }
-
-            // Check if already subscribed (localStorage check)
-            if (localStorage.getItem(PUSH_ENDPOINT_STORAGE_KEY)) {
-                console.log('Already subscribed (localStorage)');
-                return;
-            }
-
-            // Check if permission is already granted
-            if (Notification.permission === 'granted') {
-                console.log('Permission already granted');
                 return;
             }
 

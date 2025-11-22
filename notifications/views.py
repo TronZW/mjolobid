@@ -122,7 +122,7 @@ def save_push_subscription(request):
     if not endpoint or not auth_key or not p256dh_key:
         return HttpResponseBadRequest('Missing subscription keys')
 
-    WebPushSubscription.objects.update_or_create(
+    subscription, created = WebPushSubscription.objects.update_or_create(
         user=request.user,
         endpoint=endpoint,
         defaults={
@@ -131,8 +131,10 @@ def save_push_subscription(request):
             'user_agent': user_agent or request.META.get('HTTP_USER_AGENT', ''),
         }
     )
+    
+    print(f"Push subscription {'created' if created else 'updated'} for user {request.user.username}: {endpoint[:50]}...")
 
-    return JsonResponse({'status': 'success'})
+    return JsonResponse({'status': 'success', 'created': created})
 
 
 @csrf_exempt
