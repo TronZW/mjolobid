@@ -90,7 +90,7 @@ def send_web_push_notification(user, notification):
     vapid_contact_email = getattr(settings, 'WEBPUSH_VAPID_CONTACT_EMAIL', '')
 
     if not vapid_public_key or not vapid_private_key:
-        print(f"Web push not configured: public_key={bool(vapid_public_key)}, private_key={bool(vapid_private_key)}")
+        print(f"Web push not configured: public_key={bool(vapid_public_key)} (length: {len(vapid_public_key) if vapid_public_key else 0}), private_key={bool(vapid_private_key)} (length: {len(vapid_private_key) if vapid_private_key else 0})")
         return
 
     payload = {
@@ -113,11 +113,15 @@ def send_web_push_notification(user, notification):
 
     for subscription in subscriptions:
         try:
-            # New pywebpush API (2.x) - only needs vapid_private_key and vapid_claims
+            # pywebpush 2.x API - only needs vapid_private_key and vapid_claims
             # The public key is derived from the private key automatically
             vapid_claims = {
                 "sub": f"mailto:{vapid_contact_email}" if vapid_contact_email else "mailto:support@mjolobid.com"
             }
+            
+            print(f"Attempting to send push notification to {subscription.endpoint[:50]}...")
+            print(f"VAPID private key length: {len(vapid_private_key)}")
+            print(f"Payload: {json.dumps(payload)}")
             
             result = webpush(
                 subscription_info={
@@ -131,7 +135,7 @@ def send_web_push_notification(user, notification):
                 vapid_private_key=vapid_private_key,
                 vapid_claims=vapid_claims,
             )
-            print(f"Push notification sent successfully to {subscription.endpoint[:50]}...")
+            print(f"Push notification sent successfully! Response: {result}")
         except WebPushException as exc:
             # Remove stale subscriptions (410 Gone or 404 Not Found)
             status = getattr(exc.response, 'status_code', None)
@@ -140,8 +144,12 @@ def send_web_push_notification(user, notification):
                 subscription.delete()
             else:
                 print(f"Web push failed for {subscription.endpoint[:50]}...: {exc}")
+                import traceback
+                traceback.print_exc()
         except Exception as exc:
             print(f"Unexpected web push error for {subscription.endpoint[:50]}...: {exc}")
+            import traceback
+            traceback.print_exc()
 
 
 def notification_payload_url(notification):

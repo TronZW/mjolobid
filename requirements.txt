@@ -11,4 +11,4 @@ psycopg[binary]==3.2.10
 dj-database-url==2.1.0
 daphne==4.2.1
 requests==2.31.0
-pywebpush==1.14.0
+pywebpush>=2.0.0
