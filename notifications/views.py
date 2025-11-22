@@ -151,6 +151,7 @@ def delete_push_subscription(request):
     return JsonResponse({'status': 'success'})
 
 
+@csrf_exempt
 @login_required
 @require_POST
 def test_push_notification(request):

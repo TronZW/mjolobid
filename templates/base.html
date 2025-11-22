@@ -696,22 +696,41 @@
             }
         }
         
+        // Get CSRF token from cookies
+        function getCookie(name) {
+            let cookieValue = null;
+            if (document.cookie && document.cookie !== '') {
+                const cookies = document.cookie.split(';');
+                for (let i = 0; i < cookies.length; i++) {
+                    const cookie = cookies[i].trim();
+                    if (cookie.substring(0, name.length + 1) === (name + '=')) {
+                        cookieValue = decodeURIComponent(cookie.substring(name.length + 1));
+                        break;
+                    }
+                }
+            }
+            return cookieValue;
+        }
+        
         // Test push notification function (for debugging)
         async function testPushNotification() {
             try {
+                const csrftoken = getCookie('csrftoken');
                 const response = await fetch('{% url "notifications:test_push" %}', {
                     method: 'POST',
                     headers: {
                         'Content-Type': 'application/json',
-                        'X-CSRFToken': document.querySelector('[name=csrfmiddlewaretoken]')?.value || '',
+                        'X-CSRFToken': csrftoken || '',
                     },
                     credentials: 'include',
                 });
                 const data = await response.json();
                 if (data.status === 'success') {
                     showFlashMessage('Test notification sent! Check your notifications.', 'success');
+                    console.log('Test notification sent successfully');
                 } else {
                     showFlashMessage('Failed to send test notification: ' + data.message, 'error');
+                    console.error('Test notification failed:', data.message);
                 }
             } catch (error) {
                 console.error('Test push error:', error);
