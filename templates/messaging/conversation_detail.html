@@ -4,6 +4,19 @@
 
 {% block extra_css %}
 <style>
+    /* Hide all flash messages in conversation view */
+    #flash-messages,
+    .flash-message,
+    .conversation-flash-messages {
+        display: none !important;
+        visibility: hidden !important;
+        opacity: 0 !important;
+        height: 0 !important;
+        margin: 0 !important;
+        padding: 0 !important;
+        overflow: hidden !important;
+    }
+    
     .chat-container {
         height: calc(100vh - 200px);
         min-height: 500px;
@@ -203,6 +216,35 @@
 document.addEventListener('DOMContentLoaded', function() {
     // Suppress all notifications while viewing this conversation
     window.IN_CONVERSATION_VIEW = true; // Flag to suppress notifications globally
+    
+    // Hide all flash messages immediately when viewing conversation
+    function hideAllFlashMessages() {
+        const flashMessages = document.getElementById('flash-messages');
+        if (flashMessages) {
+            flashMessages.style.display = 'none';
+            flashMessages.remove(); // Completely remove from DOM
+        }
+        
+        // Also hide any flash messages that might be added dynamically
+        const allFlashMessages = document.querySelectorAll('.flash-message, .conversation-flash-messages');
+        allFlashMessages.forEach(msg => {
+            msg.style.display = 'none';
+            msg.remove();
+        });
+    }
+    
+    // Hide immediately
+    hideAllFlashMessages();
+    
+    // Also hide any that appear later (in case they're added dynamically)
+    const observer = new MutationObserver(function(mutations) {
+        hideAllFlashMessages();
+    });
+    
+    observer.observe(document.body, {
+        childList: true,
+        subtree: true
+    });
     
     // Override browser Notification API to prevent notifications while in conversation
     if ('Notification' in window) {

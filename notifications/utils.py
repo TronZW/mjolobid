@@ -146,6 +146,8 @@ def send_web_push_notification(user, notification):
 
 def notification_payload_url(notification):
     """Determine a reasonable URL to open when a notification is clicked."""
+    if notification.related_object_type == 'conversation' and notification.related_object_id:
+        return f"/messaging/conversation/{notification.related_object_id}/"
     if notification.related_object_type == 'bid' and notification.related_object_id:
         return f"/bids/bid/{notification.related_object_id}/"
     if notification.related_object_type == 'offer' and notification.related_object_id:

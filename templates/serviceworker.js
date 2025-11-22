@@ -22,22 +22,46 @@ self.addEventListener('push', (event) => {
         }
     })();
 
-    const title = data.title || 'MjoloBid';
-    const options = {
-        body: data.body || '',
-        icon: data.icon,
-        badge: data.badge,
-        tag: data.tag || `mjolobid-${Date.now()}`,
-        data: {
-            url: data.url || '/notifications/',
-            ...data.data,
-        },
-        vibrate: data.vibrate || [100, 50, 100],
-        actions: data.actions || [],
-    };
-
+    // Check if user is currently viewing a conversation
+    // If so, suppress notifications for NEW_MESSAGE type
     event.waitUntil(
-        self.registration.showNotification(title, options)
+        self.clients.matchAll({ type: 'window', includeUncontrolled: true }).then((clientList) => {
+            let isViewingConversation = false;
+            
+            // Check all clients (not just focused ones) to see if user is viewing a conversation
+            for (const client of clientList) {
+                const url = new URL(client.url);
+                // Check if user is viewing a conversation page
+                if (url.pathname.includes('/messaging/conversation/')) {
+                    isViewingConversation = true;
+                    break;
+                }
+            }
+            
+            // Suppress NEW_MESSAGE notifications when viewing any conversation
+            if (isViewingConversation && data.data && data.data.type === 'NEW_MESSAGE') {
+                console.log('Suppressing push notification - user is viewing conversation');
+                return Promise.resolve();
+            }
+
+            const title = data.title || 'MjoloBid';
+            const options = {
+                body: data.body || '',
+                icon: data.icon,
+                badge: data.badge,
+                tag: data.tag || `mjolobid-${Date.now()}`,
+                data: {
+                    url: data.url || '/notifications/',
+                    ...data.data,
+                },
+                vibrate: data.vibrate || [100, 50, 100],
+                actions: data.actions || [],
+            };
+
+            return self.registration.showNotification(title, options);
+        }).catch((error) => {
+            console.error('Error in push event handler:', error);
+        })
     );
 });
 

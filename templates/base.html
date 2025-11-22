@@ -181,7 +181,7 @@
     <main class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
         {% if messages %}
             {% with success_classes="bg-green-50 border border-green-200 text-green-900" error_classes="bg-red-50 border border-red-200 text-red-900" warning_classes="bg-yellow-50 border border-yellow-200 text-yellow-900" info_classes="bg-blue-50 border border-blue-200 text-blue-900" %}
-            <div id="flash-messages" class="space-y-3 mb-8" aria-live="polite" aria-atomic="true">
+            <div id="flash-messages" class="space-y-3 mb-8 conversation-flash-messages" aria-live="polite" aria-atomic="true" style="display: none;">
                 {% for message in messages %}
                     {% if 'success' in message.tags %}
                         {% with alert_classes=success_classes icon_class="fas fa-check-circle text-green-500" %}
