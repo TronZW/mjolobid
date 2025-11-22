@@ -67,7 +67,7 @@
                         </a>
                         {% if user.user_type == 'M' and not user.is_staff and not user.is_superuser %}
                             <a href="{% url 'offers:browse_offers' %}" class="text-gray-700 hover:text-primary px-3 py-2 rounded-md text-sm font-medium">
-                                <i class="fas fa-gift mr-1"></i>Browse Offers
+                                <i class="fas fa-gift mr-1"></i>Offers from Girls
                             </a>
                             <a href="{% url 'bids:my_bids' %}" class="text-gray-700 hover:text-primary px-3 py-2 rounded-md text-sm font-medium">
                                 <i class="fas fa-list mr-1"></i>My Bids
@@ -135,7 +135,7 @@
                 </a>
                 {% if user.user_type == 'M' and not user.is_staff and not user.is_superuser %}
                     <a href="{% url 'offers:browse_offers' %}" class="block text-gray-700 hover:text-primary px-3 py-2 rounded-md text-base font-medium">
-                        <i class="fas fa-gift mr-2"></i>Browse Offers
+                        <i class="fas fa-gift mr-2"></i>Offers from Girls
                     </a>
                     <a href="{% url 'bids:my_bids' %}" class="block text-gray-700 hover:text-primary px-3 py-2 rounded-md text-base font-medium">
                         <i class="fas fa-list mr-2"></i>My Bids
