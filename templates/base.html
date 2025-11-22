@@ -351,6 +351,12 @@
 
 
         function showFlashMessage(message, type = 'info') {
+            // Suppress notifications when viewing a conversation
+            if (window.IN_CONVERSATION_VIEW) {
+                console.log('Suppressing flash message in conversation view:', message);
+                return;
+            }
+            
             const flashContainer = document.getElementById('flash-messages');
             if (!flashContainer) {
                 // Create container if it doesn't exist
