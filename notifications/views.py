@@ -151,6 +151,46 @@ def delete_push_subscription(request):
     return JsonResponse({'status': 'success'})
 
 
+@login_required
+@require_POST
+def test_push_notification(request):
+    """Test endpoint to send a push notification to the current user"""
+    try:
+        # Ensure notification settings exist and push is enabled
+        settings, created = NotificationSettings.objects.get_or_create(
+            user=request.user,
+            defaults={
+                'push_bid_updates': True,
+                'push_messages': True,
+                'push_system': True,
+            }
+        )
+        # Enable push if it was disabled
+        if not settings.push_system:
+            settings.push_system = True
+            settings.save()
+        
+        # Send test notification
+        notification = send_notification(
+            user=request.user,
+            title='Test Push Notification',
+            message='This is a test push notification. If you see this, push notifications are working!',
+            notification_type='SYSTEM_ANNOUNCEMENT',
+            related_object_type='test'
+        )
+        
+        return JsonResponse({
+            'status': 'success',
+            'message': 'Test notification sent!',
+            'notification_id': notification.id
+        })
+    except Exception as e:
+        return JsonResponse({
+            'status': 'error',
+            'message': str(e)
+        }, status=500)
+
+
 # Utility functions for sending notifications
 def send_bid_accepted_notification(bid):
     """Send notification when bid is accepted"""

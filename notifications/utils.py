@@ -82,6 +82,7 @@ def send_websocket_notification(user, notification):
 def send_web_push_notification(user, notification):
     """Send push notification using the Web Push protocol"""
     if not WEBPUSH_AVAILABLE:
+        print("Web push not available: pywebpush not installed")
         return
 
     vapid_public_key = getattr(settings, 'WEBPUSH_VAPID_PUBLIC_KEY', '')
@@ -89,6 +90,7 @@ def send_web_push_notification(user, notification):
     vapid_contact_email = getattr(settings, 'WEBPUSH_VAPID_CONTACT_EMAIL', '')
 
     if not vapid_public_key or not vapid_private_key:
+        print(f"Web push not configured: public_key={bool(vapid_public_key)}, private_key={bool(vapid_private_key)}")
         return
 
     payload = {
@@ -103,9 +105,15 @@ def send_web_push_notification(user, notification):
     }
 
     subscriptions = WebPushSubscription.objects.filter(user=user)
+    if not subscriptions.exists():
+        print(f"No push subscriptions found for user {user.username}")
+        return
+    
+    print(f"Sending push notification to {subscriptions.count()} subscription(s) for user {user.username}")
+
     for subscription in subscriptions:
         try:
-            webpush(
+            result = webpush(
                 subscription_info={
                     "endpoint": subscription.endpoint,
                     "keys": {
@@ -118,15 +126,17 @@ def send_web_push_notification(user, notification):
                 vapid_public_key=vapid_public_key,
                 vapid_claims={"sub": f"mailto:{vapid_contact_email}"} if vapid_contact_email else None,
             )
+            print(f"Push notification sent successfully to {subscription.endpoint[:50]}...")
         except WebPushException as exc:
             # Remove stale subscriptions (410 Gone or 404 Not Found)
             status = getattr(exc.response, 'status_code', None)
             if status in (404, 410):
+                print(f"Removing stale subscription (status {status}): {subscription.endpoint[:50]}...")
                 subscription.delete()
             else:
-                print(f"Web push failed: {exc}")
+                print(f"Web push failed for {subscription.endpoint[:50]}...: {exc}")
         except Exception as exc:
-            print(f"Unexpected web push error: {exc}")
+            print(f"Unexpected web push error for {subscription.endpoint[:50]}...: {exc}")
 
 
 def notification_payload_url(notification):

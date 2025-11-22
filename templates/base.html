@@ -642,10 +642,16 @@
                 const permission = await Notification.requestPermission();
                 
                 if (permission === 'granted') {
+                    console.log('Permission granted, setting up subscription...');
                     await setupPushSubscription();
                     dismissPushModal();
                     // Clear dismissal flag since user enabled it
                     localStorage.removeItem('mjolobid-push-prompt-dismissed');
+                    // Send a test notification after 2 seconds
+                    setTimeout(() => {
+                        testPushNotification();
+                    }, 2000);
+                    }, 'success');
                 } else if (permission === 'denied') {
                     showFlashMessage('Notification permission denied. You can enable it later in your browser settings.', 'warning');
                     dismissPushModal();
@@ -664,22 +670,54 @@
 
         async function sendSubscriptionToServer(subscription) {
             if (!subscription) {
+                console.error('No subscription to send');
                 return;
             }
 
             const payload = subscription.toJSON();
             payload.user_agent = navigator.userAgent;
 
-            await fetch('{% url "notifications:push_subscribe" %}', {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                },
-                credentials: 'include',
-                body: JSON.stringify(payload),
-            }).catch((error) => {
-                console.warn('Failed to store subscription:', error);
-            });
+            try {
+                const response = await fetch('{% url "notifications:push_subscribe" %}', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    credentials: 'include',
+                    body: JSON.stringify(payload),
+                });
+                
+                if (response.ok) {
+                    console.log('Subscription saved to server successfully');
+                } else {
+                    console.error('Failed to save subscription:', response.status, response.statusText);
+                }
+            } catch (error) {
+                console.error('Failed to store subscription:', error);
+            }
+        }
+        
+        // Test push notification function (for debugging)
+        async function testPushNotification() {
+            try {
+                const response = await fetch('{% url "notifications:test_push" %}', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'X-CSRFToken': document.querySelector('[name=csrfmiddlewaretoken]')?.value || '',
+                    },
+                    credentials: 'include',
+                });
+                const data = await response.json();
+                if (data.status === 'success') {
+                    showFlashMessage('Test notification sent! Check your notifications.', 'success');
+                } else {
+                    showFlashMessage('Failed to send test notification: ' + data.message, 'error');
+                }
+            } catch (error) {
+                console.error('Test push error:', error);
+                showFlashMessage('Failed to send test notification', 'error');
+            }
         }
 
         async function removeStoredSubscription(registration) {
