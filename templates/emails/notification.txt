@@ -1,0 +1,16 @@
+MjoloBid - {{ title }}
+
+{{ message }}
+
+{% if notification_url %}
+View Details: {{ notification_url }}
+{% endif %}
+
+---
+This is an automated notification from MjoloBid.
+You're receiving this because you have email notifications enabled.
+
+Manage Notification Settings: {{ site_url }}/notifications/settings/
+
+© 2024 MjoloBid. All rights reserved.
+

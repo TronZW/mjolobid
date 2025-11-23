@@ -38,14 +38,15 @@ def send_notification(user, title, message, notification_type, related_object_ty
     except NotificationSettings.DoesNotExist:
         settings = NotificationSettings.objects.create(user=user)
     
-    # Send real-time notification via WebSocket
+    # Send email notification first (most reliable method)
+    # Email notifications are enabled by default for bids and messages
+    if _should_send_email_notification(notification_type, settings):
+        send_email_notification(user, notification)
+    
+    # Send real-time notification via WebSocket and Push (optional, less reliable)
     if _should_send_push_notification(notification_type, settings):
         send_websocket_notification(user, notification)
         send_web_push_notification(user, notification)
-    
-    # Send email notification (if enabled)
-    if _should_send_email_notification(notification_type, settings):
-        send_email_notification(user, notification)
     
     # Send SMS notification (if enabled)
     if _should_send_sms_notification(notification_type, settings):
@@ -167,10 +168,83 @@ def notification_payload_url(notification):
 
 def send_email_notification(user, notification):
     """Send email notification"""
-    # TODO: Implement email sending
-    # For now, just mark as sent
-    notification.mark_as_sent()
-    pass
+    from django.core.mail import send_mail, EmailMultiAlternatives
+    from django.template.loader import render_to_string
+    from django.conf import settings as django_settings
+    
+    try:
+        # Get user's email
+        user_email = user.email
+        if not user_email:
+            print(f"Cannot send email notification: User {user.username} has no email address")
+            return
+        
+        # Determine email template based on notification type
+        template_name = 'emails/notification.html'
+        subject_prefix = 'MjoloBid Notification'
+        
+        # Customize subject and template based on notification type
+        if notification.notification_type == 'NEW_MESSAGE':
+            # Extract sender name from message
+            message_text = notification.message
+            if ' sent you a message' in message_text:
+                sender_name = message_text.split(' sent you a message')[0]
+                subject = f'{subject_prefix}: New Message from {sender_name}'
+            elif ' sent you a message in' in message_text:
+                sender_name = message_text.split(' sent you a message in')[0]
+                subject = f'{subject_prefix}: New Message from {sender_name}'
+            else:
+                subject = f'{subject_prefix}: New Message'
+        elif notification.notification_type == 'OFFER_BID':
+            subject = f'{subject_prefix}: New Bid on Your Offer'
+        elif notification.notification_type == 'OFFER_ACCEPTED':
+            subject = f'{subject_prefix}: Your Bid Was Selected!'
+        elif notification.notification_type == 'BID_ACCEPTED':
+            subject = f'{subject_prefix}: Your Bid Was Accepted!'
+        else:
+            subject = f'{subject_prefix}: {notification.title}'
+        
+        # Build notification URL
+        notification_url = notification_payload_url(notification)
+        base_url = getattr(django_settings, 'SITE_URL', 'http://localhost:8000')
+        if not base_url.startswith('http'):
+            base_url = f'http://{base_url}'
+        full_url = f"{base_url}{notification_url}"
+        
+        # Prepare email context
+        context = {
+            'user': user,
+            'notification': notification,
+            'title': notification.title,
+            'message': notification.message,
+            'notification_url': full_url,
+            'site_name': 'MjoloBid',
+            'site_url': base_url,
+        }
+        
+        # Render email templates
+        html_message = render_to_string('emails/notification.html', context)
+        text_message = render_to_string('emails/notification.txt', context)
+        
+        # Send email
+        email = EmailMultiAlternatives(
+            subject=subject,
+            body=text_message,
+            from_email=getattr(django_settings, 'DEFAULT_FROM_EMAIL', 'noreply@mjolobid.com'),
+            to=[user_email],
+        )
+        email.attach_alternative(html_message, "text/html")
+        email.send(fail_silently=False)
+        
+        # Mark notification as sent
+        notification.mark_as_sent()
+        print(f"Email notification sent successfully to {user_email} for notification: {notification.title}")
+        
+    except Exception as e:
+        print(f"Failed to send email notification to {user.username}: {e}")
+        import traceback
+        traceback.print_exc()
+        # Don't mark as sent if email failed
 
 
 def send_sms_notification(user, notification):
@@ -198,9 +272,12 @@ def _should_send_push_notification(notification_type, settings):
 
 def _should_send_email_notification(notification_type, settings):
     """Check if email notification should be sent"""
+    # Email notifications are enabled by default for bids and messages
     if notification_type == 'BID_ACCEPTED' and settings.email_bid_updates:
         return True
     elif notification_type == 'NEW_MESSAGE' and settings.email_messages:
+        return True
+    elif notification_type in ['OFFER_BID', 'OFFER_ACCEPTED'] and settings.email_bid_updates:
         return True
     elif notification_type in ['PAYMENT_RECEIVED', 'PAYMENT_SENT'] and settings.email_payments:
         return True

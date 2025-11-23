@@ -307,7 +307,7 @@ def send_message(request, conversation_id):
                 send_notification(
                     user=other_participant,
                     title='New Message',
-                    message=f'{request.user.username} sent you a message',
+                    message=f'{request.user.username} sent you a message in {conversation.get_title()}',
                     notification_type='NEW_MESSAGE',
                     related_object_type='conversation',
                     related_object_id=conversation.id

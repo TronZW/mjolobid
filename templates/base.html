@@ -461,55 +461,55 @@
                 }
             }, 3000); // Check every 3 seconds
 
-            // Initialize
-            document.addEventListener('DOMContentLoaded', function() {
-                // Mobile menu toggle
-                const btn = document.getElementById('mobile-menu-button');
-                const menu = document.getElementById('mobile-menu');
-                if (btn && menu) {
-                    btn.addEventListener('click', function() {
-                        const isHidden = menu.classList.contains('hidden');
-                        menu.classList.toggle('hidden');
-                        btn.setAttribute('aria-expanded', String(isHidden));
-                        // swap icon (bars <-> times)
-                        this.innerHTML = isHidden ? '<i class="fas fa-times text-xl"></i>' : '<i class="fas fa-bars text-xl"></i>';
-                    });
-                }
+        // Initialize
+        document.addEventListener('DOMContentLoaded', function() {
+            // Mobile menu toggle
+            const btn = document.getElementById('mobile-menu-button');
+            const menu = document.getElementById('mobile-menu');
+            if (btn && menu) {
+                btn.addEventListener('click', function() {
+                    const isHidden = menu.classList.contains('hidden');
+                    menu.classList.toggle('hidden');
+                    btn.setAttribute('aria-expanded', String(isHidden));
+                    // swap icon (bars <-> times)
+                    this.innerHTML = isHidden ? '<i class="fas fa-times text-xl"></i>' : '<i class="fas fa-bars text-xl"></i>';
+                });
+            }
 
-                // Unread message badge updater
-                async function updateUnreadBadge() {
-                    try {
-                        const resp = await fetch('{% url 'messaging:unread_count' %}', { credentials: 'same-origin' });
-                        if (!resp.ok) return;
-                        const data = await resp.json();
-                        const count = data.count || 0;
-                        const badge = document.getElementById('nav-unread-badge');
-                        const mobileBadge = document.getElementById('mobile-nav-unread-badge');
-                        if (badge) {
-                            if (count > 0) {
-                                badge.textContent = count;
-                                badge.classList.remove('hidden');
-                            } else {
-                                badge.classList.add('hidden');
-                            }
+            // Unread message badge updater
+            async function updateUnreadBadge() {
+                try {
+                    const resp = await fetch('{% url 'messaging:unread_count' %}', { credentials: 'same-origin' });
+                    if (!resp.ok) return;
+                    const data = await resp.json();
+                    const count = data.count || 0;
+                    const badge = document.getElementById('nav-unread-badge');
+                    const mobileBadge = document.getElementById('mobile-nav-unread-badge');
+                    if (badge) {
+                        if (count > 0) {
+                            badge.textContent = count;
+                            badge.classList.remove('hidden');
+                        } else {
+                            badge.classList.add('hidden');
                         }
-                        if (mobileBadge) {
-                            if (count > 0) {
-                                mobileBadge.textContent = count;
-                                mobileBadge.classList.remove('hidden');
-                            } else {
-                                mobileBadge.classList.add('hidden');
-                            }
-                        }
-                    } catch (e) {
-                        // ignore
                     }
+                    if (mobileBadge) {
+                        if (count > 0) {
+                            mobileBadge.textContent = count;
+                            mobileBadge.classList.remove('hidden');
+                        } else {
+                            mobileBadge.classList.add('hidden');
+                        }
+                    }
+                } catch (e) {
+                    // ignore
                 }
+            }
 
-                {% if user.is_authenticated %}
-                updateUnreadBadge();
-                setInterval(updateUnreadBadge, 10000); // poll every 10s
-                {% endif %}
+            {% if user.is_authenticated %}
+            updateUnreadBadge();
+            setInterval(updateUnreadBadge, 10000); // poll every 10s
+            {% endif %}
 
                 // Flash messages dismiss + auto-hide
                 const flashMessages = document.querySelectorAll('.flash-message');
