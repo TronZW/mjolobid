@@ -1,15 +1,11 @@
 from django.conf import settings
-from .models import WebPushSubscription
 
 
 def webpush_settings(request):
     """Expose web push settings to templates"""
-    has_push_subscription = False
-    if request.user.is_authenticated:
-        has_push_subscription = WebPushSubscription.objects.filter(user=request.user).exists()
-    
+    # Don't check server-side subscriptions - each browser has its own subscription
+    # The JavaScript will check the actual browser subscription status
     return {
         'WEBPUSH_PUBLIC_KEY': getattr(settings, 'WEBPUSH_VAPID_PUBLIC_KEY', ''),
-        'HAS_PUSH_SUBSCRIPTION': has_push_subscription,
     }
 

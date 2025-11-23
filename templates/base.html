@@ -346,7 +346,6 @@
 
     <script>
         const WEBPUSH_PUBLIC_KEY = "{{ WEBPUSH_PUBLIC_KEY|default:''|escapejs }}";
-        const HAS_PUSH_SUBSCRIPTION = {{ HAS_PUSH_SUBSCRIPTION|yesno:"true,false" }};
         const PUSH_ENDPOINT_STORAGE_KEY = 'mjolobid-push-endpoint';
 
 
@@ -425,22 +424,42 @@
         }
 
             // Monitor permission changes (when user resets in browser settings)
+            // This works across all browsers (Chrome, Edge, Firefox, Opera, etc.)
             let lastPermission = Notification.permission;
-            setInterval(() => {
+            let lastSubscriptionEndpoint = localStorage.getItem(PUSH_ENDPOINT_STORAGE_KEY);
+            
+            setInterval(async () => {
                 const currentPermission = Notification.permission;
+                const hasActualSubscription = await checkActualSubscriptionStatus();
+                const currentSubscriptionEndpoint = localStorage.getItem(PUSH_ENDPOINT_STORAGE_KEY);
+                
+                // Check if permission changed
                 if (currentPermission !== lastPermission) {
-                    console.log('Notification permission changed from', lastPermission, 'to', currentPermission);
+                    console.log('Notification permission changed from', lastPermission, 'to', currentPermission, 'in this browser');
                     lastPermission = currentPermission;
                     
                     // If permission was reset to default, reinitialize
                     if (currentPermission === 'default') {
                         localStorage.removeItem(PUSH_ENDPOINT_STORAGE_KEY);
                         localStorage.removeItem('mjolobid-push-prompt-dismissed');
-                        window.HAS_PUSH_SUBSCRIPTION = false;
                         initWebPush();
                     }
                 }
-            }, 2000); // Check every 2 seconds
+                
+                // Check if subscription was removed (user unsubscribed in browser settings)
+                if (lastSubscriptionEndpoint && !hasActualSubscription) {
+                    console.log('Push subscription was removed in this browser');
+                    localStorage.removeItem(PUSH_ENDPOINT_STORAGE_KEY);
+                    lastSubscriptionEndpoint = null;
+                    // Reinitialize to show modal if permission allows
+                    if (Notification.permission === 'default') {
+                        initWebPush();
+                    }
+                } else if (!lastSubscriptionEndpoint && hasActualSubscription) {
+                    // Subscription was added
+                    lastSubscriptionEndpoint = currentSubscriptionEndpoint;
+                }
+            }, 3000); // Check every 3 seconds
 
             // Initialize
             document.addEventListener('DOMContentLoaded', function() {
@@ -528,27 +547,47 @@
         }
 
         async function checkActualSubscriptionStatus() {
-            // Check the actual browser subscription status, not just database/localStorage
+            // Check the actual browser subscription status for THIS browser only
+            // Each browser (Chrome, Edge, Firefox, etc.) has its own subscription
             try {
                 if ('serviceWorker' in navigator && 'PushManager' in window) {
-                    const registration = await navigator.serviceWorker.ready;
-                    const subscription = await registration.pushManager.getSubscription();
-                    
-                    // If no browser subscription exists, clear localStorage
-                    if (!subscription) {
-                        localStorage.removeItem(PUSH_ENDPOINT_STORAGE_KEY);
-                        window.HAS_PUSH_SUBSCRIPTION = false;
+                    // Register service worker first if not already registered
+                    let registration;
+                    try {
+                        registration = await navigator.serviceWorker.getRegistration('/service-worker.js');
+                        if (!registration) {
+                            registration = await navigator.serviceWorker.register('/service-worker.js');
+                        }
+                        await registration.update(); // Check for updates
+                    } catch (swError) {
+                        console.error('Service worker registration error:', swError);
                         return false;
                     }
                     
-                    // Verify subscription is still valid
-                    localStorage.setItem(PUSH_ENDPOINT_STORAGE_KEY, subscription.endpoint);
+                    await navigator.serviceWorker.ready;
+                    const subscription = await registration.pushManager.getSubscription();
+                    
+                    // If no browser subscription exists, clear localStorage for this browser
+                    if (!subscription) {
+                        localStorage.removeItem(PUSH_ENDPOINT_STORAGE_KEY);
+                        return false;
+                    }
+                    
+                    // Verify subscription is still valid and matches stored endpoint
+                    const storedEndpoint = localStorage.getItem(PUSH_ENDPOINT_STORAGE_KEY);
+                    if (storedEndpoint && storedEndpoint !== subscription.endpoint) {
+                        // Endpoint changed, update it
+                        localStorage.setItem(PUSH_ENDPOINT_STORAGE_KEY, subscription.endpoint);
+                    } else if (!storedEndpoint) {
+                        // No stored endpoint, save current one
+                        localStorage.setItem(PUSH_ENDPOINT_STORAGE_KEY, subscription.endpoint);
+                    }
+                    
                     return true;
                 }
             } catch (error) {
                 console.error('Error checking subscription status:', error);
                 localStorage.removeItem(PUSH_ENDPOINT_STORAGE_KEY);
-                window.HAS_PUSH_SUBSCRIPTION = false;
                 return false;
             }
             return false;
@@ -557,6 +596,7 @@
         async function initWebPush() {
             console.log('initWebPush called');
             console.log('WEBPUSH_PUBLIC_KEY:', WEBPUSH_PUBLIC_KEY ? 'SET' : 'NOT SET');
+            console.log('Browser:', navigator.userAgent);
             
             if (!WEBPUSH_PUBLIC_KEY) {
                 console.log('Web push not configured: missing VAPID public key');
@@ -568,23 +608,34 @@
                 return;
             }
 
-            if (!('serviceWorker' in navigator) || !('PushManager' in window) || !window.Notification) {
-                console.log('Web push not supported in this browser');
+            // Check browser support - works across Chrome, Edge, Firefox, Opera, etc.
+            // Safari has limited support, but we'll handle it gracefully
+            if (!('serviceWorker' in navigator)) {
+                console.log('Service Worker not supported in this browser');
+                return;
+            }
+            
+            if (!('PushManager' in window)) {
+                console.log('Push Manager not supported in this browser');
+                return;
+            }
+            
+            if (!window.Notification) {
+                console.log('Notification API not supported in this browser');
                 return;
             }
 
-            // Check actual browser subscription status first
+            // Always check actual browser subscription status (browser-specific)
             const hasActualSubscription = await checkActualSubscriptionStatus();
             
-            // Check permission status
+            // Check permission status for THIS browser
             const permission = Notification.permission;
-            console.log('Notification permission:', permission);
+            console.log('Notification permission for this browser:', permission);
             
             // If permission was reset to default, clear all subscription flags
             if (permission === 'default') {
                 localStorage.removeItem(PUSH_ENDPOINT_STORAGE_KEY);
                 localStorage.removeItem('mjolobid-push-prompt-dismissed');
-                window.HAS_PUSH_SUBSCRIPTION = false;
                 console.log('Permission reset to default, showing modal');
                 showPushNotificationModal();
                 return;
@@ -592,17 +643,17 @@
             
             // If permission is denied, don't show modal
             if (permission === 'denied') {
-                console.log('Notification permission denied');
+                console.log('Notification permission denied for this browser');
                 return;
             }
             
             // If permission is granted but no actual subscription, set it up
             if (permission === 'granted') {
                 if (!hasActualSubscription) {
-                    console.log('Permission granted but no subscription, setting up...');
+                    console.log('Permission granted but no subscription in this browser, setting up...');
                     await setupPushSubscription();
                 } else {
-                    console.log('Permission granted and subscription exists');
+                    console.log('Permission granted and subscription exists in this browser');
                 }
                 return;
             }
@@ -610,29 +661,49 @@
 
         async function setupPushSubscription() {
             try {
-                const registration = await navigator.serviceWorker.register('/service-worker.js');
+                // Register service worker for this browser
+                const registration = await navigator.serviceWorker.register('/service-worker.js', {
+                    scope: '/'
+                });
                 await navigator.serviceWorker.ready;
 
-                const existingSubscription = await registration.pushManager.getSubscription();
-                if (existingSubscription) {
-                    await sendSubscriptionToServer(existingSubscription);
-                    localStorage.setItem(PUSH_ENDPOINT_STORAGE_KEY, existingSubscription.endpoint);
-                    console.log('Push subscription restored');
+                // Check if subscription already exists for this browser
+                let subscription = await registration.pushManager.getSubscription();
+                
+                if (subscription) {
+                    // Subscription exists, verify it's saved on server
+                    await sendSubscriptionToServer(subscription);
+                    localStorage.setItem(PUSH_ENDPOINT_STORAGE_KEY, subscription.endpoint);
+                    console.log('Push subscription restored for this browser:', subscription.endpoint.substring(0, 50) + '...');
                     return;
                 }
 
-                const newSubscription = await registration.pushManager.subscribe({
+                // Create new subscription for this browser
+                console.log('Creating new push subscription for this browser...');
+                subscription = await registration.pushManager.subscribe({
                     userVisibleOnly: true,
                     applicationServerKey: urlBase64ToUint8Array(WEBPUSH_PUBLIC_KEY),
                 });
 
-                await sendSubscriptionToServer(newSubscription);
-                localStorage.setItem(PUSH_ENDPOINT_STORAGE_KEY, newSubscription.endpoint);
-                console.log('Push subscription created');
-                showFlashMessage('Push notifications enabled! You will receive alerts even when the app is closed.', 'success');
+                // Save subscription to server (browser-specific endpoint)
+                await sendSubscriptionToServer(subscription);
+                localStorage.setItem(PUSH_ENDPOINT_STORAGE_KEY, subscription.endpoint);
+                console.log('Push subscription created for this browser:', subscription.endpoint.substring(0, 50) + '...');
+                showFlashMessage('Push notifications enabled for this browser! You will receive alerts even when the app is closed.', 'success');
             } catch (error) {
                 console.error('Web push registration failed:', error);
-                showFlashMessage('Failed to enable push notifications. Please try again.', 'error');
+                let errorMessage = 'Failed to enable push notifications. ';
+                
+                // Provide browser-specific error messages
+                if (error.name === 'NotAllowedError') {
+                    errorMessage += 'Permission was denied. Please allow notifications in your browser settings.';
+                } else if (error.name === 'NotSupportedError') {
+                    errorMessage += 'Your browser does not support push notifications.';
+                } else {
+                    errorMessage += 'Please try again.';
+                }
+                
+                showFlashMessage(errorMessage, 'error');
             }
         }
 
