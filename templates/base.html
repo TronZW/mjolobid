@@ -661,11 +661,32 @@
 
         async function setupPushSubscription() {
             try {
+                // Detect browser for Edge-specific handling
+                const isEdge = navigator.userAgent.includes('Edg/') || navigator.userAgent.includes('Edge/');
+                console.log('Browser detected:', isEdge ? 'Microsoft Edge' : 'Other');
+                
                 // Register service worker for this browser
-                const registration = await navigator.serviceWorker.register('/service-worker.js', {
-                    scope: '/'
-                });
+                // Edge sometimes needs explicit scope
+                let registration;
+                try {
+                    registration = await navigator.serviceWorker.register('/service-worker.js', {
+                        scope: '/'
+                    });
+                    console.log('Service worker registered successfully');
+                } catch (swError) {
+                    console.error('Service worker registration error:', swError);
+                    // Try without explicit scope for Edge compatibility
+                    if (isEdge) {
+                        console.log('Retrying service worker registration without explicit scope for Edge...');
+                        registration = await navigator.serviceWorker.register('/service-worker.js');
+                    } else {
+                        throw swError;
+                    }
+                }
+                
+                // Wait for service worker to be ready
                 await navigator.serviceWorker.ready;
+                console.log('Service worker ready');
 
                 // Check if subscription already exists for this browser
                 let subscription = await registration.pushManager.getSubscription();
@@ -680,10 +701,15 @@
 
                 // Create new subscription for this browser
                 console.log('Creating new push subscription for this browser...');
+                const applicationServerKey = urlBase64ToUint8Array(WEBPUSH_PUBLIC_KEY);
+                console.log('Application server key length:', applicationServerKey.length);
+                
                 subscription = await registration.pushManager.subscribe({
                     userVisibleOnly: true,
-                    applicationServerKey: urlBase64ToUint8Array(WEBPUSH_PUBLIC_KEY),
+                    applicationServerKey: applicationServerKey,
                 });
+
+                console.log('Subscription created successfully:', subscription.endpoint.substring(0, 50) + '...');
 
                 // Save subscription to server (browser-specific endpoint)
                 await sendSubscriptionToServer(subscription);
@@ -692,6 +718,10 @@
                 showFlashMessage('Push notifications enabled for this browser! You will receive alerts even when the app is closed.', 'success');
             } catch (error) {
                 console.error('Web push registration failed:', error);
+                console.error('Error name:', error.name);
+                console.error('Error message:', error.message);
+                console.error('Error stack:', error.stack);
+                
                 let errorMessage = 'Failed to enable push notifications. ';
                 
                 // Provide browser-specific error messages
@@ -699,8 +729,14 @@
                     errorMessage += 'Permission was denied. Please allow notifications in your browser settings.';
                 } else if (error.name === 'NotSupportedError') {
                     errorMessage += 'Your browser does not support push notifications.';
+                } else if (error.name === 'AbortError') {
+                    errorMessage += 'Subscription was aborted. Please try again.';
+                } else if (error.name === 'InvalidStateError') {
+                    errorMessage += 'Invalid subscription state. Please refresh the page and try again.';
+                } else if (error.message && error.message.includes('VAPID')) {
+                    errorMessage += 'VAPID key error. Please contact support.';
                 } else {
-                    errorMessage += 'Please try again.';
+                    errorMessage += `Error: ${error.message || error.name}. Please try again.`;
                 }
                 
                 showFlashMessage(errorMessage, 'error');

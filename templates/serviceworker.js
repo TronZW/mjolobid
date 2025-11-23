@@ -11,7 +11,10 @@ self.addEventListener('activate', (event) => {
 });
 
 self.addEventListener('push', (event) => {
+    console.log('Push event received');
+    
     if (!(self.Notification && self.Notification.permission === 'granted')) {
+        console.log('Notification permission not granted in service worker');
         return;
     }
 
@@ -62,9 +65,11 @@ self.addEventListener('push', (event) => {
                 actions: data.actions || [],
             };
 
+            console.log('Showing notification:', title);
             return self.registration.showNotification(title, options);
         }).catch((error) => {
             console.error('Error in push event handler:', error);
+            console.error('Error details:', error.name, error.message, error.stack);
         })
     );
 });
