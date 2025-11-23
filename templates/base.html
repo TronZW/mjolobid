@@ -556,7 +556,15 @@
                     try {
                         registration = await navigator.serviceWorker.getRegistration('/service-worker.js');
                         if (!registration) {
-                            registration = await navigator.serviceWorker.register('/service-worker.js');
+                            // Try registering with explicit scope first
+                            try {
+                                registration = await navigator.serviceWorker.register('/service-worker.js', {
+                                    scope: '/'
+                                });
+                            } catch (scopeError) {
+                                // If scope fails, try without (for Edge compatibility)
+                                registration = await navigator.serviceWorker.register('/service-worker.js');
+                            }
                         }
                         await registration.update(); // Check for updates
                     } catch (swError) {
@@ -587,6 +595,7 @@
                 }
             } catch (error) {
                 console.error('Error checking subscription status:', error);
+                console.error('Error details:', error.name, error.message);
                 localStorage.removeItem(PUSH_ENDPOINT_STORAGE_KEY);
                 return false;
             }
