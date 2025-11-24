@@ -241,10 +241,27 @@ def send_email_notification(user, notification):
         print(f"Email notification sent successfully to {user_email} for notification: {notification.title}")
         
     except Exception as e:
-        print(f"Failed to send email notification to {user.username}: {e}")
-        import traceback
-        traceback.print_exc()
-        # Don't mark as sent if email failed
+        error_msg = str(e)
+        print(f"Failed to send email notification to {user.username}: {error_msg}")
+        
+        # Provide helpful error messages
+        if 'BadCredentials' in error_msg or 'Authentication failed' in error_msg or '535' in error_msg:
+            print("\n⚠️  Email authentication failed. For Gmail:")
+            print("   1. Enable 2-Factor Authentication on your Google account")
+            print("   2. Generate an 'App Password' at: https://myaccount.google.com/apppasswords")
+            print("   3. Use the App Password (16 characters, no spaces) instead of your regular password")
+            print("   4. Make sure EMAIL_HOST_USER is your full Gmail address (mjolobidapp@gmail.com)")
+            print("   5. Update EMAIL_HOST_PASSWORD in settings.py with the App Password")
+        elif 'Connection refused' in error_msg or 'Connection timed out' in error_msg:
+            print("\n⚠️  Could not connect to email server. Check:")
+            print("   - EMAIL_HOST is correct (smtp.gmail.com for Gmail)")
+            print("   - EMAIL_PORT is correct (587 for TLS)")
+            print("   - Your internet connection")
+        else:
+            import traceback
+            traceback.print_exc()
+        
+        # Don't mark as sent if email failed, but notification is still created in database
 
 
 def send_sms_notification(user, notification):
