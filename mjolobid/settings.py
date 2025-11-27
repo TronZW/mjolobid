@@ -163,6 +163,17 @@ MJOLOBID_SETTINGS = {
 }
 
 # Email configuration
+# Option 1: Mailgun (Recommended for production - better deliverability)
+# Uncomment these lines and comment out Gmail settings below after Mailgun setup
+# EMAIL_BACKEND = config('EMAIL_BACKEND', default='django.core.mail.backends.smtp.EmailBackend')
+# EMAIL_HOST = config('EMAIL_HOST', default='smtp.mailgun.org')
+# EMAIL_PORT = config('EMAIL_PORT', default=587, cast=int)
+# EMAIL_USE_TLS = config('EMAIL_USE_TLS', default=True, cast=bool)
+# EMAIL_HOST_USER = config('EMAIL_HOST_USER', default='postmaster@sandboxXXXXX.mailgun.org')
+# EMAIL_HOST_PASSWORD = config('EMAIL_HOST_PASSWORD', default='your-mailgun-smtp-password')
+# DEFAULT_FROM_EMAIL = config('DEFAULT_FROM_EMAIL', default='MjoloBid <noreply@sandboxXXXXX.mailgun.org>')
+
+# Option 2: Gmail (Current - may go to spam folder)
 EMAIL_BACKEND = config('EMAIL_BACKEND', default='django.core.mail.backends.smtp.EmailBackend')  # Use SMTP for actual email sending
 EMAIL_HOST = config('EMAIL_HOST', default='smtp.gmail.com')
 EMAIL_PORT = config('EMAIL_PORT', default=587, cast=int)
@@ -170,6 +181,7 @@ EMAIL_USE_TLS = config('EMAIL_USE_TLS', default=True, cast=bool)
 EMAIL_HOST_USER = config('EMAIL_HOST_USER', default='mjolobidapp@gmail.com')
 EMAIL_HOST_PASSWORD = config('EMAIL_HOST_PASSWORD', default='uqyyxougzkwwulqr')
 DEFAULT_FROM_EMAIL = config('DEFAULT_FROM_EMAIL', default='MjoloBid <mjolobidapp@gmail.com>')
+
 SERVER_EMAIL = config('SERVER_EMAIL', default='MjoloBid <mjolobidapp@gmail.com>')
 SITE_URL = config('SITE_URL', default='http://localhost:8000')
 
