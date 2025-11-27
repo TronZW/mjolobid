@@ -12,4 +12,5 @@ urlpatterns = [
     path('api/push-subscribe/', views.save_push_subscription, name='push_subscribe'),
     path('api/push-unsubscribe/', views.delete_push_subscription, name='push_unsubscribe'),
     path('api/test-push/', views.test_push_notification, name='test_push'),
+    path('unsubscribe/', views.email_unsubscribe, name='email_unsubscribe'),
 ]

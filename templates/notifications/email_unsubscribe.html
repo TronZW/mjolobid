@@ -1,0 +1,58 @@
+{% extends 'base.html' %}
+
+{% block title %}Unsubscribe from Email Notifications{% endblock %}
+
+{% block content %}
+<div class="max-w-2xl mx-auto mt-8">
+    <div class="bg-white shadow-lg rounded-lg p-8">
+        <div class="text-center mb-6">
+            <i class="fas fa-envelope-open-text text-4xl text-gray-400 mb-4"></i>
+            <h1 class="text-2xl font-bold text-gray-900 mb-2">Unsubscribe from Email Notifications</h1>
+            <p class="text-gray-600">We're sorry to see you go! You can unsubscribe from email notifications below.</p>
+        </div>
+
+        <div class="bg-yellow-50 border border-yellow-200 rounded-lg p-4 mb-6">
+            <div class="flex">
+                <i class="fas fa-exclamation-triangle text-yellow-400 mt-1 mr-3"></i>
+                <div>
+                    <h3 class="text-sm font-medium text-yellow-800 mb-1">Important Notice</h3>
+                    <p class="text-sm text-yellow-700">
+                        Unsubscribing will disable all email notifications including:
+                    </p>
+                    <ul class="text-sm text-yellow-700 mt-2 ml-4 list-disc">
+                        <li>New message alerts</li>
+                        <li>Bid acceptance notifications</li>
+                        <li>Offer updates</li>
+                        <li>Account security alerts</li>
+                    </ul>
+                    <p class="text-sm text-yellow-700 mt-2">
+                        You can re-enable them anytime in your notification settings.
+                    </p>
+                </div>
+            </div>
+        </div>
+
+        <form method="post" class="space-y-6">
+            {% csrf_token %}
+            
+            <div class="flex space-x-4">
+                <button type="submit" class="flex-1 bg-red-600 text-white px-6 py-3 rounded-lg font-semibold hover:bg-red-700 transition-colors">
+                    <i class="fas fa-times-circle mr-2"></i>
+                    Yes, Unsubscribe Me
+                </button>
+                
+                <a href="{% url 'notifications:notification_settings' %}" class="flex-1 bg-gray-100 text-gray-700 px-6 py-3 rounded-lg font-semibold hover:bg-gray-200 transition-colors text-center">
+                    <i class="fas fa-arrow-left mr-2"></i>
+                    Keep My Notifications
+                </a>
+            </div>
+        </form>
+
+        <div class="mt-6 text-center">
+            <p class="text-sm text-gray-500">
+                Need help? <a href="mailto:support@mjolobid.com" class="text-primary hover:underline">Contact our support team</a>
+            </p>
+        </div>
+    </div>
+</div>
+{% endblock %}

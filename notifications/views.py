@@ -213,6 +213,21 @@ def test_push_notification(request):
         }, status=500)
 
 
+@login_required
+def email_unsubscribe(request):
+    """Handle email unsubscribe requests"""
+    if request.method == 'POST':
+        # Disable email notifications for the user
+        user_profile = request.user.userprofile
+        user_profile.email_notifications = False
+        user_profile.save()
+        
+        messages.success(request, 'You have been unsubscribed from email notifications.')
+        return redirect('notifications:notification_settings')
+    
+    return render(request, 'notifications/email_unsubscribe.html')
+
+
 # Utility functions for sending notifications
 def send_bid_accepted_notification(bid):
     """Send notification when bid is accepted"""

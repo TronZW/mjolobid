@@ -171,6 +171,7 @@ def send_email_notification(user, notification):
     from django.core.mail import send_mail, EmailMultiAlternatives
     from django.template.loader import render_to_string
     from django.conf import settings as django_settings
+    from django.utils import timezone
     
     try:
         # Get user's email
@@ -183,26 +184,27 @@ def send_email_notification(user, notification):
         template_name = 'emails/notification.html'
         subject_prefix = 'MjoloBid Notification'
         
-        # Customize subject and template based on notification type
-        if notification.notification_type == 'NEW_MESSAGE':
-            # Extract sender name from message
-            message_text = notification.message
-            if ' sent you a message' in message_text:
-                sender_name = message_text.split(' sent you a message')[0]
-                subject = f'{subject_prefix}: New Message from {sender_name}'
-            elif ' sent you a message in' in message_text:
-                sender_name = message_text.split(' sent you a message in')[0]
-                subject = f'{subject_prefix}: New Message from {sender_name}'
-            else:
-                subject = f'{subject_prefix}: New Message'
-        elif notification.notification_type == 'OFFER_BID':
-            subject = f'{subject_prefix}: New Bid on Your Offer'
-        elif notification.notification_type == 'OFFER_ACCEPTED':
-            subject = f'{subject_prefix}: Your Bid Was Selected!'
-        elif notification.notification_type == 'BID_ACCEPTED':
-            subject = f'{subject_prefix}: Your Bid Was Accepted!'
-        else:
-            subject = f'{subject_prefix}: {notification.title}'
+                # Customize subject and template based on notification type
+                # Use professional, non-spammy language
+                if notification.notification_type == 'NEW_MESSAGE':
+                    # Extract sender name from message
+                    message_text = notification.message
+                    if ' sent you a message' in message_text:
+                        sender_name = message_text.split(' sent you a message')[0]
+                        subject = f'New message from {sender_name} - MjoloBid'
+                    elif ' sent you a message in' in message_text:
+                        sender_name = message_text.split(' sent you a message in')[0]
+                        subject = f'New message from {sender_name} - MjoloBid'
+                    else:
+                        subject = f'New message received - MjoloBid'
+                elif notification.notification_type == 'OFFER_BID':
+                    subject = f'New bid received on your offer - MjoloBid'
+                elif notification.notification_type == 'OFFER_ACCEPTED':
+                    subject = f'Your bid has been selected - MjoloBid'
+                elif notification.notification_type == 'BID_ACCEPTED':
+                    subject = f'Your bid has been accepted - MjoloBid'
+                else:
+                    subject = f'{notification.title} - MjoloBid'
         
         # Build notification URL
         notification_url = notification_payload_url(notification)
@@ -226,12 +228,22 @@ def send_email_notification(user, notification):
         html_message = render_to_string('emails/notification.html', context)
         text_message = render_to_string('emails/notification.txt', context)
         
-        # Send email
+        # Send email with improved headers for better deliverability
         email = EmailMultiAlternatives(
             subject=subject,
             body=text_message,
             from_email=getattr(django_settings, 'DEFAULT_FROM_EMAIL', 'noreply@mjolobid.com'),
             to=[user_email],
+            headers={
+                'X-Mailer': 'MjoloBid Notification System',
+                'X-Priority': '3',  # Normal priority
+                'X-MSMail-Priority': 'Normal',
+                'Importance': 'Normal',
+                'List-Unsubscribe': f'<{base_url}/notifications/unsubscribe/>',
+                'List-Unsubscribe-Post': 'List-Unsubscribe=One-Click',
+                'Message-ID': f'<notification-{notification.id}-{int(timezone.now().timestamp())}@mjolobid.com>',
+                'Reply-To': getattr(django_settings, 'DEFAULT_FROM_EMAIL', 'noreply@mjolobid.com'),
+            }
         )
         email.attach_alternative(html_message, "text/html")
         email.send(fail_silently=False)

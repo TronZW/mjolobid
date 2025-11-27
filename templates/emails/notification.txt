@@ -7,10 +7,13 @@ View Details: {{ notification_url }}
 {% endif %}
 
 ---
-This is an automated notification from MjoloBid.
-You're receiving this because you have email notifications enabled.
+This is an automated notification from MjoloBid, your social event marketplace.
+You're receiving this because you have email notifications enabled in your account settings.
 
-Manage Notification Settings: {{ site_url }}/notifications/settings/
+Update notification preferences: {{ site_url }}/notifications/settings/
+Unsubscribe from emails: {{ site_url }}/notifications/unsubscribe/
 
+MjoloBid - Social Event Marketplace
+This email was sent to {{ user.email }}
 © 2024 MjoloBid. All rights reserved.
 
