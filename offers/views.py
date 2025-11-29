@@ -65,6 +65,32 @@ def create_offer(request):
                         offer.event_category = category
             
             offer.save()
+            
+            # Send email notification to all male users about new offer
+            try:
+                from notifications.utils import send_notification
+                from accounts.models import User
+                
+                # Get all active male users
+                male_users = User.objects.filter(
+                    user_type='M',
+                    is_active=True,
+                    email__isnull=False
+                ).exclude(email='')
+                
+                # Send notification to each male user
+                for male_user in male_users:
+                    send_notification(
+                        user=male_user,
+                        title='New Offer Available!',
+                        message=f'{request.user.username} created a new offer: {offer.title} - Starting at ${offer.minimum_bid}',
+                        notification_type='OFFER_BID',
+                        related_object_type='offer',
+                        related_object_id=offer.id
+                    )
+            except Exception as e:
+                print(f"Error sending new offer notifications: {str(e)}")
+            
             messages.success(request, 'Offer created successfully!')
             return redirect('offers:my_offers')
     else:

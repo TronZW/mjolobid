@@ -602,6 +602,31 @@ def post_bid(request):
                     is_primary=(i == 0)
                 )
             
+            # Send email notification to all female users about new bid
+            try:
+                from notifications.utils import send_notification
+                from accounts.models import User
+                
+                # Get all active female users
+                female_users = User.objects.filter(
+                    user_type='F',
+                    is_active=True,
+                    email__isnull=False
+                ).exclude(email='')
+                
+                # Send notification to each female user
+                for female_user in female_users:
+                    send_notification(
+                        user=female_user,
+                        title='New Bid Available!',
+                        message=f'{request.user.username} posted a new bid: {bid.title} - ${bid.bid_amount}',
+                        notification_type='OFFER_BID',
+                        related_object_type='bid',
+                        related_object_id=bid.id
+                    )
+            except Exception as e:
+                print(f"Error sending new bid notifications: {str(e)}")
+            
             messages.success(request, 'Bid posted successfully!')
             return redirect('bids:my_bids')
     else:

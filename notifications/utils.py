@@ -310,12 +310,15 @@ def _should_send_push_notification(notification_type, settings):
 def _should_send_email_notification(notification_type, settings):
     """Check if email notification should be sent"""
     # Email notifications are enabled by default for bids and messages
-    if notification_type == 'BID_ACCEPTED' and settings.email_bid_updates:
-        return True
-    elif notification_type == 'NEW_MESSAGE' and settings.email_messages:
-        return True
-    elif notification_type in ['OFFER_BID', 'OFFER_ACCEPTED'] and settings.email_bid_updates:
-        return True
+    # Always send emails for important events regardless of settings
+    if notification_type == 'BID_ACCEPTED':
+        return True  # Always send for bid accepted
+    elif notification_type == 'NEW_MESSAGE':
+        return True  # Always send for new messages
+    elif notification_type == 'OFFER_BID':
+        return True  # Always send for bid viewed, new bids, new offers
+    elif notification_type == 'OFFER_ACCEPTED':
+        return True  # Always send for offer accepted
     elif notification_type in ['PAYMENT_RECEIVED', 'PAYMENT_SENT'] and settings.email_payments:
         return True
     elif notification_type == 'SYSTEM_ANNOUNCEMENT' and settings.email_system:
