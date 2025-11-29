@@ -155,15 +155,27 @@ def send_web_push_notification(user, notification):
 
 def notification_payload_url(notification):
     """Determine a reasonable URL to open when a notification is clicked."""
+    from django.conf import settings as django_settings
+    
+    base_url = getattr(django_settings, 'SITE_URL', 'http://localhost:8000')
+    if not base_url.startswith('http'):
+        base_url = f'http://{base_url}'
+    
+    # Build the target URL
     if notification.related_object_type == 'conversation' and notification.related_object_id:
-        return f"/messaging/conversation/{notification.related_object_id}/"
-    if notification.related_object_type == 'bid' and notification.related_object_id:
-        return f"/bids/bid/{notification.related_object_id}/"
-    if notification.related_object_type == 'offer' and notification.related_object_id:
-        return f"/offers/offer/{notification.related_object_id}/"
-    if notification.related_object_type == 'transaction' and notification.related_object_id:
-        return f"/payments/wallet/"
-    return "/notifications/"
+        target_path = f"/messaging/conversation/{notification.related_object_id}/"
+    elif notification.related_object_type == 'bid' and notification.related_object_id:
+        target_path = f"/bids/bid/{notification.related_object_id}/"
+    elif notification.related_object_type == 'offer' and notification.related_object_id:
+        target_path = f"/offers/offer/{notification.related_object_id}/"
+    elif notification.related_object_type == 'transaction' and notification.related_object_id:
+        target_path = f"/payments/wallet/"
+    else:
+        target_path = "/notifications/"
+    
+    # Return URL with login redirect - if user is not logged in, they'll be redirected to login first
+    # Django's @login_required will handle the redirect automatically
+    return f"{base_url}{target_path}"
 
 
 def send_email_notification(user, notification):
@@ -206,12 +218,8 @@ def send_email_notification(user, notification):
         else:
             subject = f'{notification.title} - MjoloBid'
         
-        # Build notification URL
-        notification_url = notification_payload_url(notification)
-        base_url = getattr(django_settings, 'SITE_URL', 'http://localhost:8000')
-        if not base_url.startswith('http'):
-            base_url = f'http://{base_url}'
-        full_url = f"{base_url}{notification_url}"
+        # Build notification URL (already includes full URL with domain)
+        full_url = notification_payload_url(notification)
         
         # Prepare email context
         context = {

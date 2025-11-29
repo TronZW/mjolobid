@@ -12,4 +12,11 @@ urlpatterns = [
     path('transaction-history/', views.transaction_history, name='transaction_history'),
     path('process-payment/', views.process_payment, name='process_payment'),
     path('escrow/<int:bid_id>/', views.escrow_details, name='escrow_details'),
+    # Payment gateway webhooks
+    path('webhook/ecocash/', views.ecocash_webhook, name='ecocash_webhook'),
+    path('webhook/paynow/', views.paynow_webhook, name='paynow_webhook'),
+    path('webhook/pesepay/', views.pesepay_webhook, name='pesepay_webhook'),
+    # Payment return/cancel URLs
+    path('return/', views.payment_return, name='payment_return'),
+    path('cancel/', views.payment_cancel, name='payment_cancel'),
 ]

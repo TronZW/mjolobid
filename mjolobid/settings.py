@@ -175,6 +175,29 @@ DEFAULT_FROM_EMAIL = config('DEFAULT_FROM_EMAIL', default='MjoloBid <mjolobidapp
 SERVER_EMAIL = DEFAULT_FROM_EMAIL
 SITE_URL = config('SITE_URL', default='http://localhost:8000')
 
+# Payment Gateway Settings
+# EcoCash Configuration
+ECOCASH_CLIENT_ID = config('ECOCASH_CLIENT_ID', default='')
+ECOCASH_CLIENT_SECRET = config('ECOCASH_CLIENT_SECRET', default='')
+ECOCASH_MERCHANT_ID = config('ECOCASH_MERCHANT_ID', default='')
+ECOCASH_API_URL = config('ECOCASH_API_URL', default='https://api.ecocash.co.zw')
+ECOCASH_SANDBOX = config('ECOCASH_SANDBOX', default=False, cast=bool)
+
+# Paynow Configuration
+PAYNOW_INTEGRATION_ID = config('PAYNOW_INTEGRATION_ID', default='')
+PAYNOW_INTEGRATION_KEY = config('PAYNOW_INTEGRATION_KEY', default='')
+PAYNOW_API_URL = config('PAYNOW_API_URL', default='https://www.paynow.co.zw/Interface/API')
+PAYNOW_SANDBOX = config('PAYNOW_SANDBOX', default=False, cast=bool)
+
+# Pesepay Configuration
+PESEPAY_API_KEY = config('PESEPAY_API_KEY', default='')
+PESEPAY_SECRET_KEY = config('PESEPAY_SECRET_KEY', default='')
+PESEPAY_API_URL = config('PESEPAY_API_URL', default='https://api.pesepay.com')
+PESEPAY_SANDBOX = config('PESEPAY_SANDBOX', default=False, cast=bool)
+
+# Default payment gateway
+DEFAULT_PAYMENT_GATEWAY = config('DEFAULT_PAYMENT_GATEWAY', default='ECOCASH')
+
 # Web push (VAPID) settings
 WEBPUSH_VAPID_PUBLIC_KEY = config('WEBPUSH_VAPID_PUBLIC_KEY', default='')
 WEBPUSH_VAPID_PRIVATE_KEY = config('WEBPUSH_VAPID_PRIVATE_KEY', default='')

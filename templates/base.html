@@ -36,9 +36,16 @@
                 </div>
                 <!-- Mobile menu button -->
                 <div class="flex items-center md:hidden">
-                    <button id="mobile-menu-button" type="button" class="inline-flex items-center justify-center p-3 rounded-md text-gray-700 hover:text-primary hover:bg-gray-100 focus:outline-none focus:ring-2 focus:ring-inset focus:ring-primary touch-manipulation" aria-controls="mobile-menu" aria-expanded="false" style="min-width: 44px; min-height: 44px; cursor: pointer; -webkit-tap-highlight-color: transparent; user-select: none;">
+                    <button 
+                        id="mobile-menu-button" 
+                        type="button" 
+                        class="mobile-menu-btn inline-flex items-center justify-center p-3 rounded-md text-gray-700 hover:text-primary hover:bg-gray-100 focus:outline-none focus:ring-2 focus:ring-inset focus:ring-primary" 
+                        aria-controls="mobile-menu" 
+                        aria-expanded="false"
+                        onclick="toggleMobileMenu()"
+                    >
                         <span class="sr-only">Open main menu</span>
-                        <i class="fas fa-bars text-xl"></i>
+                        <i id="mobile-menu-icon" class="fas fa-bars text-xl"></i>
                     </button>
                 </div>
 
@@ -109,7 +116,7 @@
     </nav>
 
     <!-- Mobile dropdown menu -->
-    <div id="mobile-menu" class="md:hidden hidden bg-white shadow-lg border-t border-gray-100" style="touch-action: manipulation;">
+    <div id="mobile-menu" class="mobile-menu md:hidden hidden bg-white shadow-lg border-t border-gray-100">
         <div class="px-4 pt-2 pb-3 space-y-1">
             {% if user.is_authenticated %}
                 {% if user.user_type == 'M' %}
@@ -461,47 +468,88 @@
                 }
             }, 3000); // Check every 3 seconds
 
-        // Initialize
-        document.addEventListener('DOMContentLoaded', function() {
-            // Mobile menu toggle - Fixed for iPhone Safari
+        // Mobile menu toggle function - Global for onclick handler
+        function toggleMobileMenu() {
             const btn = document.getElementById('mobile-menu-button');
             const menu = document.getElementById('mobile-menu');
+            const icon = document.getElementById('mobile-menu-icon');
+            
+            if (!btn || !menu || !icon) {
+                console.error('Mobile menu elements not found');
+                return;
+            }
+            
+            // Toggle menu visibility
+            const isHidden = menu.classList.contains('hidden');
+            
+            if (isHidden) {
+                // Show menu
+                menu.classList.remove('hidden');
+                menu.style.display = 'block';
+                btn.setAttribute('aria-expanded', 'true');
+                icon.className = 'fas fa-times text-xl';
+            } else {
+                // Hide menu
+                menu.classList.add('hidden');
+                menu.style.display = 'none';
+                btn.setAttribute('aria-expanded', 'false');
+                icon.className = 'fas fa-bars text-xl';
+            }
+        }
+        
+        // Initialize
+        document.addEventListener('DOMContentLoaded', function() {
+            const btn = document.getElementById('mobile-menu-button');
+            const menu = document.getElementById('mobile-menu');
+            
             if (btn && menu) {
-                // Function to toggle menu
-                function toggleMenu(e) {
-                    if (e) {
-                        e.preventDefault();
-                        e.stopPropagation();
-                    }
-                    const isHidden = menu.classList.contains('hidden');
-                    menu.classList.toggle('hidden');
-                    btn.setAttribute('aria-expanded', String(!isHidden));
-                    // swap icon (bars <-> times)
-                    const icon = btn.querySelector('i');
-                    if (icon) {
-                        if (isHidden) {
-                            icon.className = 'fas fa-times text-xl';
-                        } else {
-                            icon.className = 'fas fa-bars text-xl';
-                        }
-                    }
-                }
+                // Ensure menu starts hidden
+                menu.classList.add('hidden');
+                menu.style.display = 'none';
                 
-                // Add both click and touchstart for better mobile support
-                btn.addEventListener('click', toggleMenu, { passive: false });
-                btn.addEventListener('touchstart', function(e) {
-                    // Prevent double-firing on devices that fire both events
+                // Add click event listener (backup to onclick)
+                btn.addEventListener('click', function(e) {
                     e.preventDefault();
-                    toggleMenu(e);
-                }, { passive: false });
+                    e.stopPropagation();
+                    toggleMobileMenu();
+                }, false);
                 
-                // Close menu when clicking outside (optional, but good UX)
+                // Add touchstart for iOS Safari
+                btn.addEventListener('touchend', function(e) {
+                    e.preventDefault();
+                    e.stopPropagation();
+                    toggleMobileMenu();
+                }, false);
+                
+                // Close menu when clicking outside
                 document.addEventListener('click', function(e) {
-                    if (!btn.contains(e.target) && !menu.contains(e.target)) {
+                    if (btn && menu && !btn.contains(e.target) && !menu.contains(e.target)) {
                         if (!menu.classList.contains('hidden')) {
-                            toggleMenu();
+                            menu.classList.add('hidden');
+                            menu.style.display = 'none';
+                            btn.setAttribute('aria-expanded', 'false');
+                            const icon = document.getElementById('mobile-menu-icon');
+                            if (icon) {
+                                icon.className = 'fas fa-bars text-xl';
+                            }
                         }
                     }
+                });
+                
+                // Close menu when clicking on menu links
+                const menuLinks = menu.querySelectorAll('a');
+                menuLinks.forEach(function(link) {
+                    link.addEventListener('click', function() {
+                        setTimeout(function() {
+                            menu.classList.add('hidden');
+                            menu.style.display = 'none';
+                            btn.setAttribute('aria-expanded', 'false');
+                            const icon = document.getElementById('mobile-menu-icon');
+                            if (icon) {
+                                icon.className = 'fas fa-bars text-xl';
+                            }
+                        }, 100);
+                    });
                 });
             }
 
@@ -991,30 +1039,69 @@
     </script>
 
     <style>
-        /* Fix for iPhone Safari navbar toggle */
-        #mobile-menu-button {
-            -webkit-tap-highlight-color: transparent;
+        /* Fix for iPhone Safari navbar toggle - Enhanced */
+        .mobile-menu-btn {
+            -webkit-tap-highlight-color: rgba(139, 92, 246, 0.3);
             -webkit-touch-callout: none;
             touch-action: manipulation;
             user-select: none;
             -webkit-user-select: none;
             cursor: pointer;
+            position: relative;
+            z-index: 1000;
+            background-color: transparent;
+            border: none;
+            outline: none;
+        }
+        
+        .mobile-menu-btn:active {
+            background-color: rgba(139, 92, 246, 0.1);
+            transform: scale(0.95);
+        }
+        
+        /* Mobile menu styling */
+        .mobile-menu {
+            position: relative;
+            z-index: 999;
+            width: 100%;
+            max-height: calc(100vh - 64px);
+            overflow-y: auto;
+            -webkit-overflow-scrolling: touch;
+        }
+        
+        .mobile-menu.hidden {
+            display: none !important;
+        }
+        
+        .mobile-menu:not(.hidden) {
+            display: block !important;
         }
         
         /* Ensure menu items are tappable on iOS */
-        #mobile-menu a {
+        .mobile-menu a {
             -webkit-tap-highlight-color: rgba(139, 92, 246, 0.2);
             touch-action: manipulation;
             min-height: 44px;
             display: flex;
             align-items: center;
+            -webkit-user-select: none;
+            user-select: none;
         }
         
         /* Prevent text selection on tap */
-        #mobile-menu {
+        .mobile-menu {
             -webkit-touch-callout: none;
             -webkit-user-select: none;
             user-select: none;
+        }
+        
+        /* Ensure menu is visible when not hidden */
+        @media (max-width: 768px) {
+            .mobile-menu:not(.hidden) {
+                display: block !important;
+                visibility: visible !important;
+                opacity: 1 !important;
+            }
         }
     </style>
 

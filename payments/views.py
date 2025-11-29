@@ -1,13 +1,15 @@
 from django.shortcuts import render, redirect, get_object_or_404
 from django.contrib.auth.decorators import login_required
 from django.contrib import messages
-from django.http import JsonResponse
+from django.http import JsonResponse, HttpResponse
 from django.views.decorators.csrf import csrf_exempt
+from django.views.decorators.http import require_http_methods
 from django.utils import timezone
 from django.conf import settings
 import json
 from .models import PaymentMethod, Transaction, Wallet, EscrowTransaction, Subscription, WithdrawalRequest
 from .forms import PaymentMethodForm, WithdrawalRequestForm
+from .services import PaymentService
 
 
 @login_required
@@ -73,29 +75,28 @@ def subscription(request):
         return redirect('bids:browse_bids')
     
     if request.method == 'POST':
-        # Process subscription payment
+        # TEMPORARY: Bypass payment logic - just grant access
+        # TODO: Implement payment gateway integration later
         amount = settings.MJOLOBID_SETTINGS['WOMEN_SUBSCRIPTION_FEE']
         
-        # Create transaction
+        # Create transaction (for record keeping)
         transaction = Transaction.objects.create(
             user=request.user,
             transaction_type='SUBSCRIPTION',
             amount=amount,
             description='Women Access Subscription',
-            status='PENDING'
+            status='COMPLETED'  # Mark as completed for now
         )
-        
-        # For demo purposes, mark as completed immediately
-        transaction.status = 'COMPLETED'
         transaction.processed_at = timezone.now()
         transaction.save()
         
-        # Create subscription
+        # Create and activate subscription immediately
         subscription = Subscription.objects.create(
             user=request.user,
             subscription_type='WOMEN_ACCESS',
             amount=amount,
-            payment_transaction=transaction
+            payment_transaction=transaction,
+            is_active=True  # Activate immediately
         )
         
         # Update user subscription status
@@ -106,7 +107,11 @@ def subscription(request):
         messages.success(request, 'Subscription activated successfully!')
         return redirect('bids:browse_bids')
     
-    return render(request, 'payments/subscription.html')
+    context = {
+        'subscription_fee': settings.MJOLOBID_SETTINGS['WOMEN_SUBSCRIPTION_FEE'],
+    }
+    
+    return render(request, 'payments/subscription.html', context)
 
 
 @login_required
@@ -287,3 +292,117 @@ def escrow_details(request, bid_id):
     }
     
     return render(request, 'payments/escrow_details.html', context)
+
+
+@csrf_exempt
+@require_http_methods(["POST"])
+def ecocash_webhook(request):
+    """Handle EcoCash webhook callback"""
+    try:
+        data = json.loads(request.body) if request.body else request.POST.dict()
+        result = PaymentService.handle_webhook('ECOCASH', data)
+        
+        if result.get('success'):
+            return HttpResponse('OK', status=200)
+        else:
+            return HttpResponse(result.get('error', 'Error'), status=400)
+    except Exception as e:
+        return HttpResponse(f'Error: {str(e)}', status=500)
+
+
+@csrf_exempt
+@require_http_methods(["POST"])
+def paynow_webhook(request):
+    """Handle Paynow webhook callback"""
+    try:
+        # Paynow sends data as form-encoded
+        data = request.POST.dict()
+        result = PaymentService.handle_webhook('PAYNOW', data)
+        
+        if result.get('success'):
+            return HttpResponse('OK', status=200)
+        else:
+            return HttpResponse(result.get('error', 'Error'), status=400)
+    except Exception as e:
+        return HttpResponse(f'Error: {str(e)}', status=500)
+
+
+@csrf_exempt
+@require_http_methods(["POST"])
+def pesepay_webhook(request):
+    """Handle Pesepay webhook callback"""
+    try:
+        data = json.loads(request.body) if request.body else request.POST.dict()
+        result = PaymentService.handle_webhook('PESEPAY', data)
+        
+        if result.get('success'):
+            return HttpResponse('OK', status=200)
+        else:
+            return HttpResponse(result.get('error', 'Error'), status=400)
+    except Exception as e:
+        return HttpResponse(f'Error: {str(e)}', status=500)
+
+
+@login_required
+def payment_return(request):
+    """Handle payment return/callback"""
+    transaction_id = request.GET.get('txn')
+    
+    if transaction_id:
+        try:
+            transaction = Transaction.objects.get(
+                transaction_id=transaction_id,
+                user=request.user
+            )
+            
+            # Verify payment status
+            gateway_name = 'ECOCASH'  # Default, could be determined from transaction
+            if transaction.gateway_response:
+                # Try to determine gateway from response
+                if 'paynow' in str(transaction.gateway_response).lower():
+                    gateway_name = 'PAYNOW'
+                elif 'pesepay' in str(transaction.gateway_response).lower():
+                    gateway_name = 'PESEPAY'
+            
+            verification = PaymentService.verify_payment(transaction, gateway_name)
+            
+            if transaction.status == 'COMPLETED':
+                messages.success(request, 'Payment successful! Your subscription has been activated.')
+                
+                # Redirect based on transaction type
+                if transaction.transaction_type == 'SUBSCRIPTION':
+                    return redirect('bids:browse_bids')
+                elif transaction.transaction_type == 'PREMIUM_UPGRADE':
+                    return redirect('accounts:profile')
+                else:
+                    return redirect('payments:wallet')
+            elif transaction.status == 'PROCESSING':
+                messages.info(request, 'Payment is being processed. Please wait a moment and refresh.')
+            else:
+                messages.error(request, 'Payment failed or is still pending. Please try again.')
+        except Transaction.DoesNotExist:
+            messages.error(request, 'Transaction not found.')
+    
+    return redirect('payments:wallet')
+
+
+@login_required
+def payment_cancel(request):
+    """Handle payment cancellation"""
+    transaction_id = request.GET.get('txn')
+    
+    if transaction_id:
+        try:
+            transaction = Transaction.objects.get(
+                transaction_id=transaction_id,
+                user=request.user
+            )
+            
+            if transaction.status == 'PENDING':
+                transaction.status = 'CANCELLED'
+                transaction.save()
+                messages.info(request, 'Payment was cancelled.')
+        except Transaction.DoesNotExist:
+            pass
+    
+    return redirect('payments:wallet')
