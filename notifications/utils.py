@@ -40,8 +40,13 @@ def send_notification(user, title, message, notification_type, related_object_ty
     
     # Send email notification first (most reliable method)
     # Email notifications are enabled by default for bids and messages
-    if _should_send_email_notification(notification_type, settings):
+    should_send = _should_send_email_notification(notification_type, settings)
+    print(f"DEBUG: Notification type: {notification_type}, Should send email: {should_send}")
+    if should_send:
+        print(f"DEBUG: Attempting to send email notification to {user.username} ({user.email})")
         send_email_notification(user, notification)
+    else:
+        print(f"DEBUG: Email notification skipped for {notification_type}")
     
     # Send real-time notification via WebSocket and Push (optional, less reliable)
     if _should_send_push_notification(notification_type, settings):
@@ -185,12 +190,16 @@ def send_email_notification(user, notification):
     from django.conf import settings as django_settings
     from django.utils import timezone
     
+    print(f"DEBUG: send_email_notification called for user {user.username}, notification type: {notification.notification_type}")
+    
     try:
         # Get user's email
         user_email = user.email
         if not user_email:
             print(f"Cannot send email notification: User {user.username} has no email address")
             return
+        
+        print(f"DEBUG: User email found: {user_email}, attempting to send email...")
         
         # Determine email template based on notification type
         template_name = 'emails/notification.html'
@@ -220,6 +229,9 @@ def send_email_notification(user, notification):
         
         # Build notification URL (already includes full URL with domain)
         full_url = notification_payload_url(notification)
+        base_url = getattr(django_settings, 'SITE_URL', 'http://localhost:8000')
+        if not base_url.startswith('http'):
+            base_url = f'http://{base_url}'
         
         # Prepare email context
         context = {
