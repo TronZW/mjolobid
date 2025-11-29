@@ -184,27 +184,27 @@ def send_email_notification(user, notification):
         template_name = 'emails/notification.html'
         subject_prefix = 'MjoloBid Notification'
         
-                # Customize subject and template based on notification type
-                # Use professional, non-spammy language
-                if notification.notification_type == 'NEW_MESSAGE':
-                    # Extract sender name from message
-                    message_text = notification.message
-                    if ' sent you a message' in message_text:
-                        sender_name = message_text.split(' sent you a message')[0]
-                        subject = f'New message from {sender_name} - MjoloBid'
-                    elif ' sent you a message in' in message_text:
-                        sender_name = message_text.split(' sent you a message in')[0]
-                        subject = f'New message from {sender_name} - MjoloBid'
-                    else:
-                        subject = f'New message received - MjoloBid'
-                elif notification.notification_type == 'OFFER_BID':
-                    subject = f'New bid received on your offer - MjoloBid'
-                elif notification.notification_type == 'OFFER_ACCEPTED':
-                    subject = f'Your bid has been selected - MjoloBid'
-                elif notification.notification_type == 'BID_ACCEPTED':
-                    subject = f'Your bid has been accepted - MjoloBid'
-                else:
-                    subject = f'{notification.title} - MjoloBid'
+        # Customize subject and template based on notification type
+        # Use professional, non-spammy language
+        if notification.notification_type == 'NEW_MESSAGE':
+            # Extract sender name from message
+            message_text = notification.message
+            if ' sent you a message' in message_text:
+                sender_name = message_text.split(' sent you a message')[0]
+                subject = f'New message from {sender_name} - MjoloBid'
+            elif ' sent you a message in' in message_text:
+                sender_name = message_text.split(' sent you a message in')[0]
+                subject = f'New message from {sender_name} - MjoloBid'
+            else:
+                subject = f'New message received - MjoloBid'
+        elif notification.notification_type == 'OFFER_BID':
+            subject = f'New bid received on your offer - MjoloBid'
+        elif notification.notification_type == 'OFFER_ACCEPTED':
+            subject = f'Your bid has been selected - MjoloBid'
+        elif notification.notification_type == 'BID_ACCEPTED':
+            subject = f'Your bid has been accepted - MjoloBid'
+        else:
+            subject = f'{notification.title} - MjoloBid'
         
         # Build notification URL
         notification_url = notification_payload_url(notification)
