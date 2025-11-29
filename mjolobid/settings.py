@@ -162,27 +162,17 @@ MJOLOBID_SETTINGS = {
     'MAX_BID_AMOUNT': 500.00,  # Maximum bid amount
 }
 
-# Email configuration
-# Option 1: Mailgun (Recommended for production - better deliverability)
-# Uncomment these lines and comment out Gmail settings below after Mailgun setup
-# EMAIL_BACKEND = config('EMAIL_BACKEND', default='django.core.mail.backends.smtp.EmailBackend')
-# EMAIL_HOST = config('EMAIL_HOST', default='smtp.mailgun.org')
-# EMAIL_PORT = config('EMAIL_PORT', default=587, cast=int)
-# EMAIL_USE_TLS = config('EMAIL_USE_TLS', default=True, cast=bool)
-# EMAIL_HOST_USER = config('EMAIL_HOST_USER', default='postmaster@sandboxXXXXX.mailgun.org')
-# EMAIL_HOST_PASSWORD = config('EMAIL_HOST_PASSWORD', default='your-mailgun-smtp-password')
-# DEFAULT_FROM_EMAIL = config('DEFAULT_FROM_EMAIL', default='MjoloBid <noreply@sandboxXXXXX.mailgun.org>')
-
-# Option 2: Gmail (Current - may go to spam folder)
-EMAIL_BACKEND = config('EMAIL_BACKEND', default='django.core.mail.backends.smtp.EmailBackend')  # Use SMTP for actual email sending
-EMAIL_HOST = config('EMAIL_HOST', default='smtp.gmail.com')
-EMAIL_PORT = config('EMAIL_PORT', default=587, cast=int)
-EMAIL_USE_TLS = config('EMAIL_USE_TLS', default=True, cast=bool)
-EMAIL_HOST_USER = config('EMAIL_HOST_USER', default='mjolobidapp@gmail.com')
-EMAIL_HOST_PASSWORD = config('EMAIL_HOST_PASSWORD', default='uqyyxougzkwwulqr')
+# Email configuration - SendGrid SMTP (recommended)
+# NOTE: Put your actual API key in the SENDGRID_API_KEY environment variable (both locally and on Render).
+EMAIL_BACKEND = 'django.core.mail.backends.smtp.EmailBackend'
+EMAIL_HOST = 'smtp.sendgrid.net'
+EMAIL_PORT = 587
+EMAIL_USE_TLS = True
+EMAIL_HOST_USER = 'apikey'  # This literal string is required by SendGrid
+EMAIL_HOST_PASSWORD = config('SENDGRID_API_KEY', default='')
 DEFAULT_FROM_EMAIL = config('DEFAULT_FROM_EMAIL', default='MjoloBid <mjolobidapp@gmail.com>')
 
-SERVER_EMAIL = config('SERVER_EMAIL', default='MjoloBid <mjolobidapp@gmail.com>')
+SERVER_EMAIL = DEFAULT_FROM_EMAIL
 SITE_URL = config('SITE_URL', default='http://localhost:8000')
 
 # Web push (VAPID) settings

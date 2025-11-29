@@ -153,8 +153,23 @@ def bid_detail(request, bid_id):
         messages_list = BidMessage.objects.filter(bid=bid).order_by('created_at')
     
     # Track view if user is female and not the bid owner
+    # Also notify the bid owner when someone views their bid
     if request.user.user_type == 'F' and request.user != bid.user:
-        BidView.objects.get_or_create(bid=bid, viewer=request.user)
+        bid_view, created = BidView.objects.get_or_create(bid=bid, viewer=request.user)
+        if created:
+            # Only notify on first view per user/bid
+            try:
+                from notifications.utils import send_notification
+                send_notification(
+                    user=bid.user,
+                    title='Your bid was viewed',
+                    message=f'{request.user.username} viewed your bid: {bid.title}',
+                    notification_type='OFFER_BID',
+                    related_object_type='bid',
+                    related_object_id=bid.id
+                )
+            except ImportError:
+                pass
     
     # Get reviews
     reviews = BidReview.objects.filter(bid=bid).order_by('-created_at')
@@ -336,15 +351,19 @@ def accept_bid(request, bid_id):
         status='PENDING'
     )
     
-    # Send notification to bid poster
-    from notifications.models import Notification
-    Notification.objects.create(
-        user=bid.user,
-        title='New Bid Acceptance!',
-        message=f'{request.user.username} has accepted your bid for {bid.title}. You can now choose from your acceptances.',
-        notification_type='BID_ACCEPTED',
-        related_object_id=bid.id
-    )
+    # Send notification (with email) to bid poster
+    try:
+        from notifications.utils import send_notification
+        send_notification(
+            user=bid.user,
+            title='New Bid Acceptance!',
+            message=f'{request.user.username} has accepted your bid for {bid.title}. You can now choose from your acceptances.',
+            notification_type='BID_ACCEPTED',
+            related_object_type='bid',
+            related_object_id=bid.id
+        )
+    except ImportError:
+        pass
     
     messages.success(request, f'You have accepted the bid for {bid.title}! The bid poster will be notified and can choose from all acceptances.')
     return redirect('bids:my_accepted_bids')
@@ -407,28 +426,33 @@ def choose_acceptance(request, bid_id):
         bid.accepted_at = timezone.now()
         bid.save()
         
-        # Send notifications
-        from notifications.models import Notification
-        
-        # Notify selected girl
-        Notification.objects.create(
-            user=selected_acceptance.accepted_by,
-            title='You Were Selected!',
-            message=f'Congratulations! {request.user.username} has selected you for their bid: {bid.title}',
-            notification_type='BID_ACCEPTED',
-            related_object_id=bid.id
-        )
-        
-        # Notify rejected girls
-        rejected_acceptances = BidAcceptance.objects.filter(bid=bid, status='REJECTED')
-        for rejection in rejected_acceptances:
-            Notification.objects.create(
-                user=rejection.accepted_by,
-                title='Bid Selection Update',
-                message=f'Sorry, {request.user.username} has selected someone else for their bid: {bid.title}',
-                notification_type='BID_CANCELLED',
+        # Send notifications (with email) to selected and rejected users
+        try:
+            from notifications.utils import send_notification
+            
+            # Notify selected girl
+            send_notification(
+                user=selected_acceptance.accepted_by,
+                title='You Were Selected!',
+                message=f'Congratulations! {request.user.username} has selected you for their bid: {bid.title}',
+                notification_type='BID_ACCEPTED',
+                related_object_type='bid',
                 related_object_id=bid.id
             )
+            
+            # Notify rejected girls
+            rejected_acceptances = BidAcceptance.objects.filter(bid=bid, status='REJECTED')
+            for rejection in rejected_acceptances:
+                send_notification(
+                    user=rejection.accepted_by,
+                    title='Bid Selection Update',
+                    message=f'Sorry, {request.user.username} has selected someone else for their bid: {bid.title}',
+                    notification_type='BID_CANCELLED',
+                    related_object_type='bid',
+                    related_object_id=bid.id
+                )
+        except ImportError:
+            pass
         
         messages.success(request, f'You have selected {selected_acceptance.accepted_by.username} for your bid!')
         return redirect('bids:my_bids')

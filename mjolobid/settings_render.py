@@ -160,27 +160,16 @@ SECURE_SSL_REDIRECT = True
 SESSION_COOKIE_SECURE = True
 CSRF_COOKIE_SECURE = True
 
-# Email configuration
-# Option 1: Mailgun (Recommended for production - better deliverability)
-# Uncomment these lines and comment out Gmail settings below after Mailgun setup
-# EMAIL_BACKEND = 'django.core.mail.backends.smtp.EmailBackend'
-# EMAIL_HOST = config('EMAIL_HOST', default='smtp.mailgun.org')
-# EMAIL_PORT = config('EMAIL_PORT', default=587, cast=int)
-# EMAIL_USE_TLS = True
-# EMAIL_HOST_USER = config('EMAIL_HOST_USER', default='postmaster@sandboxXXXXX.mailgun.org')
-# EMAIL_HOST_PASSWORD = config('EMAIL_HOST_PASSWORD', default='your-mailgun-smtp-password')
-# DEFAULT_FROM_EMAIL = config('DEFAULT_FROM_EMAIL', default='MjoloBid <noreply@sandboxXXXXX.mailgun.org>')
-
-# Option 2: Gmail (Current - may go to spam folder)
+# Email configuration - SendGrid SMTP (recommended for production)
 EMAIL_BACKEND = 'django.core.mail.backends.smtp.EmailBackend'
-EMAIL_HOST = config('EMAIL_HOST', default='smtp.gmail.com')
-EMAIL_PORT = config('EMAIL_PORT', default=587, cast=int)
+EMAIL_HOST = 'smtp.sendgrid.net'
+EMAIL_PORT = 587
 EMAIL_USE_TLS = True
-EMAIL_HOST_USER = config('EMAIL_HOST_USER', default='')
-EMAIL_HOST_PASSWORD = config('EMAIL_HOST_PASSWORD', default='')
+EMAIL_HOST_USER = 'apikey'
+EMAIL_HOST_PASSWORD = config('SENDGRID_API_KEY', default='')
 DEFAULT_FROM_EMAIL = config('DEFAULT_FROM_EMAIL', default='MjoloBid <mjolobidapp@gmail.com>')
 
-SERVER_EMAIL = config('SERVER_EMAIL', default='MjoloBid <mjolobidapp@gmail.com>')
+SERVER_EMAIL = DEFAULT_FROM_EMAIL
 SITE_URL = config('SITE_URL', default='https://mjolobid.onrender.com')
 
 # Stripe configuration
