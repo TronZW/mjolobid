@@ -430,42 +430,44 @@
         }
 
             // Monitor permission changes (when user resets in browser settings)
-            // This works across all browsers (Chrome, Edge, Firefox, Opera, etc.)
-            let lastPermission = Notification.permission;
-            let lastSubscriptionEndpoint = localStorage.getItem(PUSH_ENDPOINT_STORAGE_KEY);
-            
-            setInterval(async () => {
-                const currentPermission = Notification.permission;
-                const hasActualSubscription = await checkActualSubscriptionStatus();
-                const currentSubscriptionEndpoint = localStorage.getItem(PUSH_ENDPOINT_STORAGE_KEY);
+            // Guarded so that browsers without Notification API (some iOS Safari versions) don't throw errors
+            if ('Notification' in window) {
+                let lastPermission = Notification.permission;
+                let lastSubscriptionEndpoint = localStorage.getItem(PUSH_ENDPOINT_STORAGE_KEY);
                 
-                // Check if permission changed
-                if (currentPermission !== lastPermission) {
-                    console.log('Notification permission changed from', lastPermission, 'to', currentPermission, 'in this browser');
-                    lastPermission = currentPermission;
+                setInterval(async () => {
+                    const currentPermission = Notification.permission;
+                    const hasActualSubscription = await checkActualSubscriptionStatus();
+                    const currentSubscriptionEndpoint = localStorage.getItem(PUSH_ENDPOINT_STORAGE_KEY);
                     
-                    // If permission was reset to default, reinitialize
-                    if (currentPermission === 'default') {
+                    // Check if permission changed
+                    if (currentPermission !== lastPermission) {
+                        console.log('Notification permission changed from', lastPermission, 'to', currentPermission, 'in this browser');
+                        lastPermission = currentPermission;
+                        
+                        // If permission was reset to default, reinitialize
+                        if (currentPermission === 'default') {
+                            localStorage.removeItem(PUSH_ENDPOINT_STORAGE_KEY);
+                            localStorage.removeItem('mjolobid-push-prompt-dismissed');
+                            initWebPush();
+                        }
+                    }
+                    
+                    // Check if subscription was removed (user unsubscribed in browser settings)
+                    if (lastSubscriptionEndpoint && !hasActualSubscription) {
+                        console.log('Push subscription was removed in this browser');
                         localStorage.removeItem(PUSH_ENDPOINT_STORAGE_KEY);
-                        localStorage.removeItem('mjolobid-push-prompt-dismissed');
-                        initWebPush();
+                        lastSubscriptionEndpoint = null;
+                        // Reinitialize to show modal if permission allows
+                        if (Notification.permission === 'default') {
+                            initWebPush();
+                        }
+                    } else if (!lastSubscriptionEndpoint && hasActualSubscription) {
+                        // Subscription was added
+                        lastSubscriptionEndpoint = currentSubscriptionEndpoint;
                     }
-                }
-                
-                // Check if subscription was removed (user unsubscribed in browser settings)
-                if (lastSubscriptionEndpoint && !hasActualSubscription) {
-                    console.log('Push subscription was removed in this browser');
-                    localStorage.removeItem(PUSH_ENDPOINT_STORAGE_KEY);
-                    lastSubscriptionEndpoint = null;
-                    // Reinitialize to show modal if permission allows
-                    if (Notification.permission === 'default') {
-                        initWebPush();
-                    }
-                } else if (!lastSubscriptionEndpoint && hasActualSubscription) {
-                    // Subscription was added
-                    lastSubscriptionEndpoint = currentSubscriptionEndpoint;
-                }
-            }, 3000); // Check every 3 seconds
+                }, 3000); // Check every 3 seconds
+            }
 
         // Initialize
         document.addEventListener('DOMContentLoaded', function() {
