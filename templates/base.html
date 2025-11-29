@@ -39,11 +39,9 @@
                     <button 
                         id="mobile-menu-button" 
                         type="button" 
-                        class="mobile-menu-btn inline-flex items-center justify-center p-3 rounded-md text-gray-700 hover:text-primary hover:bg-gray-100 focus:outline-none focus:ring-2 focus:ring-inset focus:ring-primary" 
+                        class="inline-flex items-center justify-center p-2 rounded-md text-gray-700 hover:text-primary hover:bg-gray-100 focus:outline-none focus:ring-2 focus:ring-inset focus:ring-primary" 
                         aria-controls="mobile-menu" 
                         aria-expanded="false"
-                        onclick="toggleMobileMenu(); return false;"
-                        ontouchstart="event.preventDefault(); toggleMobileMenu(); return false;"
                     >
                         <span class="sr-only">Open main menu</span>
                         <i id="mobile-menu-icon" class="fas fa-bars text-xl"></i>
@@ -117,7 +115,7 @@
     </nav>
 
     <!-- Mobile dropdown menu -->
-    <div id="mobile-menu" class="mobile-menu md:hidden hidden bg-white shadow-lg border-t border-gray-100">
+    <div id="mobile-menu" class="md:hidden hidden bg-white shadow-lg border-t border-gray-100">
         <div class="px-4 pt-2 pb-3 space-y-1">
             {% if user.is_authenticated %}
                 {% if user.user_type == 'M' %}
@@ -469,142 +467,57 @@
                 }
             }, 3000); // Check every 3 seconds
 
-        // Mobile menu toggle function - Global for onclick handler
-        // Made more robust for iOS Safari
-        function toggleMobileMenu(e) {
-            if (e) {
-                e.preventDefault();
-                e.stopPropagation();
-                e.stopImmediatePropagation();
-            }
-            
+        // Simple mobile menu toggle - works on all platforms
+        document.addEventListener('DOMContentLoaded', function() {
             const btn = document.getElementById('mobile-menu-button');
             const menu = document.getElementById('mobile-menu');
             const icon = document.getElementById('mobile-menu-icon');
             
-            if (!btn || !menu) {
-                console.error('Mobile menu elements not found', {btn: !!btn, menu: !!menu});
-                return false;
+            if (!btn || !menu || !icon) {
+                return;
             }
             
-            // Force check visibility using multiple methods
-            const isHidden = menu.classList.contains('hidden') || 
-                           menu.style.display === 'none' || 
-                           window.getComputedStyle(menu).display === 'none';
-            
-            if (isHidden) {
-                // Show menu - use multiple methods to ensure it shows
-                menu.classList.remove('hidden');
-                menu.style.display = 'block';
-                menu.style.visibility = 'visible';
-                menu.style.opacity = '1';
-                menu.style.height = 'auto';
-                btn.setAttribute('aria-expanded', 'true');
-                if (icon) {
+            // Simple toggle function
+            function toggleMenu() {
+                const isHidden = menu.classList.contains('hidden');
+                
+                if (isHidden) {
+                    menu.classList.remove('hidden');
+                    btn.setAttribute('aria-expanded', 'true');
                     icon.className = 'fas fa-times text-xl';
-                }
-                console.log('Menu opened');
-            } else {
-                // Hide menu
-                menu.classList.add('hidden');
-                menu.style.display = 'none';
-                menu.style.visibility = 'hidden';
-                btn.setAttribute('aria-expanded', 'false');
-                if (icon) {
+                } else {
+                    menu.classList.add('hidden');
+                    btn.setAttribute('aria-expanded', 'false');
                     icon.className = 'fas fa-bars text-xl';
                 }
-                console.log('Menu closed');
             }
             
-            return false;
-        }
-        
-        // Initialize - Multiple approaches for iOS
-        (function() {
-            function initMenu() {
-                const btn = document.getElementById('mobile-menu-button');
-                const menu = document.getElementById('mobile-menu');
-                
-                if (!btn || !menu) {
-                    console.error('Menu elements not found on init');
-                    return;
-                }
-                
-                // Ensure menu starts hidden
-                menu.classList.add('hidden');
-                menu.style.display = 'none';
-                menu.style.visibility = 'hidden';
-                
-                // Remove all existing listeners and add fresh ones
-                const newBtn = btn.cloneNode(true);
-                btn.parentNode.replaceChild(newBtn, btn);
-                
-                // Get the new button reference
-                const newButton = document.getElementById('mobile-menu-button');
-                const newIcon = document.getElementById('mobile-menu-icon');
-                
-                // Add multiple event handlers for maximum compatibility
-                newButton.addEventListener('click', function(e) {
-                    e.preventDefault();
-                    e.stopPropagation();
-                    toggleMobileMenu(e);
-                    return false;
-                }, {capture: true, passive: false});
-                
-                newButton.addEventListener('touchend', function(e) {
-                    e.preventDefault();
-                    e.stopPropagation();
-                    toggleMobileMenu(e);
-                    return false;
-                }, {capture: true, passive: false});
-                
-                newButton.addEventListener('touchstart', function(e) {
-                    // Don't prevent default on touchstart to allow proper touch handling
-                    e.stopPropagation();
-                }, {passive: true});
-                
-                // Close menu when clicking outside
-                document.addEventListener('click', function(e) {
-                    if (newButton && menu && !newButton.contains(e.target) && !menu.contains(e.target)) {
-                        if (!menu.classList.contains('hidden')) {
-                            menu.classList.add('hidden');
-                            menu.style.display = 'none';
-                            menu.style.visibility = 'hidden';
-                            newButton.setAttribute('aria-expanded', 'false');
-                            if (newIcon) {
-                                newIcon.className = 'fas fa-bars text-xl';
-                            }
-                        }
+            // Add click event listener
+            btn.addEventListener('click', toggleMenu);
+            
+            // Close menu when clicking outside
+            document.addEventListener('click', function(e) {
+                if (!btn.contains(e.target) && !menu.contains(e.target)) {
+                    if (!menu.classList.contains('hidden')) {
+                        menu.classList.add('hidden');
+                        btn.setAttribute('aria-expanded', 'false');
+                        icon.className = 'fas fa-bars text-xl';
                     }
-                }, true);
-                
-                // Close menu when clicking on menu links
-                const menuLinks = menu.querySelectorAll('a');
-                menuLinks.forEach(function(link) {
-                    link.addEventListener('click', function() {
-                        setTimeout(function() {
-                            menu.classList.add('hidden');
-                            menu.style.display = 'none';
-                            menu.style.visibility = 'hidden';
-                            newButton.setAttribute('aria-expanded', 'false');
-                            if (newIcon) {
-                                newIcon.className = 'fas fa-bars text-xl';
-                            }
-                        }, 100);
-                    }, true);
+                }
+            });
+            
+            // Close menu when clicking on menu links
+            const menuLinks = menu.querySelectorAll('a');
+            menuLinks.forEach(function(link) {
+                link.addEventListener('click', function() {
+                    setTimeout(function() {
+                        menu.classList.add('hidden');
+                        btn.setAttribute('aria-expanded', 'false');
+                        icon.className = 'fas fa-bars text-xl';
+                    }, 100);
                 });
-            }
-            
-            // Try multiple initialization methods
-            if (document.readyState === 'loading') {
-                document.addEventListener('DOMContentLoaded', initMenu);
-            } else {
-                initMenu();
-            }
-            
-            // Also try after a short delay (for iOS Safari quirks)
-            setTimeout(initMenu, 100);
-        })();
+            });
+        });
 
             // Unread message badge updater
             async function updateUnreadBadge() {
@@ -1092,104 +1005,17 @@
     </script>
 
     <style>
-        /* Fix for iPhone Safari navbar toggle - ULTRA ROBUST */
-        .mobile-menu-btn {
-            -webkit-tap-highlight-color: rgba(139, 92, 246, 0.4) !important;
-            -webkit-touch-callout: none !important;
-            touch-action: manipulation !important;
-            user-select: none !important;
-            -webkit-user-select: none !important;
-            cursor: pointer !important;
-            position: relative !important;
-            z-index: 10000 !important;
-            background-color: transparent !important;
-            border: none !important;
-            outline: none !important;
-            pointer-events: auto !important;
-            -webkit-appearance: none !important;
-            appearance: none !important;
+        /* Simple mobile menu styling - works on all platforms */
+        #mobile-menu-button {
+            cursor: pointer;
+            min-width: 44px;
+            min-height: 44px;
         }
         
-        .mobile-menu-btn:active,
-        .mobile-menu-btn:focus {
-            background-color: rgba(139, 92, 246, 0.15) !important;
-            outline: none !important;
-            border: none !important;
-        }
-        
-        /* Mobile menu styling - Force visibility */
-        .mobile-menu {
-            position: relative !important;
-            z-index: 9999 !important;
-            width: 100% !important;
-            max-height: calc(100vh - 64px) !important;
-            overflow-y: auto !important;
-            -webkit-overflow-scrolling: touch !important;
-            pointer-events: auto !important;
-        }
-        
-        .mobile-menu.hidden {
-            display: none !important;
-            visibility: hidden !important;
-            opacity: 0 !important;
-            height: 0 !important;
-            overflow: hidden !important;
-        }
-        
-        .mobile-menu:not(.hidden) {
-            display: block !important;
-            visibility: visible !important;
-            opacity: 1 !important;
-            height: auto !important;
-        }
-        
-        /* Ensure menu items are tappable on iOS */
-        .mobile-menu a {
-            -webkit-tap-highlight-color: rgba(139, 92, 246, 0.2) !important;
-            touch-action: manipulation !important;
-            min-height: 44px !important;
-            display: flex !important;
-            align-items: center !important;
-            -webkit-user-select: none !important;
-            user-select: none !important;
-            pointer-events: auto !important;
-        }
-        
-        /* Prevent text selection on tap */
-        .mobile-menu {
-            -webkit-touch-callout: none !important;
-            -webkit-user-select: none !important;
-            user-select: none !important;
-        }
-        
-        /* iOS Safari specific fixes */
-        @supports (-webkit-touch-callout: none) {
-            .mobile-menu-btn {
-                -webkit-tap-highlight-color: rgba(139, 92, 246, 0.5) !important;
-            }
-            
-            .mobile-menu:not(.hidden) {
-                display: block !important;
-                visibility: visible !important;
-                opacity: 1 !important;
-                transform: translateZ(0) !important;
-                -webkit-transform: translateZ(0) !important;
-            }
-        }
-        
-        /* Ensure menu is visible when not hidden on mobile */
-        @media (max-width: 768px) {
-            .mobile-menu:not(.hidden) {
-                display: block !important;
-                visibility: visible !important;
-                opacity: 1 !important;
-                height: auto !important;
-            }
-            
-            .mobile-menu-btn {
-                min-width: 44px !important;
-                min-height: 44px !important;
-            }
+        #mobile-menu a {
+            min-height: 44px;
+            display: flex;
+            align-items: center;
         }
     </style>
 
