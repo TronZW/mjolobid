@@ -5,10 +5,49 @@ from django.utils import timezone
 from django.db.models import Q, Max
 from django.core.paginator import Paginator
 from django.conf import settings
+from django.db import close_old_connections
+from threading import Thread
 from .models import Offer, OfferBid, OfferView
 from .forms import OfferForm, OfferBidForm
 from accounts.models import User, UserGallery
 from bids.models import EventCategory
+from notifications.utils import send_notification
+
+
+def _send_new_offer_notifications_async(offer_id, creator_id):
+    """
+    Background task to send 'new offer' notifications to all active male users.
+    Runs in a separate thread so the HTTP request can return quickly.
+    """
+    # Ensure this thread has a clean DB connection
+    close_old_connections()
+
+    try:
+        offer = Offer.objects.get(id=offer_id)
+        creator = User.objects.get(id=creator_id)
+    except (Offer.DoesNotExist, User.DoesNotExist):
+        return
+
+    # Get all active male users with valid email
+    male_users = User.objects.filter(
+        user_type='M',
+        is_active=True,
+        email__isnull=False
+    ).exclude(email='')
+
+    for male_user in male_users.iterator():
+        try:
+            send_notification(
+                user=male_user,
+                title='New Offer Available!',
+                message=f'{creator.username} created a new offer: {offer.title} - Starting at ${offer.minimum_bid}',
+                notification_type='OFFER_BID',
+                related_object_type='offer',
+                related_object_id=offer.id
+            )
+        except Exception as e:
+            # Log and continue; one failure shouldn't stop others
+            print(f"Error sending new offer notification to {male_user.username}: {e}")
 
 
 @login_required
@@ -66,30 +105,15 @@ def create_offer(request):
             
             offer.save()
             
-            # Send email notification to all male users about new offer
+            # Fire-and-forget: send notifications in a background thread
             try:
-                from notifications.utils import send_notification
-                from accounts.models import User
-                
-                # Get all active male users
-                male_users = User.objects.filter(
-                    user_type='M',
-                    is_active=True,
-                    email__isnull=False
-                ).exclude(email='')
-                
-                # Send notification to each male user
-                for male_user in male_users:
-                    send_notification(
-                        user=male_user,
-                        title='New Offer Available!',
-                        message=f'{request.user.username} created a new offer: {offer.title} - Starting at ${offer.minimum_bid}',
-                        notification_type='OFFER_BID',
-                        related_object_type='offer',
-                        related_object_id=offer.id
-                    )
+                Thread(
+                    target=_send_new_offer_notifications_async,
+                    args=(offer.id, request.user.id),
+                    daemon=True
+                ).start()
             except Exception as e:
-                print(f"Error sending new offer notifications: {str(e)}")
+                print(f"Error starting async new offer notifications: {e}")
             
             messages.success(request, 'Offer created successfully!')
             return redirect('offers:my_offers')

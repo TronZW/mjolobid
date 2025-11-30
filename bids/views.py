@@ -7,10 +7,49 @@ from django.utils import timezone
 from django.db.models import Q, F
 from django.core.paginator import Paginator
 from django.conf import settings
+from django.db import close_old_connections
+from threading import Thread
 import json
 from .models import Bid, EventCategory, BidMessage, BidReview, EventPromotion, BidView, BidImage
 from .forms import BidForm, BidReviewForm, EventPromotionForm
 from accounts.models import User
+from notifications.utils import send_notification
+
+
+def _send_new_bid_notifications_async(bid_id, creator_id):
+    """
+    Background task to send 'new bid' notifications to all active female users.
+    Runs in a separate thread so the HTTP request can return quickly.
+    """
+    # Ensure this thread has a clean DB connection
+    close_old_connections()
+
+    try:
+        bid = Bid.objects.get(id=bid_id)
+        creator = User.objects.get(id=creator_id)
+    except (Bid.DoesNotExist, User.DoesNotExist):
+        return
+
+    # Get all active female users with valid email
+    female_users = User.objects.filter(
+        user_type='F',
+        is_active=True,
+        email__isnull=False
+    ).exclude(email='')
+
+    for female_user in female_users.iterator():
+        try:
+            send_notification(
+                user=female_user,
+                title='New Bid Available!',
+                message=f'{creator.username} posted a new bid: {bid.title} - ${bid.bid_amount}',
+                notification_type='OFFER_BID',
+                related_object_type='bid',
+                related_object_id=bid.id
+            )
+        except Exception as e:
+            # Log and continue; one failure shouldn't stop others
+            print(f"Error sending new bid notification to {female_user.username}: {e}")
 
 
 @login_required
@@ -602,30 +641,15 @@ def post_bid(request):
                     is_primary=(i == 0)
                 )
             
-            # Send email notification to all female users about new bid
+            # Fire-and-forget: send notifications in a background thread
             try:
-                from notifications.utils import send_notification
-                from accounts.models import User
-                
-                # Get all active female users
-                female_users = User.objects.filter(
-                    user_type='F',
-                    is_active=True,
-                    email__isnull=False
-                ).exclude(email='')
-                
-                # Send notification to each female user
-                for female_user in female_users:
-                    send_notification(
-                        user=female_user,
-                        title='New Bid Available!',
-                        message=f'{request.user.username} posted a new bid: {bid.title} - ${bid.bid_amount}',
-                        notification_type='OFFER_BID',
-                        related_object_type='bid',
-                        related_object_id=bid.id
-                    )
+                Thread(
+                    target=_send_new_bid_notifications_async,
+                    args=(bid.id, request.user.id),
+                    daemon=True
+                ).start()
             except Exception as e:
-                print(f"Error sending new bid notifications: {str(e)}")
+                print(f"Error starting async new bid notifications: {e}")
             
             messages.success(request, 'Bid posted successfully!')
             return redirect('bids:my_bids')

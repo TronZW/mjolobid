@@ -114,6 +114,26 @@ document.addEventListener('DOMContentLoaded', function() {
             customCategoryField.style.display = 'block';
         }
     }
+
+    // Prevent double submission of the form
+    const form = document.querySelector('form');
+    if (form) {
+        const submitButton = form.querySelector('button[type="submit"]');
+        let isSubmitting = false;
+
+        form.addEventListener('submit', function (e) {
+            if (isSubmitting) {
+                e.preventDefault();
+                return;
+            }
+            isSubmitting = true;
+            if (submitButton) {
+                submitButton.disabled = true;
+                submitButton.classList.add('opacity-70', 'cursor-not-allowed');
+                submitButton.innerHTML = '<i class="fas fa-spinner fa-spin mr-2"></i>Creating...';
+            }
+        });
+    }
 });
 </script>
 {% endblock %}
