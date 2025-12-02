@@ -1,9 +1,150 @@
 MjoloBid - {{ title }}
 
-{{ message }}
+{% if email_scenario == 'new_offer_posted' %}
+Hi {{ recipient_name }},
 
-{% if notification_url %}
-View Details: {{ notification_url }}
+Great news! {{ offer_creator_username }} just posted a new offer on MjoloBid that might interest you.
+
+📅 Event Details:
+• Title: {{ offer.title }}
+{% if offer.event_category %}
+• Category: {{ offer.event_category.name }}
+{% endif %}
+{% if offer.event_date %}
+• Date & Time: {{ offer.event_date|date:"F d, Y" }} at {{ offer.event_date|time:"g:i A" }}
+{% elif offer.available_date %}
+• Available Date: {{ offer.available_date|date:"F d, Y" }}
+{% endif %}
+{% if offer.event_location %}
+• Location: {{ offer.event_location }}
+{% endif %}
+• Minimum Bid: ${{ offer.minimum_bid }}
+
+{{ offer.description|truncatewords:30 }}
+
+This offer is now live and accepting bids. Don't miss out on this opportunity to connect!
+
+{% elif email_scenario == 'new_bid_posted' %}
+Hi {{ recipient_name }},
+
+Exciting news! {{ bid_creator_username }} just posted a new bid on MjoloBid that you might be interested in.
+
+🎉 Event Details:
+• Title: {{ bid.title }}
+{% if bid.event_category %}
+• Category: {{ bid.event_category.name }}
+{% endif %}
+• Date & Time: {{ bid.event_date|date:"F d, Y" }} at {{ bid.event_date|time:"g:i A" }}
+• Location: {{ bid.event_location }}
+• Bid Amount: ${{ bid.bid_amount }}
+
+{{ bid.description|truncatewords:30 }}
+
+This bid is now open for acceptance. If this event sounds interesting, you can accept it and start a conversation!
+
+{% elif email_scenario == 'bid_viewed' %}
+Hi {{ recipient_name }},
+
+Great news! {{ viewer_username }} just viewed your bid for "{{ bid.title }}".
+
+This means your bid caught their attention! They're checking out the details of your event:
+• Event: {{ bid.title }}
+• Date: {{ bid.event_date|date:"F d, Y" }} at {{ bid.event_date|time:"g:i A" }}
+• Location: {{ bid.event_location }}
+• Your Bid Amount: ${{ bid.bid_amount }}
+
+They might be interested in accepting your bid. Keep an eye on your notifications - if they accept, you'll be notified immediately!
+
+{% elif email_scenario == 'offer_viewed' %}
+Hi {{ recipient_name }},
+
+Exciting update! {{ viewer_username }} just viewed your offer for "{{ offer.title }}".
+
+Your offer is getting attention! They're checking out:
+• Your Offer: {{ offer.title }}
+{% if offer.event_date %}
+• Event Date: {{ offer.event_date|date:"F d, Y" }} at {{ offer.event_date|time:"g:i A" }}
+{% elif offer.available_date %}
+• Available Date: {{ offer.available_date|date:"F d, Y" }}
+{% endif %}
+{% if offer.event_location %}
+• Location: {{ offer.event_location }}
+{% endif %}
+• Minimum Bid: ${{ offer.minimum_bid }}
+
+They might be preparing to place a bid. Stay tuned - you'll be notified as soon as they submit one!
+
+{% elif email_scenario == 'bid_accepted' %}
+Hi {{ recipient_name }},
+
+Congratulations! {{ accepter_username }} has accepted your bid for "{{ bid.title }}"!
+
+🎊 What This Means:
+{{ accepter_username }} is interested in joining you for:
+• Event: {{ bid.title }}
+• Date: {{ bid.event_date|date:"F d, Y" }} at {{ bid.event_date|time:"g:i A" }}
+• Location: {{ bid.event_location }}
+• Your Bid Amount: ${{ bid.bid_amount }}
+
+Next Steps:
+You can now review all acceptances for this bid and choose the companion you'd like to proceed with. If you have multiple acceptances, you'll be able to select your preferred match.
+
+This is an exciting moment! Make sure to communicate clearly and plan your event together.
+
+{% elif email_scenario == 'offer_accepted' %}
+Hi {{ recipient_name }},
+
+Fantastic news! {{ offer_creator_username }} has selected your bid for their offer "{{ offer.title }}"!
+
+🎊 You're In!
+{{ offer_creator_username }} chose you for:
+• Offer: {{ offer.title }}
+{% if offer.event_date %}
+• Event Date: {{ offer.event_date|date:"F d, Y" }} at {{ offer.event_date|time:"g:i A" }}
+{% elif offer.available_date %}
+• Available Date: {{ offer.available_date|date:"F d, Y" }}
+{% endif %}
+{% if offer.event_location %}
+• Location: {{ offer.event_location }}
+{% endif %}
+
+What Happens Next:
+You can now start messaging {{ offer_creator_username }} directly to plan the details of your event together. Make sure to coordinate logistics, timing, and any special requirements.
+
+Have a wonderful time planning your event!
+
+{% elif email_scenario == 'new_message' %}
+Hi {{ recipient_name }},
+
+You have a new message from {{ sender_username }}!
+
+💬 Message Preview:
+"{{ notification.message|truncatewords:20 }}"
+
+{% if conversation %}
+This message is part of your conversation about "{{ conversation.get_title }}".
+{% endif %}
+
+Don't keep them waiting! Reply now to continue the conversation and plan your event together.
+
+{% elif email_scenario == 'bid_on_offer' %}
+Hi {{ recipient_name }},
+
+Great news! Someone has placed a bid on your offer "{{ offer.title }}".
+
+• Your Offer: {{ offer.title }}
+• Bid Details: {{ notification.message }}
+
+Check out all the bids on your offer and choose the one that works best for you!
+
+{% else %}
+Hi {{ recipient_name }},
+
+{{ message|linebreaks }}
+{% endif %}
+
+{% if button_url %}
+{{ button_text }}: {{ button_url }}
 {% endif %}
 
 ---
@@ -16,4 +157,3 @@ Unsubscribe from emails: {{ site_url }}/notifications/unsubscribe/
 MjoloBid - Social Event Marketplace
 This email was sent to {{ user.email }}
 © 2024 MjoloBid. All rights reserved.
-

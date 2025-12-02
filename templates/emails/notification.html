@@ -50,6 +50,21 @@
             margin-bottom: 20px;
             line-height: 1.8;
         }
+        .event-details {
+            background-color: #f9fafb;
+            border-left: 4px solid #8b5cf6;
+            padding: 15px;
+            margin: 20px 0;
+            border-radius: 4px;
+        }
+        .event-details-item {
+            margin: 8px 0;
+            font-size: 15px;
+            color: #374151;
+        }
+        .event-details-item strong {
+            color: #1f2937;
+        }
         .button {
             display: inline-block;
             padding: 12px 30px;
@@ -87,13 +102,189 @@
         
         <div class="content">
             <h1 class="notification-title">{{ title }}</h1>
-            <div class="notification-message">
-                {{ message|linebreaks }}
-            </div>
             
-            {% if notification_url %}
+            {% if email_scenario == 'new_offer_posted' %}
+                <div class="notification-message">
+                    <p>Hi {{ recipient_name }},</p>
+                    <p>Great news! <strong>{{ offer_creator_username }}</strong> just posted a new offer on MjoloBid that might interest you.</p>
+                </div>
+                
+                <div class="event-details">
+                    <div class="event-details-item"><strong>📅 Event Details:</strong></div>
+                    <div class="event-details-item">• <strong>Title:</strong> {{ offer.title }}</div>
+                    {% if offer.event_category %}
+                    <div class="event-details-item">• <strong>Category:</strong> {{ offer.event_category.name }}</div>
+                    {% endif %}
+                    {% if offer.event_date %}
+                    <div class="event-details-item">• <strong>Date & Time:</strong> {{ offer.event_date|date:"F d, Y" }} at {{ offer.event_date|time:"g:i A" }}</div>
+                    {% elif offer.available_date %}
+                    <div class="event-details-item">• <strong>Available Date:</strong> {{ offer.available_date|date:"F d, Y" }}</div>
+                    {% endif %}
+                    {% if offer.event_location %}
+                    <div class="event-details-item">• <strong>Location:</strong> {{ offer.event_location }}</div>
+                    {% endif %}
+                    <div class="event-details-item">• <strong>Minimum Bid:</strong> ${{ offer.minimum_bid }}</div>
+                </div>
+                
+                <div class="notification-message">
+                    <p>{{ offer.description|truncatewords:30 }}</p>
+                    <p>This offer is now live and accepting bids. Don't miss out on this opportunity to connect!</p>
+                </div>
+                
+            {% elif email_scenario == 'new_bid_posted' %}
+                <div class="notification-message">
+                    <p>Hi {{ recipient_name }},</p>
+                    <p>Exciting news! <strong>{{ bid_creator_username }}</strong> just posted a new bid on MjoloBid that you might be interested in.</p>
+                </div>
+                
+                <div class="event-details">
+                    <div class="event-details-item"><strong>🎉 Event Details:</strong></div>
+                    <div class="event-details-item">• <strong>Title:</strong> {{ bid.title }}</div>
+                    {% if bid.event_category %}
+                    <div class="event-details-item">• <strong>Category:</strong> {{ bid.event_category.name }}</div>
+                    {% endif %}
+                    <div class="event-details-item">• <strong>Date & Time:</strong> {{ bid.event_date|date:"F d, Y" }} at {{ bid.event_date|time:"g:i A" }}</div>
+                    <div class="event-details-item">• <strong>Location:</strong> {{ bid.event_location }}</div>
+                    <div class="event-details-item">• <strong>Bid Amount:</strong> ${{ bid.bid_amount }}</div>
+                </div>
+                
+                <div class="notification-message">
+                    <p>{{ bid.description|truncatewords:30 }}</p>
+                    <p>This bid is now open for acceptance. If this event sounds interesting, you can accept it and start a conversation!</p>
+                </div>
+                
+            {% elif email_scenario == 'bid_viewed' %}
+                <div class="notification-message">
+                    <p>Hi {{ recipient_name }},</p>
+                    <p>Great news! <strong>{{ viewer_username }}</strong> just viewed your bid for "{{ bid.title }}".</p>
+                    <p>This means your bid caught their attention! They're checking out the details of your event:</p>
+                </div>
+                
+                <div class="event-details">
+                    <div class="event-details-item">• <strong>Event:</strong> {{ bid.title }}</div>
+                    <div class="event-details-item">• <strong>Date:</strong> {{ bid.event_date|date:"F d, Y" }} at {{ bid.event_date|time:"g:i A" }}</div>
+                    <div class="event-details-item">• <strong>Location:</strong> {{ bid.event_location }}</div>
+                    <div class="event-details-item">• <strong>Your Bid Amount:</strong> ${{ bid.bid_amount }}</div>
+                </div>
+                
+                <div class="notification-message">
+                    <p>They might be interested in accepting your bid. Keep an eye on your notifications - if they accept, you'll be notified immediately!</p>
+                </div>
+                
+            {% elif email_scenario == 'offer_viewed' %}
+                <div class="notification-message">
+                    <p>Hi {{ recipient_name }},</p>
+                    <p>Exciting update! <strong>{{ viewer_username }}</strong> just viewed your offer for "{{ offer.title }}".</p>
+                    <p>Your offer is getting attention! They're checking out:</p>
+                </div>
+                
+                <div class="event-details">
+                    <div class="event-details-item">• <strong>Your Offer:</strong> {{ offer.title }}</div>
+                    {% if offer.event_date %}
+                    <div class="event-details-item">• <strong>Event Date:</strong> {{ offer.event_date|date:"F d, Y" }} at {{ offer.event_date|time:"g:i A" }}</div>
+                    {% elif offer.available_date %}
+                    <div class="event-details-item">• <strong>Available Date:</strong> {{ offer.available_date|date:"F d, Y" }}</div>
+                    {% endif %}
+                    {% if offer.event_location %}
+                    <div class="event-details-item">• <strong>Location:</strong> {{ offer.event_location }}</div>
+                    {% endif %}
+                    <div class="event-details-item">• <strong>Minimum Bid:</strong> ${{ offer.minimum_bid }}</div>
+                </div>
+                
+                <div class="notification-message">
+                    <p>They might be preparing to place a bid. Stay tuned - you'll be notified as soon as they submit one!</p>
+                </div>
+                
+            {% elif email_scenario == 'bid_accepted' %}
+                <div class="notification-message">
+                    <p>Hi {{ recipient_name }},</p>
+                    <p>Congratulations! <strong>{{ accepter_username }}</strong> has accepted your bid for "{{ bid.title }}"!</p>
+                </div>
+                
+                <div class="event-details">
+                    <div class="event-details-item"><strong>🎊 What This Means:</strong></div>
+                    <div class="event-details-item">{{ accepter_username }} is interested in joining you for:</div>
+                    <div class="event-details-item">• <strong>Event:</strong> {{ bid.title }}</div>
+                    <div class="event-details-item">• <strong>Date:</strong> {{ bid.event_date|date:"F d, Y" }} at {{ bid.event_date|time:"g:i A" }}</div>
+                    <div class="event-details-item">• <strong>Location:</strong> {{ bid.event_location }}</div>
+                    <div class="event-details-item">• <strong>Your Bid Amount:</strong> ${{ bid.bid_amount }}</div>
+                </div>
+                
+                <div class="notification-message">
+                    <p><strong>Next Steps:</strong></p>
+                    <p>You can now review all acceptances for this bid and choose the companion you'd like to proceed with. If you have multiple acceptances, you'll be able to select your preferred match.</p>
+                    <p>This is an exciting moment! Make sure to communicate clearly and plan your event together.</p>
+                </div>
+                
+            {% elif email_scenario == 'offer_accepted' %}
+                <div class="notification-message">
+                    <p>Hi {{ recipient_name }},</p>
+                    <p>Fantastic news! <strong>{{ offer_creator_username }}</strong> has selected your bid for their offer "{{ offer.title }}"!</p>
+                </div>
+                
+                <div class="event-details">
+                    <div class="event-details-item"><strong>🎊 You're In!</strong></div>
+                    <div class="event-details-item">{{ offer_creator_username }} chose you for:</div>
+                    <div class="event-details-item">• <strong>Offer:</strong> {{ offer.title }}</div>
+                    {% if offer.event_date %}
+                    <div class="event-details-item">• <strong>Event Date:</strong> {{ offer.event_date|date:"F d, Y" }} at {{ offer.event_date|time:"g:i A" }}</div>
+                    {% elif offer.available_date %}
+                    <div class="event-details-item">• <strong>Available Date:</strong> {{ offer.available_date|date:"F d, Y" }}</div>
+                    {% endif %}
+                    {% if offer.event_location %}
+                    <div class="event-details-item">• <strong>Location:</strong> {{ offer.event_location }}</div>
+                    {% endif %}
+                </div>
+                
+                <div class="notification-message">
+                    <p><strong>What Happens Next:</strong></p>
+                    <p>You can now start messaging <strong>{{ offer_creator_username }}</strong> directly to plan the details of your event together. Make sure to coordinate logistics, timing, and any special requirements.</p>
+                    <p>Have a wonderful time planning your event!</p>
+                </div>
+                
+            {% elif email_scenario == 'new_message' %}
+                <div class="notification-message">
+                    <p>Hi {{ recipient_name }},</p>
+                    <p>You have a new message from <strong>{{ sender_username }}</strong>!</p>
+                </div>
+                
+                <div class="event-details">
+                    <div class="event-details-item"><strong>💬 Message Preview:</strong></div>
+                    <div class="event-details-item" style="font-style: italic; color: #6b7280;">"{{ notification.message|truncatewords:20 }}"</div>
+                    {% if conversation %}
+                    <div class="event-details-item" style="margin-top: 10px;">This message is part of your conversation about "{{ conversation.get_title }}".</div>
+                    {% endif %}
+                </div>
+                
+                <div class="notification-message">
+                    <p>Don't keep them waiting! Reply now to continue the conversation and plan your event together.</p>
+                </div>
+                
+            {% elif email_scenario == 'bid_on_offer' %}
+                <div class="notification-message">
+                    <p>Hi {{ recipient_name }},</p>
+                    <p>Great news! Someone has placed a bid on your offer "{{ offer.title }}".</p>
+                </div>
+                
+                <div class="event-details">
+                    <div class="event-details-item">• <strong>Your Offer:</strong> {{ offer.title }}</div>
+                    <div class="event-details-item">• <strong>Bid Details:</strong> {{ notification.message }}</div>
+                </div>
+                
+                <div class="notification-message">
+                    <p>Check out all the bids on your offer and choose the one that works best for you!</p>
+                </div>
+                
+            {% else %}
+                <div class="notification-message">
+                    <p>Hi {{ recipient_name }},</p>
+                    <p>{{ message|linebreaks }}</p>
+                </div>
+            {% endif %}
+            
+            {% if button_url %}
             <div style="text-align: center;">
-                <a href="{{ notification_url }}" class="button">View Details</a>
+                <a href="{{ button_url }}" class="button">{{ button_text }}</a>
             </div>
             {% endif %}
         </div>
@@ -114,4 +305,3 @@
     </div>
 </body>
 </html>
-
