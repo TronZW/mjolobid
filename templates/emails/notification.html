@@ -252,7 +252,7 @@
                     <div class="event-details-item"><strong>💬 Message Preview:</strong></div>
                     <div class="event-details-item" style="font-style: italic; color: #6b7280;">"{{ notification.message|truncatewords:20 }}"</div>
                     {% if conversation %}
-                    <div class="event-details-item" style="margin-top: 10px;">This message is part of your conversation about "{{ conversation.get_title }}".</div>
+                    <div class="event-details-item" style="margin-top: 10px;">This message is part of your conversation about "{{ conversation.get_title|default:notification.title }}".</div>
                     {% endif %}
                 </div>
                 

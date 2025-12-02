@@ -190,8 +190,6 @@ def send_email_notification(user, notification):
     from django.conf import settings as django_settings
     from django.utils import timezone
     
-    print(f"DEBUG: send_email_notification called for user {user.username}, notification type: {notification.notification_type}")
-    
     try:
         # Get user's email
         user_email = user.email
@@ -199,40 +197,52 @@ def send_email_notification(user, notification):
             print(f"Cannot send email notification: User {user.username} has no email address")
             return
         
-        print(f"DEBUG: User email found: {user_email}, attempting to send email...")
-        
         # Build notification URL (already includes full URL with domain)
         full_url = notification_payload_url(notification)
         base_url = getattr(django_settings, 'SITE_URL', 'http://localhost:8000')
         if not base_url.startswith('http'):
             base_url = f'http://{base_url}'
         
-        # Fetch related objects and determine email scenario
+        # Determine subject based on notification type (keep it simple like before)
+        if notification.notification_type == 'NEW_MESSAGE':
+            # Extract sender name from message
+            message_text = notification.message
+            if ' sent you a message' in message_text:
+                sender_name = message_text.split(' sent you a message')[0]
+                subject = f'New message from {sender_name} - MjoloBid'
+            elif ' sent you a message in' in message_text:
+                sender_name = message_text.split(' sent you a message in')[0]
+                subject = f'New message from {sender_name} - MjoloBid'
+            else:
+                subject = f'New message received - MjoloBid'
+        elif notification.notification_type == 'OFFER_BID':
+            subject = f'{notification.title} - MjoloBid'
+        elif notification.notification_type == 'OFFER_ACCEPTED':
+            subject = f'Your bid has been selected - MjoloBid'
+        elif notification.notification_type == 'BID_ACCEPTED':
+            subject = f'Your bid has been accepted - MjoloBid'
+        else:
+            subject = f'{notification.title} - MjoloBid'
+        
+        # Try to fetch related objects for template context (but don't fail if they don't exist)
         bid = None
         offer = None
         conversation = None
         sender_username = None
-        viewer_username = None
-        accepter_username = None
-        email_scenario = 'default'
-        subject = ''
-        button_text = 'View Details'
-        button_url = full_url
         
-        # Determine scenario based on notification type and related objects
         if notification.related_object_type == 'bid' and notification.related_object_id:
             try:
                 from bids.models import Bid
                 bid = Bid.objects.select_related('user', 'event_category', 'accepted_by').get(id=notification.related_object_id)
-            except Exception as e:
-                print(f"Error fetching bid {notification.related_object_id}: {e}")
+            except:
+                pass
         
         if notification.related_object_type == 'offer' and notification.related_object_id:
             try:
                 from offers.models import Offer
                 offer = Offer.objects.select_related('user', 'event_category', 'accepted_by').get(id=notification.related_object_id)
-            except Exception as e:
-                print(f"Error fetching offer {notification.related_object_id}: {e}")
+            except:
+                pass
         
         if notification.related_object_type == 'conversation' and notification.related_object_id:
             try:
@@ -243,84 +253,57 @@ def send_email_notification(user, notification):
                     if participant.id != user.id:
                         sender_username = participant.username
                         break
-            except Exception as e:
-                print(f"Error fetching conversation {notification.related_object_id}: {e}")
+            except:
+                pass
         
-        # Parse message to extract usernames for viewed/accepted scenarios
+        # Extract sender username from message if not found from conversation
+        if not sender_username and notification.notification_type == 'NEW_MESSAGE':
+            if ' sent you a message' in notification.message:
+                sender_username = notification.message.split(' sent you a message')[0]
+            elif ' sent you a message in' in notification.message:
+                sender_username = notification.message.split(' sent you a message in')[0]
+        
+        # Determine email scenario for template (but don't fail if detection fails)
         message_lower = notification.message.lower()
-        if 'viewed your bid' in message_lower:
-            viewer_username = notification.message.split(' viewed your bid')[0]
-            email_scenario = 'bid_viewed'
-            subject = f'Someone Viewed Your Bid: {bid.title if bid else "Your Bid"}'
-            button_text = 'View Your Bid'
-        elif 'viewed your offer' in message_lower or 'viewed your' in message_lower and offer:
-            viewer_username = notification.message.split(' viewed')[0] if ' viewed' in notification.message else None
-            email_scenario = 'offer_viewed'
-            subject = f'Someone Viewed Your Offer: {offer.title if offer else "Your Offer"}'
-            button_text = 'View Your Offer'
-        elif notification.notification_type == 'NEW_MESSAGE':
+        email_scenario = 'default'
+        button_text = 'View Details'
+        button_url = full_url
+        
+        if notification.notification_type == 'NEW_MESSAGE':
             email_scenario = 'new_message'
-            if sender_username:
-                subject = f'New Message from {sender_username}'
-            else:
-                # Extract from message
-                if ' sent you a message' in notification.message:
-                    sender_username = notification.message.split(' sent you a message')[0]
-                    subject = f'New Message from {sender_username}'
-                else:
-                    subject = 'New Message Received'
             button_text = 'Reply to Message'
         elif notification.notification_type == 'BID_ACCEPTED':
             email_scenario = 'bid_accepted'
-            if ' has accepted your bid' in notification.message:
-                accepter_username = notification.message.split(' has accepted your bid')[0]
-            subject = f'🎉 Your Bid Was Accepted: {bid.title if bid else "Your Bid"}'
             button_text = 'View Acceptances & Choose'
-            # Link to choose acceptance page if multiple, or bid detail
             if bid:
                 button_url = f"{base_url}/bids/bid/{bid.id}/"
         elif notification.notification_type == 'OFFER_ACCEPTED':
             email_scenario = 'offer_accepted'
-            if ' has selected your bid' in notification.message:
-                accepter_username = notification.message.split(' has selected your bid')[0]
-            subject = f'🎉 Your Bid Was Selected: {offer.title if offer else "Your Offer"}'
             button_text = 'Start Conversation'
             if offer:
                 button_url = f"{base_url}/messaging/start-offer/{offer.id}/"
-        elif notification.notification_type == 'OFFER_BID':
-            # Determine if it's new bid posted, new offer posted, or bid on offer
-            if 'posted a new bid' in message_lower:
-                email_scenario = 'new_bid_posted'
-                if bid:
-                    subject = f'New Bid Available: {bid.title} - ${bid.bid_amount}'
-                else:
-                    subject = 'New Bid Available on MjoloBid'
-                button_text = 'View Bid & Accept'
-            elif 'created a new offer' in message_lower:
-                email_scenario = 'new_offer_posted'
-                if offer:
-                    subject = f'New Offer Available: {offer.title} - Starting at ${offer.minimum_bid}'
-                else:
-                    subject = 'New Offer Available on MjoloBid'
-                button_text = 'View Offer & Place Bid'
-            elif 'placed a' in message_lower and 'bid on your offer' in message_lower:
-                email_scenario = 'bid_on_offer'
-                subject = f'New Bid on Your Offer: {offer.title if offer else "Your Offer"}'
-                button_text = 'View Bids on Your Offer'
-                if offer:
-                    button_url = f"{base_url}/offers/offer/{offer.id}/bids/"
-            else:
-                # Default OFFER_BID scenario
-                email_scenario = 'default_offer_bid'
-                subject = f'{notification.title} - MjoloBid'
-        else:
-            email_scenario = 'default'
-            subject = f'{notification.title} - MjoloBid'
+        elif 'viewed your bid' in message_lower:
+            email_scenario = 'bid_viewed'
+            button_text = 'View Your Bid'
+        elif 'viewed your offer' in message_lower or ('viewed your' in message_lower and offer):
+            email_scenario = 'offer_viewed'
+            button_text = 'View Your Offer'
+        elif 'posted a new bid' in message_lower:
+            email_scenario = 'new_bid_posted'
+            button_text = 'View Bid & Accept'
+        elif 'created a new offer' in message_lower:
+            email_scenario = 'new_offer_posted'
+            button_text = 'View Offer & Place Bid'
+        elif 'placed a' in message_lower and 'bid on your offer' in message_lower:
+            email_scenario = 'bid_on_offer'
+            button_text = 'View Bids on Your Offer'
+            if offer:
+                button_url = f"{base_url}/offers/offer/{offer.id}/bids/"
         
         # Get recipient name
         recipient_name = user.get_full_name() or user.username
         
-        # Prepare rich email context with all scenario data
+        # Prepare email context (keep it simple, template will handle missing data)
         context = {
             'user': user,
             'notification': notification,
@@ -332,18 +315,15 @@ def send_email_notification(user, notification):
             'site_name': 'MjoloBid',
             'site_url': base_url,
             'email_scenario': email_scenario,
-            # Related objects
             'bid': bid,
             'offer': offer,
             'conversation': conversation,
-            # User names
             'recipient_name': recipient_name,
-            'sender_username': sender_username,
-            'viewer_username': viewer_username,
-            'accepter_username': accepter_username,
-            # Creator usernames
-            'bid_creator_username': bid.user.username if bid else None,
-            'offer_creator_username': offer.user.username if offer else None,
+            'sender_username': sender_username or 'Someone',
+            'viewer_username': notification.message.split(' viewed')[0] if ' viewed' in notification.message else None,
+            'accepter_username': (notification.message.split(' has accepted your bid')[0] if ' has accepted your bid' in notification.message else None) or (notification.message.split(' has selected your bid')[0] if ' has selected your bid' in notification.message else None),
+            'bid_creator_username': bid.user.username if bid and bid.user else None,
+            'offer_creator_username': offer.user.username if offer and offer.user else None,
         }
         
         # Render email templates with scenario-specific content
