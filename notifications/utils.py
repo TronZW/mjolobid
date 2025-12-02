@@ -327,8 +327,29 @@ def send_email_notification(user, notification):
         }
         
         # Render email templates with scenario-specific content
-        html_message = render_to_string('emails/notification.html', context)
-        text_message = render_to_string('emails/notification.txt', context)
+        try:
+            html_message = render_to_string('emails/notification.html', context)
+        except Exception as template_error:
+            print(f"ERROR: Template rendering failed: {template_error}")
+            import traceback
+            traceback.print_exc()
+            # Fallback to simple template
+            html_message = f"""
+            <html>
+            <body>
+                <h1>{subject}</h1>
+                <p>{notification.message}</p>
+                <p><a href="{full_url}">View Details</a></p>
+            </body>
+            </html>
+            """
+        
+        try:
+            text_message = render_to_string('emails/notification.txt', context)
+        except Exception as template_error:
+            print(f"ERROR: Text template rendering failed: {template_error}")
+            # Fallback to simple text
+            text_message = f"{subject}\n\n{notification.message}\n\nView Details: {full_url}"
         
         # Send email with improved headers for better deliverability
         email = EmailMultiAlternatives(
@@ -357,6 +378,8 @@ def send_email_notification(user, notification):
     except Exception as e:
         error_msg = str(e)
         print(f"Failed to send email notification to {user.username}: {error_msg}")
+        import traceback
+        traceback.print_exc()
         
         # Provide helpful error messages
         if 'BadCredentials' in error_msg or 'Authentication failed' in error_msg or '535' in error_msg:
