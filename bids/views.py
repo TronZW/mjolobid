@@ -4,14 +4,15 @@ from django.contrib import messages
 from django.http import JsonResponse
 from django.views.decorators.csrf import csrf_exempt
 from django.utils import timezone
-from django.db.models import Q, F
+from django.db.models import Q, F, Sum
 from django.core.paginator import Paginator
 from django.conf import settings
 from django.db import close_old_connections
 from threading import Thread
+from decimal import Decimal
 import json
-from .models import Bid, EventCategory, BidMessage, BidReview, EventPromotion, BidView, BidImage
-from .forms import BidForm, BidReviewForm, EventPromotionForm
+from .models import Bid, EventCategory, BidMessage, BidReview, EventPromotion, BidView, BidImage, BidPerk
+from .forms import BidForm, BidReviewForm, EventPromotionForm, BidPerkFormSet
 from accounts.models import User
 from notifications.utils import send_notification
 
@@ -39,10 +40,19 @@ def _send_new_bid_notifications_async(bid_id, creator_id):
 
     for female_user in female_users.iterator():
         try:
+            # Format message based on bid type
+            if bid.bid_type == 'MONEY' and bid.bid_amount:
+                bid_display = f'${bid.bid_amount}'
+            elif bid.bid_type == 'PERKS':
+                perk_count = bid.perks.count()
+                bid_display = f'{perk_count} perk(s)'
+            else:
+                bid_display = 'a new bid'
+            
             send_notification(
                 user=female_user,
                 title='New Bid Available!',
-                message=f'{creator.username} posted a new bid: {bid.title} - ${bid.bid_amount}',
+                message=f'{creator.username} posted a new bid: {bid.title} - {bid_display}',
                 notification_type='OFFER_BID',
                 related_object_type='bid',
                 related_object_id=bid.id
@@ -73,6 +83,8 @@ def browse_bids(request):
     min_amount = request.GET.get('min_amount')
     max_amount = request.GET.get('max_amount')
     raw_location = request.GET.get('location')
+    bid_type_filter = request.GET.get('bid_type', '')  # 'MONEY', 'PERKS', or ''
+    perk_category_filter = request.GET.get('perk_category', '')  # Filter by perk category
     sort_by = request.GET.get('sort_by', 'created_at')
 
     # Normalize filters (ignore placeholders like 'None', 'All', 'Any')
@@ -87,10 +99,13 @@ def browse_bids(request):
     category = _normalize(raw_category)
     location = _normalize(raw_location)
     
-    # Base queryset
+    # Base queryset - allow same-day bids (event_date >= today)
+    from datetime import datetime, time as dt_time
+    today_start = timezone.make_aware(datetime.combine(timezone.now().date(), dt_time.min))
+    
     bids = Bid.objects.filter(
         status='PENDING',
-        event_date__gt=timezone.now(),
+        event_date__gte=today_start,  # Changed from __gt to __gte to allow same-day
         expires_at__gt=timezone.now()
     ).exclude(user=request.user)
     
@@ -115,9 +130,26 @@ def browse_bids(request):
     if location:
         bids = bids.filter(event_location__icontains=location)
     
+    # Filter by bid type
+    if bid_type_filter in ['MONEY', 'PERKS']:
+        bids = bids.filter(bid_type=bid_type_filter)
+    
+    # Filter by perk category (if bid_type is PERKS)
+    if perk_category_filter and bid_type_filter == 'PERKS':
+        bids = bids.filter(perks__category=perk_category_filter).distinct()
+    
     # Apply sorting
     if sort_by == 'amount':
-        bids = bids.order_by('-bid_amount')
+        # Sort money bids by amount, perks by total_perk_value
+        from django.db.models import Case, When, Value, DecimalField
+        bids = bids.annotate(
+            sort_value=Case(
+                When(bid_type='MONEY', then='bid_amount'),
+                When(bid_type='PERKS', then='total_perk_value'),
+                default=Value(0),
+                output_field=DecimalField()
+            )
+        ).order_by('-sort_value', '-created_at')
     elif sort_by == 'date':
         bids = bids.order_by('event_date')
     else:
@@ -159,6 +191,8 @@ def browse_bids(request):
             'min_amount': min_amount or '',
             'max_amount': max_amount or '',
             'location': location or '',
+            'bid_type': bid_type_filter or '',
+            'perk_category': perk_category_filter or '',
             'sort_by': sort_by or 'created_at',
         }
     }
@@ -585,6 +619,10 @@ def post_bid(request):
     
     if request.method == 'POST':
         form = BidForm(request.POST, request.FILES)
+        
+        # Initialize formset - will be recreated with proper instance if form is valid
+        perk_formset = BidPerkFormSet(request.POST, instance=Bid())
+        
         if form.is_valid():
             bid = form.save(commit=False)
             bid.user = request.user
@@ -630,7 +668,67 @@ def post_bid(request):
                     )
                     bid.event_category = category
             
+            # Save bid first to get an ID
             bid.save()
+            
+            # Handle perks if bid_type is PERKS
+            if bid.bid_type == 'PERKS':
+                # Recreate formset with the saved bid instance
+                perk_formset = BidPerkFormSet(request.POST, instance=bid)
+                
+                # Debug: Check if formset has data
+                total_forms = int(request.POST.get('perks-TOTAL_FORMS', 0))
+                print(f"DEBUG: Total forms in formset: {total_forms}")
+                print(f"DEBUG: Formset is_valid: {perk_formset.is_valid()}")
+                
+                if perk_formset.is_valid():
+                    perks = perk_formset.save(commit=False)
+                    print(f"DEBUG: Number of perks from formset: {len(perks)}")
+                    
+                    # Filter out empty forms - Django formsets include empty forms, we need to filter them
+                    valid_perks = [p for p in perks if p and p.category and p.description]
+                    print(f"DEBUG: Number of valid perks: {len(valid_perks)}")
+                    
+                    # Validate at least one perk
+                    if not valid_perks:
+                        messages.error(request, 'Please add at least one complete perk (category, description, and quantity are required).')
+                        # Recreate form and formset with POST data to preserve user input
+                        form = BidForm(request.POST, request.FILES)
+                        perk_formset = BidPerkFormSet(request.POST, instance=bid)
+                        context = {
+                            'form': form,
+                            'perk_formset': perk_formset,
+                        }
+                        return render(request, 'bids/post_bid.html', context)
+                    
+                    # Save all valid perks
+                    for perk in valid_perks:
+                        perk.bid = bid
+                        perk.save()
+                    perk_formset.save_m2m()
+                    
+                    # Update total_perk_value
+                    total = bid.perks.aggregate(total=Sum('estimated_value'))['total'] or Decimal('0.00')
+                    bid.total_perk_value = total
+                    bid.save()
+                else:
+                    # Formset validation failed - show errors
+                    error_messages = []
+                    for form in perk_formset:
+                        if form.errors:
+                            for field, errors in form.errors.items():
+                                for error in errors:
+                                    error_messages.append(f"{form.prefix}: {field} - {error}")
+                    if perk_formset.non_form_errors():
+                        error_messages.extend(perk_formset.non_form_errors())
+                    
+                    print(f"DEBUG: Formset errors: {error_messages}")
+                    messages.error(request, f'Please correct the errors in your perks: {"; ".join(error_messages) if error_messages else "Please fill in all required perk fields."}')
+                    context = {
+                        'form': form,
+                        'perk_formset': perk_formset,
+                    }
+                    return render(request, 'bids/post_bid.html', context)
             
             # Handle images
             images = request.FILES.getlist('images')
@@ -653,11 +751,39 @@ def post_bid(request):
             
             messages.success(request, 'Bid posted successfully!')
             return redirect('bids:my_bids')
+        else:
+            # Form validation failed - re-render with errors
+            # Recreate perk_formset if bid_type is PERKS
+            bid_type = request.POST.get('bid_type', 'MONEY')
+            if bid_type == 'PERKS':
+                # Create a temporary bid instance for the formset
+                temp_bid = Bid()
+                temp_bid.bid_type = 'PERKS'
+                perk_formset = BidPerkFormSet(request.POST, instance=temp_bid)
+            else:
+                perk_formset = BidPerkFormSet(request.POST, instance=Bid())
+            
+            # Collect form errors for debugging
+            form_errors = []
+            for field, errors in form.errors.items():
+                for error in errors:
+                    form_errors.append(f"{field}: {error}")
+            
+            if form_errors:
+                messages.error(request, f'Please correct the form errors: {"; ".join(form_errors)}')
+            
+            context = {
+                'form': form,
+                'perk_formset': perk_formset,
+            }
+            return render(request, 'bids/post_bid.html', context)
     else:
         form = BidForm()
+        perk_formset = BidPerkFormSet(instance=Bid())
     
     context = {
         'form': form,
+        'perk_formset': perk_formset,
     }
     
     return render(request, 'bids/post_bid.html', context)
@@ -674,6 +800,8 @@ def edit_bid(request, bid_id):
 
     if request.method == 'POST':
         form = BidForm(request.POST, request.FILES, instance=bid)
+        perk_formset = BidPerkFormSet(request.POST, instance=bid)
+        
         if form.is_valid():
             bid = form.save(commit=False)
             
@@ -719,6 +847,47 @@ def edit_bid(request, bid_id):
                     bid.event_category = category
             
             bid.save()
+            
+            # Handle perks if bid_type is PERKS
+            if bid.bid_type == 'PERKS':
+                if perk_formset.is_valid():
+                    perks = perk_formset.save(commit=False)
+                    # Validate at least one perk
+                    if not perks:
+                        messages.error(request, 'Please add at least one perk for perks bids.')
+                        form = BidForm(request.POST, request.FILES, instance=bid)
+                        perk_formset = BidPerkFormSet(request.POST, instance=bid)
+                        context = {
+                            'form': form,
+                            'perk_formset': perk_formset,
+                            'bid': bid,
+                        }
+                        return render(request, 'bids/edit_bid.html', context)
+                    
+                    # Delete removed perks and save new/updated ones
+                    for perk in perks:
+                        perk.bid = bid
+                        perk.save()
+                    perk_formset.save_m2m()
+                    
+                    # Update total_perk_value
+                    from django.db.models import Sum
+                    total = bid.perks.aggregate(total=Sum('estimated_value'))['total'] or 0
+                    bid.total_perk_value = total
+                    bid.save()
+                else:
+                    messages.error(request, 'Please correct the errors in your perks.')
+                    context = {
+                        'form': form,
+                        'perk_formset': perk_formset,
+                        'bid': bid,
+                    }
+                    return render(request, 'bids/edit_bid.html', context)
+            else:
+                # If switching from PERKS to MONEY, delete all perks
+                bid.perks.all().delete()
+                bid.total_perk_value = None
+                bid.save()
 
             # Optionally handle new images appended to existing ones
             images = request.FILES.getlist('images')
@@ -729,9 +898,11 @@ def edit_bid(request, bid_id):
             return redirect('bids:my_bids')
     else:
         form = BidForm(instance=bid)
+        perk_formset = BidPerkFormSet(instance=bid)
 
     context = {
         'form': form,
+        'perk_formset': perk_formset,
         'bid': bid,
     }
 

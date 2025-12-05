@@ -1,5 +1,5 @@
 from django.contrib import admin
-from .models import EventCategory, Bid, BidImage, BidMessage, BidReview, EventPromotion
+from .models import EventCategory, Bid, BidImage, BidMessage, BidReview, EventPromotion, BidPerk
 
 
 @admin.register(EventCategory)
@@ -9,23 +9,42 @@ class EventCategoryAdmin(admin.ModelAdmin):
     search_fields = ('name',)
 
 
+class BidPerkInline(admin.TabularInline):
+    model = BidPerk
+    extra = 1
+    fields = ('category', 'description', 'quantity', 'estimated_value')
+
+
 @admin.register(Bid)
 class BidAdmin(admin.ModelAdmin):
-    list_display = ('title', 'user', 'bid_amount', 'status', 'event_date', 'created_at')
-    list_filter = ('status', 'event_category', 'is_boosted', 'created_at')
+    list_display = ('title', 'user', 'bid_type', 'display_value', 'status', 'event_date', 'created_at')
+    list_filter = ('status', 'bid_type', 'event_category', 'is_boosted', 'created_at')
     search_fields = ('title', 'user__username', 'event_location')
     raw_id_fields = ('user', 'accepted_by')
     readonly_fields = ('created_at', 'updated_at', 'commission_amount')
+    inlines = [BidPerkInline]
+    
+    def display_value(self, obj):
+        if obj.bid_type == 'MONEY' and obj.bid_amount:
+            return f"${obj.bid_amount}"
+        elif obj.bid_type == 'PERKS':
+            perk_count = obj.perks.count()
+            return f"{perk_count} perk(s)"
+        return "N/A"
+    display_value.short_description = 'Value'
     
     fieldsets = (
         ('Basic Information', {
             'fields': ('user', 'title', 'description', 'event_category')
         }),
+        ('Bid Type', {
+            'fields': ('bid_type',)
+        }),
         ('Event Details', {
             'fields': ('event_date', 'event_location', 'event_address', 'latitude', 'longitude')
         }),
         ('Financial', {
-            'fields': ('bid_amount', 'commission_amount')
+            'fields': ('bid_amount', 'total_perk_value', 'commission_amount')
         }),
         ('Status', {
             'fields': ('status', 'accepted_by', 'accepted_at')
@@ -60,6 +79,14 @@ class BidReviewAdmin(admin.ModelAdmin):
     list_filter = ('rating', 'created_at')
     search_fields = ('review_text', 'reviewer__username', 'reviewed_user__username')
     raw_id_fields = ('bid', 'reviewer', 'reviewed_user')
+
+
+@admin.register(BidPerk)
+class BidPerkAdmin(admin.ModelAdmin):
+    list_display = ('bid', 'category', 'description', 'quantity', 'estimated_value', 'created_at')
+    list_filter = ('category', 'created_at')
+    search_fields = ('description', 'bid__title')
+    raw_id_fields = ('bid',)
 
 
 @admin.register(EventPromotion)

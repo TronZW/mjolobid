@@ -36,11 +36,29 @@ Exciting news! {{ bid_creator_username }} just posted a new bid on MjoloBid that
 {% endif %}
 • Date & Time: {{ bid.event_date|date:"F d, Y" }} at {{ bid.event_date|time:"g:i A" }}
 • Location: {{ bid.event_location }}
+{% if bid.bid_type == 'PERKS' %}
+• Bid Type: ✨ Perks
+{% if bid.total_perk_value %}
+• Total Estimated Value: ${{ bid.total_perk_value }}
+{% endif %}
+{% if bid.perks.all %}
+🎁 Perks Offered:
+{% for perk in bid.perks.all %}
+  • {{ perk.get_category_display }}{% if perk.quantity > 1 %} (x{{ perk.quantity }}){% endif %}{% if perk.estimated_value %} - Estimated: ${{ perk.estimated_value }}{% endif %}
+    {{ perk.description|truncatewords:15 }}
+{% endfor %}
+{% endif %}
+{% else %}
 • Bid Amount: ${{ bid.bid_amount }}
+{% endif %}
 
 {{ bid.description|truncatewords:30 }}
 
+{% if bid.bid_type == 'PERKS' %}
+This bid includes exciting perks! If this event sounds interesting, you can accept it and start a conversation!
+{% else %}
 This bid is now open for acceptance. If this event sounds interesting, you can accept it and start a conversation!
+{% endif %}
 
 {% elif email_scenario == 'bid_viewed' %}
 Hi {{ recipient_name }},
@@ -51,7 +69,14 @@ This means your bid caught their attention! They're checking out the details of 
 • Event: {{ bid.title }}
 • Date: {{ bid.event_date|date:"F d, Y" }} at {{ bid.event_date|time:"g:i A" }}
 • Location: {{ bid.event_location }}
+{% if bid.bid_type == 'PERKS' %}
+• Your Bid Type: ✨ Perks
+{% if bid.total_perk_value %}
+• Total Estimated Value: ${{ bid.total_perk_value }}
+{% endif %}
+{% else %}
 • Your Bid Amount: ${{ bid.bid_amount }}
+{% endif %}
 
 They might be interested in accepting your bid. Keep an eye on your notifications - if they accept, you'll be notified immediately!
 
@@ -84,7 +109,14 @@ Congratulations! {{ accepter_username }} has accepted your bid for "{{ bid.title
 • Event: {{ bid.title }}
 • Date: {{ bid.event_date|date:"F d, Y" }} at {{ bid.event_date|time:"g:i A" }}
 • Location: {{ bid.event_location }}
+{% if bid.bid_type == 'PERKS' %}
+• Your Bid Type: ✨ Perks
+{% if bid.total_perk_value %}
+• Total Estimated Value: ${{ bid.total_perk_value }}
+{% endif %}
+{% else %}
 • Your Bid Amount: ${{ bid.bid_amount }}
+{% endif %}
 
 Next Steps:
 You can now review all acceptances for this bid and choose the companion you'd like to proceed with. If you have multiple acceptances, you'll be able to select your preferred match.

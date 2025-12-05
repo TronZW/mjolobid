@@ -145,12 +145,33 @@
                     {% endif %}
                     <div class="event-details-item">• <strong>Date & Time:</strong> {{ bid.event_date|date:"F d, Y" }} at {{ bid.event_date|time:"g:i A" }}</div>
                     <div class="event-details-item">• <strong>Location:</strong> {{ bid.event_location }}</div>
+                    {% if bid.bid_type == 'PERKS' %}
+                    <div class="event-details-item">• <strong>Bid Type:</strong> <span style="color: #8b5cf6; font-weight: 600;">✨ Perks</span></div>
+                    {% if bid.total_perk_value %}
+                    <div class="event-details-item">• <strong>Total Estimated Value:</strong> ${{ bid.total_perk_value }}</div>
+                    {% endif %}
+                    {% if bid.perks.all %}
+                    <div class="event-details-item" style="margin-top: 10px;"><strong>🎁 Perks Offered:</strong></div>
+                    {% for perk in bid.perks.all %}
+                    <div class="event-details-item" style="margin-left: 20px;">
+                        • {{ perk.get_category_display }} {% if perk.quantity > 1 %}(x{{ perk.quantity }}){% endif %}
+                        {% if perk.estimated_value %} - Estimated: ${{ perk.estimated_value }}{% endif %}
+                        <br><span style="font-size: 13px; color: #6b7280; margin-left: 20px;">{{ perk.description|truncatewords:15 }}</span>
+                    </div>
+                    {% endfor %}
+                    {% endif %}
+                    {% else %}
                     <div class="event-details-item">• <strong>Bid Amount:</strong> ${{ bid.bid_amount }}</div>
+                    {% endif %}
                 </div>
                 
                 <div class="notification-message">
                     <p>{{ bid.description|truncatewords:30 }}</p>
+                    {% if bid.bid_type == 'PERKS' %}
+                    <p>This bid includes exciting perks! If this event sounds interesting, you can accept it and start a conversation!</p>
+                    {% else %}
                     <p>This bid is now open for acceptance. If this event sounds interesting, you can accept it and start a conversation!</p>
+                    {% endif %}
                 </div>
                 
             {% elif email_scenario == 'bid_viewed' %}
@@ -164,7 +185,14 @@
                     <div class="event-details-item">• <strong>Event:</strong> {{ bid.title }}</div>
                     <div class="event-details-item">• <strong>Date:</strong> {{ bid.event_date|date:"F d, Y" }} at {{ bid.event_date|time:"g:i A" }}</div>
                     <div class="event-details-item">• <strong>Location:</strong> {{ bid.event_location }}</div>
+                    {% if bid.bid_type == 'PERKS' %}
+                    <div class="event-details-item">• <strong>Your Bid Type:</strong> <span style="color: #8b5cf6; font-weight: 600;">✨ Perks</span></div>
+                    {% if bid.total_perk_value %}
+                    <div class="event-details-item">• <strong>Total Estimated Value:</strong> ${{ bid.total_perk_value }}</div>
+                    {% endif %}
+                    {% else %}
                     <div class="event-details-item">• <strong>Your Bid Amount:</strong> ${{ bid.bid_amount }}</div>
+                    {% endif %}
                 </div>
                 
                 <div class="notification-message">
@@ -207,7 +235,14 @@
                     <div class="event-details-item">• <strong>Event:</strong> {{ bid.title }}</div>
                     <div class="event-details-item">• <strong>Date:</strong> {{ bid.event_date|date:"F d, Y" }} at {{ bid.event_date|time:"g:i A" }}</div>
                     <div class="event-details-item">• <strong>Location:</strong> {{ bid.event_location }}</div>
+                    {% if bid.bid_type == 'PERKS' %}
+                    <div class="event-details-item">• <strong>Your Bid Type:</strong> <span style="color: #8b5cf6; font-weight: 600;">✨ Perks</span></div>
+                    {% if bid.total_perk_value %}
+                    <div class="event-details-item">• <strong>Total Estimated Value:</strong> ${{ bid.total_perk_value }}</div>
+                    {% endif %}
+                    {% else %}
                     <div class="event-details-item">• <strong>Your Bid Amount:</strong> ${{ bid.bid_amount }}</div>
+                    {% endif %}
                 </div>
                 
                 <div class="notification-message">

@@ -15,8 +15,62 @@
         </div>
 
         <div class="bg-white rounded-2xl shadow-xl border border-gray-100 overflow-hidden">
-            <form method="POST" enctype="multipart/form-data" class="p-8">
+            <form method="POST" enctype="multipart/form-data" class="p-8" id="post-bid-form">
                 {% csrf_token %}
+                
+                <!-- Form-level errors -->
+                {% if form.non_field_errors %}
+                    <div class="mb-6 bg-red-50 border border-red-200 rounded-xl p-4" id="form-errors">
+                        <div class="flex items-start">
+                            <i class="fas fa-exclamation-circle text-red-500 mr-3 mt-1"></i>
+                            <div>
+                                <h4 class="font-semibold text-red-900 mb-2">Please correct the following errors:</h4>
+                                <ul class="list-disc list-inside text-red-800 space-y-1">
+                                    {% for error in form.non_field_errors %}
+                                        <li>{{ error }}</li>
+                                    {% endfor %}
+                                </ul>
+                            </div>
+                        </div>
+                    </div>
+                {% endif %}
+                
+                {% if perk_formset.non_form_errors %}
+                    <div class="mb-6 bg-red-50 border border-red-200 rounded-xl p-4" id="perks-errors">
+                        <div class="flex items-start">
+                            <i class="fas fa-exclamation-circle text-red-500 mr-3 mt-1"></i>
+                            <div>
+                                <h4 class="font-semibold text-red-900 mb-2">Perks form errors:</h4>
+                                <ul class="list-disc list-inside text-red-800 space-y-1">
+                                    {% for error in perk_formset.non_form_errors %}
+                                        <li>{{ error }}</li>
+                                    {% endfor %}
+                                </ul>
+                            </div>
+                        </div>
+                    </div>
+                {% endif %}
+                
+                <!-- Show form field errors summary if any -->
+                {% if form.errors %}
+                    <div class="mb-6 bg-yellow-50 border border-yellow-200 rounded-xl p-4">
+                        <div class="flex items-start">
+                            <i class="fas fa-exclamation-triangle text-yellow-600 mr-3 mt-1"></i>
+                            <div>
+                                <h4 class="font-semibold text-yellow-900 mb-2">Form validation errors:</h4>
+                                <ul class="list-disc list-inside text-yellow-800 space-y-1 text-sm">
+                                    {% for field, errors in form.errors.items %}
+                                        {% if field != '__all__' %}
+                                            {% for error in errors %}
+                                                <li><strong>{{ field|title }}:</strong> {{ error }}</li>
+                                            {% endfor %}
+                                        {% endif %}
+                                    {% endfor %}
+                                </ul>
+                            </div>
+                        </div>
+                    </div>
+                {% endif %}
                 
                 <!-- Event Details Section -->
                 <div class="mb-8">
@@ -142,10 +196,50 @@
                     </div>
                 </div>
                 
-                <!-- Bid Details Section -->
+                <!-- Bid Type Selection -->
                 <div class="mb-8">
                     <h3 class="text-lg font-semibold text-gray-900 mb-6 flex items-center">
-                        <i class="fas fa-dollar-sign mr-2 text-primary"></i>Bid Details
+                        <i class="fas fa-tag mr-2 text-primary"></i>Bid Type
+                    </h3>
+                    
+                    <div class="bg-gray-50 border border-gray-200 rounded-xl p-6">
+                        <div class="flex space-x-6">
+                            <label class="flex items-center cursor-pointer">
+                                <input type="radio" 
+                                       name="{{ form.bid_type.name }}" 
+                                       value="MONEY" 
+                                       id="bid_type_money"
+                                       class="form-radio h-5 w-5 text-primary focus:ring-primary"
+                                       {% if form.bid_type.value == 'MONEY' or not form.bid_type.value %}checked{% endif %}>
+                                <span class="ml-3 text-gray-700 font-semibold">
+                                    <i class="fas fa-dollar-sign mr-2"></i>Money
+                                </span>
+                            </label>
+                            <label class="flex items-center cursor-pointer">
+                                <input type="radio" 
+                                       name="{{ form.bid_type.name }}" 
+                                       value="PERKS" 
+                                       id="bid_type_perks"
+                                       class="form-radio h-5 w-5 text-primary focus:ring-primary"
+                                       {% if form.bid_type.value == 'PERKS' %}checked{% endif %}>
+                                <span class="ml-3 text-gray-700 font-semibold">
+                                    <i class="fas fa-gift mr-2"></i>Perks
+                                </span>
+                            </label>
+                        </div>
+                        {% if form.bid_type.errors %}
+                            <div class="text-red-600 text-sm flex items-center mt-2">
+                                <i class="fas fa-exclamation-circle mr-1"></i>
+                                {{ form.bid_type.errors.0 }}
+                            </div>
+                        {% endif %}
+                    </div>
+                </div>
+                
+                <!-- Money Bid Details Section -->
+                <div class="mb-8" id="money-bid-section">
+                    <h3 class="text-lg font-semibold text-gray-900 mb-6 flex items-center">
+                        <i class="fas fa-dollar-sign mr-2 text-primary"></i>Bid Amount
                     </h3>
                     
                     <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
@@ -166,8 +260,7 @@
                                        max="500" 
                                        step="0.01"
                                        class="w-full pl-8 pr-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-primary focus:border-transparent transition-all duration-200"
-                                       placeholder="25.00"
-                                       required>
+                                       placeholder="25.00">
                             </div>
                             {% if form.bid_amount.errors %}
                                 <div class="text-red-600 text-sm flex items-center">
@@ -208,6 +301,94 @@
                             </div>
                         </div>
                     </div>
+                </div>
+                
+                <!-- Perks Bid Details Section -->
+                <div class="mb-8" id="perks-bid-section" style="display: none;">
+                    <h3 class="text-lg font-semibold text-gray-900 mb-6 flex items-center">
+                        <i class="fas fa-gift mr-2 text-primary"></i>Add Perks
+                    </h3>
+                    
+                    <div class="bg-blue-50 border border-blue-200 rounded-lg p-4 mb-6">
+                        <div class="flex items-center text-sm text-blue-800">
+                            <i class="fas fa-info-circle mr-2"></i>
+                            <span>Offer perks like concert tickets, dinner, fuel coupons, etc. instead of money. No commission on perks!</span>
+                        </div>
+                    </div>
+                    
+                    <div id="perks-formset">
+                        {{ perk_formset.management_form }}
+                        {% for form in perk_formset %}
+                            <div class="perk-form border border-gray-200 rounded-xl p-6 mb-4 bg-white">
+                                <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                    <div class="space-y-2">
+                                        <label class="block text-sm font-semibold text-gray-700">
+                                            Perk Category *
+                                        </label>
+                                        {{ form.category }}
+                                        {% if form.category.errors %}
+                                            <div class="text-red-600 text-sm">{{ form.category.errors.0 }}</div>
+                                        {% endif %}
+                                    </div>
+                                    <div class="space-y-2">
+                                        <label class="block text-sm font-semibold text-gray-700">
+                                            Quantity *
+                                        </label>
+                                        {{ form.quantity }}
+                                        {% if form.quantity.errors %}
+                                            <div class="text-red-600 text-sm">{{ form.quantity.errors.0 }}</div>
+                                        {% endif %}
+                                    </div>
+                                    <div class="md:col-span-2 space-y-2">
+                                        <label class="block text-sm font-semibold text-gray-700">
+                                            Description *
+                                        </label>
+                                        {{ form.description }}
+                                        {% if form.description.errors %}
+                                            <div class="text-red-600 text-sm">{{ form.description.errors.0 }}</div>
+                                        {% endif %}
+                                        <p class="text-xs text-gray-500">e.g., "2 VIP tickets to Taylor Swift concert"</p>
+                                    </div>
+                                    <div class="space-y-2">
+                                        <label class="block text-sm font-semibold text-gray-700">
+                                            Estimated Value (USD) <span class="text-gray-500">(Optional)</span>
+                                        </label>
+                                        <div class="relative">
+                                            <div class="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none">
+                                                <span class="text-gray-500 font-semibold">$</span>
+                                            </div>
+                                            {{ form.estimated_value }}
+                                        </div>
+                                        {% if form.estimated_value.errors %}
+                                            <div class="text-red-600 text-sm">{{ form.estimated_value.errors.0 }}</div>
+                                        {% endif %}
+                                        <p class="text-xs text-gray-500">Helps with sorting and filtering</p>
+                                    </div>
+                                    {% if form.DELETE %}
+                                    <div class="md:col-span-2 flex items-center">
+                                        <label class="flex items-center text-red-600 cursor-pointer">
+                                            {{ form.DELETE }}
+                                            <span class="ml-2">Delete this perk</span>
+                                        </label>
+                                    </div>
+                                    {% endif %}
+                                    {{ form.id }}
+                                </div>
+                            </div>
+                        {% endfor %}
+                    </div>
+                    
+                    <button type="button" 
+                            id="add-perk-btn" 
+                            class="mt-4 bg-gray-200 text-gray-700 px-4 py-2 rounded-lg hover:bg-gray-300 transition-colors">
+                        <i class="fas fa-plus mr-2"></i>Add Another Perk
+                    </button>
+                    
+                    {% if perk_formset.non_form_errors %}
+                        <div class="text-red-600 text-sm mt-4">
+                            {{ perk_formset.non_form_errors }}
+                        </div>
+                    {% endif %}
                 </div>
                 
                 <!-- Description Section -->
@@ -325,7 +506,7 @@
                     </div>
                 </div>
             </div>
-            </div>
+        </div>
     </div>
 </div>
 
@@ -335,6 +516,33 @@ document.addEventListener('DOMContentLoaded', function() {
     const bidAmountDisplay = document.getElementById('bid-amount-display');
     const commissionDisplay = document.getElementById('commission-display');
     const companionAmountDisplay = document.getElementById('companion-amount-display');
+    const bidTypeMoney = document.getElementById('bid_type_money');
+    const bidTypePerks = document.getElementById('bid_type_perks');
+    const moneySection = document.getElementById('money-bid-section');
+    const perksSection = document.getElementById('perks-bid-section');
+    const addPerkBtn = document.getElementById('add-perk-btn');
+    
+    // Toggle between money and perks sections
+    function toggleBidType() {
+        if (bidTypeMoney.checked) {
+            moneySection.style.display = 'block';
+            perksSection.style.display = 'none';
+            if (bidAmountInput) {
+                bidAmountInput.required = true;
+            }
+        } else if (bidTypePerks.checked) {
+            moneySection.style.display = 'none';
+            perksSection.style.display = 'block';
+            if (bidAmountInput) {
+                bidAmountInput.required = false;
+                bidAmountInput.value = '';
+            }
+        }
+    }
+    
+    bidTypeMoney.addEventListener('change', toggleBidType);
+    bidTypePerks.addEventListener('change', toggleBidType);
+    toggleBidType(); // Initialize
     
     function updateCommissionBreakdown() {
         const amount = parseFloat(bidAmountInput.value) || 0;
@@ -346,27 +554,30 @@ document.addEventListener('DOMContentLoaded', function() {
         companionAmountDisplay.textContent = `$${companionAmount.toFixed(2)}`;
     }
     
-    bidAmountInput.addEventListener('input', updateCommissionBreakdown);
-    
-    // Set minimum date to today
-    const eventDateInput = document.getElementById('{{ form.event_date.id_for_label }}');
-    const today = new Date();
-    const tomorrow = new Date(today);
-    tomorrow.setDate(tomorrow.getDate() + 1);
-    eventDateInput.min = tomorrow.toISOString().slice(0, 16);
-    
-    // Auto-format bid amount input
-    bidAmountInput.addEventListener('input', function(e) {
-        let value = e.target.value.replace(/[^0-9.]/g, '');
-        if (value && !value.includes('.')) {
-            value = parseFloat(value).toFixed(2);
-        }
-        e.target.value = value;
+    if (bidAmountInput) {
+        bidAmountInput.addEventListener('input', updateCommissionBreakdown);
+        
+        // Auto-format bid amount input
+        bidAmountInput.addEventListener('input', function(e) {
+            let value = e.target.value.replace(/[^0-9.]/g, '');
+            if (value && !value.includes('.')) {
+                value = parseFloat(value).toFixed(2);
+            }
+            e.target.value = value;
+            updateCommissionBreakdown();
+        });
+        
+        // Initialize commission breakdown
         updateCommissionBreakdown();
-    });
+    }
     
-    // Initialize commission breakdown
-    updateCommissionBreakdown();
+    // Set minimum date to today (allow same-day bids)
+    const eventDateInput = document.getElementById('{{ form.event_date.id_for_label }}');
+    if (eventDateInput) {
+        const today = new Date();
+        // Set minimum to today (allow same-day bids)
+        eventDateInput.min = today.toISOString().slice(0, 16);
+    }
     
     // Handle custom category field visibility
     const eventCategorySelect = document.getElementById('{{ form.event_category.id_for_label }}');
@@ -374,40 +585,224 @@ document.addEventListener('DOMContentLoaded', function() {
     const customCategoryInput = document.getElementById('{{ form.custom_category.id_for_label }}');
     
     function toggleCustomCategory() {
-        if (eventCategorySelect.value === 'other') {
+        if (eventCategorySelect && eventCategorySelect.value === 'other') {
             customCategoryField.style.display = 'block';
-            customCategoryInput.required = true;
+            if (customCategoryInput) {
+                customCategoryInput.required = true;
+            }
         } else {
             customCategoryField.style.display = 'none';
-            customCategoryInput.required = false;
-            customCategoryInput.value = '';
+            if (customCategoryInput) {
+                customCategoryInput.required = false;
+                customCategoryInput.value = '';
+            }
         }
     }
     
-    eventCategorySelect.addEventListener('change', toggleCustomCategory);
+    if (eventCategorySelect) {
+        eventCategorySelect.addEventListener('change', toggleCustomCategory);
+        toggleCustomCategory(); // Initialize
+    }
     
-    // Initialize custom category field visibility
-    toggleCustomCategory();
+    // Dynamic perk formset handling
+    if (addPerkBtn) {
+        const perksFormset = document.getElementById('perks-formset');
+        const totalFormsInput = document.querySelector('#perks-formset input[name$="-TOTAL_FORMS"]');
+        const minNumFormsInput = document.querySelector('#perks-formset input[name$="-MIN_NUM_FORMS"]');
+        let formCount = parseInt(totalFormsInput.value) || 0;
+        
+        function updateFormIndices() {
+            const forms = perksFormset.querySelectorAll('.perk-form');
+            formCount = 0;
+            forms.forEach((formEl, index) => {
+                // Update all input names with new index
+                const inputs = formEl.querySelectorAll('input, select, textarea');
+                inputs.forEach(input => {
+                    const name = input.name;
+                    if (name && name.includes('-')) {
+                        const parts = name.split('-');
+                        if (parts.length >= 2) {
+                            const newName = `perks-${formCount}-${parts.slice(2).join('-')}`;
+                            input.name = newName;
+                        }
+                    }
+                });
+                formCount++;
+            });
+            if (totalFormsInput) {
+                totalFormsInput.value = formCount;
+            }
+        }
+        
+        function removePerkForm(btn) {
+            const formEl = btn.closest('.perk-form');
+            if (formEl) {
+                formEl.remove();
+                updateFormIndices();
+            }
+        }
+        
+        addPerkBtn.addEventListener('click', function() {
+            const newFormHtml = `
+                <div class="perk-form border border-gray-200 rounded-xl p-6 mb-4 bg-white">
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        <div class="space-y-2">
+                            <label class="block text-sm font-semibold text-gray-700">Perk Category *</label>
+                            <select name="perks-${formCount}-category" class="w-full px-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-primary focus:border-transparent" required>
+                                <option value="">Select category</option>
+                                <option value="CONCERT_TICKETS">🎵 Concert Tickets</option>
+                                <option value="ALCOHOL">🍷 Alcohol/Beverages</option>
+                                <option value="DINING">🍽️ Lunch/Dinner</option>
+                                <option value="FUEL">⛽ Fuel Coupons</option>
+                                <option value="TRANSPORT">🚗 Transportation</option>
+                                <option value="SHOPPING">🛍️ Shopping Vouchers</option>
+                                <option value="ENTERTAINMENT">🎬 Entertainment</option>
+                                <option value="OTHER">✨ Other</option>
+                            </select>
+                        </div>
+                        <div class="space-y-2">
+                            <label class="block text-sm font-semibold text-gray-700">Quantity *</label>
+                            <input type="number" name="perks-${formCount}-quantity" value="1" min="1" class="w-full px-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-primary focus:border-transparent" required>
+                        </div>
+                        <div class="md:col-span-2 space-y-2">
+                            <label class="block text-sm font-semibold text-gray-700">Description *</label>
+                            <textarea name="perks-${formCount}-description" rows="2" class="w-full px-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-primary focus:border-transparent" placeholder="e.g., 2 VIP tickets to Taylor Swift concert" required></textarea>
+                        </div>
+                        <div class="space-y-2">
+                            <label class="block text-sm font-semibold text-gray-700">Estimated Value (USD) <span class="text-gray-500">(Optional)</span></label>
+                            <div class="relative">
+                                <div class="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none">
+                                    <span class="text-gray-500 font-semibold">$</span>
+                                </div>
+                                <input type="number" name="perks-${formCount}-estimated_value" step="0.01" min="0" class="w-full pl-8 pr-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-primary focus:border-transparent" placeholder="Optional">
+                            </div>
+                        </div>
+                        <div class="md:col-span-2">
+                            <button type="button" class="remove-perk-btn text-red-600 hover:text-red-800">
+                                <i class="fas fa-trash mr-2"></i>Remove Perk
+                            </button>
+                        </div>
+                        <input type="hidden" name="perks-${formCount}-id" value="">
+                    </div>
+                </div>
+            `;
+            
+            perksFormset.insertAdjacentHTML('beforeend', newFormHtml);
+            formCount++;
+            if (totalFormsInput) {
+                totalFormsInput.value = formCount;
+            }
+            
+            // Add remove button functionality to the new form
+            const newRemoveBtn = perksFormset.querySelector('.perk-form:last-child .remove-perk-btn');
+            if (newRemoveBtn) {
+                newRemoveBtn.addEventListener('click', function() {
+                    removePerkForm(this);
+                });
+            }
+        });
+        
+        // Handle existing remove buttons
+        const existingRemoveButtons = perksFormset.querySelectorAll('.remove-perk-btn');
+        existingRemoveButtons.forEach(btn => {
+            btn.addEventListener('click', function() {
+                removePerkForm(this);
+            });
+        });
+    }
 
-    // Prevent double submission of the form
+    // Prevent double submission of the form and validate perks
     const form = document.querySelector('form');
     if (form) {
         const submitButton = form.querySelector('button[type="submit"]');
         let isSubmitting = false;
 
         form.addEventListener('submit', function (e) {
+            console.log('Form submit event triggered');
+            
             if (isSubmitting) {
+                console.log('Already submitting, preventing default');
                 e.preventDefault();
                 return;
             }
+            
+            // Validate perks if bid_type is PERKS
+            if (bidTypePerks && bidTypePerks.checked) {
+                console.log('Validating perks...');
+                const perksFormset = document.getElementById('perks-formset');
+                const perkForms = perksFormset.querySelectorAll('.perk-form');
+                let hasValidPerk = false;
+                let errorMessages = [];
+                
+                perkForms.forEach((formEl, index) => {
+                    const category = formEl.querySelector('select[name$="-category"]');
+                    const description = formEl.querySelector('textarea[name$="-description"]');
+                    const quantity = formEl.querySelector('input[name$="-quantity"]');
+                    
+                    if (category && category.value && 
+                        description && description.value.trim() && 
+                        quantity && quantity.value) {
+                        hasValidPerk = true;
+                    } else if (category || description || quantity) {
+                        // Partially filled form
+                        errorMessages.push(`Perk ${index + 1} is incomplete. Please fill all required fields.`);
+                    }
+                });
+                
+                if (!hasValidPerk) {
+                    console.log('No valid perks found, preventing submission');
+                    e.preventDefault();
+                    const errorMsg = errorMessages.length > 0 
+                        ? errorMessages.join('\n') 
+                        : 'Please add at least one complete perk (category, description, and quantity are required).';
+                    alert(errorMsg);
+                    // Scroll to perks section
+                    if (perksSection) {
+                        perksSection.scrollIntoView({ behavior: 'smooth', block: 'start' });
+                    }
+                    isSubmitting = false;
+                    return;
+                }
+                console.log('Perks validation passed');
+            }
+            
+            console.log('Form validation passed, submitting...');
             isSubmitting = true;
             if (submitButton) {
                 submitButton.disabled = true;
                 submitButton.classList.add('opacity-70', 'cursor-not-allowed');
                 submitButton.innerHTML = '<i class="fas fa-spinner fa-spin mr-2"></i>Posting...';
             }
+            
+            // Don't prevent default - let form submit normally
+            // If there are server-side errors, they'll be shown after page reload
+            console.log('Allowing form submission');
         });
     }
 });
+
+    // Scroll to errors if they exist after page load
+    document.addEventListener('DOMContentLoaded', function() {
+        const formErrors = document.getElementById('form-errors');
+        const perksErrors = document.getElementById('perks-errors');
+        
+        if (formErrors || perksErrors) {
+            // Scroll to first error after a short delay to ensure page is rendered
+            setTimeout(function() {
+                const errorElement = formErrors || perksErrors;
+                if (errorElement) {
+                    errorElement.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                }
+            }, 100);
+        }
+        
+        // Show perks feature modal if user hasn't seen it yet
+        // Delay slightly to avoid conflicts with other modals
+        setTimeout(function() {
+            if (typeof showPerksModal === 'function') {
+                showPerksModal();
+            }
+        }, 500);
+    });
 </script>
 {% endblock %}

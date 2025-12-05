@@ -233,7 +233,7 @@ def send_email_notification(user, notification):
         if notification.related_object_type == 'bid' and notification.related_object_id:
             try:
                 from bids.models import Bid
-                bid = Bid.objects.select_related('user', 'event_category', 'accepted_by').get(id=notification.related_object_id)
+                bid = Bid.objects.select_related('user', 'event_category', 'accepted_by').prefetch_related('perks').get(id=notification.related_object_id)
             except:
                 pass
         
@@ -378,11 +378,23 @@ def send_email_notification(user, notification):
     except Exception as e:
         error_msg = str(e)
         print(f"Failed to send email notification to {user.username}: {error_msg}")
-        import traceback
-        traceback.print_exc()
         
         # Provide helpful error messages
-        if 'BadCredentials' in error_msg or 'Authentication failed' in error_msg or '535' in error_msg:
+        if '550' in error_msg or 'Daily user sending limit exceeded' in error_msg or 'Daily sending quota exceeded' in error_msg:
+            print("\n⚠️  GMAIL DAILY SENDING LIMIT EXCEEDED!")
+            print("   Your Gmail account has hit its daily sending limit.")
+            print("   Gmail free accounts: ~500 emails/day")
+            print("   Google Workspace: ~2000 emails/day")
+            print("\n   Solutions:")
+            print("   1. Wait 24 hours for the limit to reset")
+            print("   2. Upgrade to Google Workspace for higher limits")
+            print("   3. Switch to a professional email service:")
+            print("      - SendGrid (100 emails/day free, then paid)")
+            print("      - Mailgun (5000 emails/month free)")
+            print("      - AWS SES (very affordable, pay per email)")
+            print("   4. Implement email queuing to spread sends over time")
+            print("\n   The notification was NOT marked as sent.")
+        elif 'BadCredentials' in error_msg or 'Authentication failed' in error_msg or '535' in error_msg:
             print("\n⚠️  Email authentication failed. For Gmail:")
             print("   1. Enable 2-Factor Authentication on your Google account")
             print("   2. Generate an 'App Password' at: https://myaccount.google.com/apppasswords")

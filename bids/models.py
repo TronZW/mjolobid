@@ -40,8 +40,14 @@ class Bid(models.Model):
     latitude = models.DecimalField(max_digits=9, decimal_places=6, null=True, blank=True)
     longitude = models.DecimalField(max_digits=9, decimal_places=6, null=True, blank=True)
     
-    # Financial details
-    bid_amount = models.DecimalField(max_digits=10, decimal_places=2)
+    # Bid type and financial details
+    BID_TYPE_CHOICES = [
+        ('MONEY', 'Money'),
+        ('PERKS', 'Perks'),
+    ]
+    bid_type = models.CharField(max_length=20, choices=BID_TYPE_CHOICES, default='MONEY')
+    bid_amount = models.DecimalField(max_digits=10, decimal_places=2, null=True, blank=True)
+    total_perk_value = models.DecimalField(max_digits=10, decimal_places=2, null=True, blank=True, help_text="Sum of estimated values for all perks")
     commission_amount = models.DecimalField(max_digits=10, decimal_places=2, default=0.00)
     
     # Status and matching
@@ -63,13 +69,29 @@ class Bid(models.Model):
         ordering = ['-created_at']
     
     def __str__(self):
-        return f"{self.title} - ${self.bid_amount} by {self.user.username}"
+        if self.bid_type == 'MONEY' and self.bid_amount:
+            return f"{self.title} - ${self.bid_amount} by {self.user.username}"
+        elif self.bid_type == 'PERKS':
+            perk_count = self.perks.count()
+            return f"{self.title} - {perk_count} perk(s) by {self.user.username}"
+        return f"{self.title} by {self.user.username}"
     
     def save(self, *args, **kwargs):
-        if not self.commission_amount:
+        # Calculate commission only for money bids
+        if self.bid_type == 'MONEY' and self.bid_amount and not self.commission_amount:
             from django.conf import settings
             commission_rate = settings.MJOLOBID_SETTINGS['COMMISSION_RATE']
             self.commission_amount = self.bid_amount * Decimal(str(commission_rate))
+        elif self.bid_type == 'PERKS':
+            # No commission on perks (Phase 1)
+            self.commission_amount = Decimal('0.00')
+            # Calculate total perk value if perks exist
+            if self.pk:
+                from django.db.models import Sum
+                total = self.perks.aggregate(
+                    total=Sum('estimated_value')
+                )['total'] or Decimal('0.00')
+                self.total_perk_value = total
         
         if not self.expires_at:
             self.expires_at = self.event_date - timezone.timedelta(hours=2)
@@ -126,6 +148,22 @@ class Bid(models.Model):
     def acceptance_count(self):
         """Get total number of acceptances"""
         return self.acceptances.count()
+    
+    @property
+    def has_perks(self):
+        """Check if bid has perks"""
+        return self.bid_type == 'PERKS' and self.perks.exists()
+    
+    @property
+    def display_value(self):
+        """Get display value for bid (money or total perk value)"""
+        if self.bid_type == 'MONEY' and self.bid_amount:
+            return f"${self.bid_amount}"
+        elif self.bid_type == 'PERKS' and self.total_perk_value:
+            return f"${self.total_perk_value} (Perks)"
+        elif self.bid_type == 'PERKS':
+            return "Perks"
+        return "N/A"
 
 
 class BidImage(models.Model):
@@ -257,3 +295,44 @@ class EventPromotion(models.Model):
     def is_live(self):
         now = timezone.now()
         return self.is_active and self.start_date <= now <= self.end_date
+
+
+class BidPerk(models.Model):
+    """Perks offered instead of money in bids"""
+    
+    PERK_CATEGORIES = [
+        ('CONCERT_TICKETS', '🎵 Concert Tickets'),
+        ('ALCOHOL', '🍷 Alcohol/Beverages'),
+        ('DINING', '🍽️ Lunch/Dinner'),
+        ('FUEL', '⛽ Fuel Coupons'),
+        ('TRANSPORT', '🚗 Transportation'),
+        ('SHOPPING', '🛍️ Shopping Vouchers'),
+        ('ENTERTAINMENT', '🎬 Entertainment'),
+        ('OTHER', '✨ Other'),
+    ]
+    
+    bid = models.ForeignKey(Bid, on_delete=models.CASCADE, related_name='perks')
+    category = models.CharField(max_length=50, choices=PERK_CATEGORIES)
+    description = models.TextField(max_length=200, help_text="e.g., '2 VIP tickets to Taylor Swift concert'")
+    estimated_value = models.DecimalField(
+        max_digits=10, 
+        decimal_places=2, 
+        null=True, 
+        blank=True,
+        help_text="Optional estimated value in USD for sorting/filtering"
+    )
+    quantity = models.IntegerField(default=1, help_text="Number of items (e.g., 2 tickets)")
+    created_at = models.DateTimeField(auto_now_add=True)
+    
+    class Meta:
+        ordering = ['category', 'created_at']
+        verbose_name = 'Bid Perk'
+        verbose_name_plural = 'Bid Perks'
+    
+    def __str__(self):
+        return f"{self.get_category_display()} - {self.description[:50]}"
+    
+    @property
+    def display_name(self):
+        """Get display name with icon"""
+        return f"{self.get_category_display()} - {self.description}"

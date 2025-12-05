@@ -181,6 +181,92 @@
     </div>
     {% endif %}
 
+    <!-- Perks Feature Modal - Shows once to explain the new perks feature -->
+    {% if user.is_authenticated and user.user_type == 'M' %}
+    <div id="perks-feature-modal" class="fixed inset-0 bg-black bg-opacity-60 z-[9998] hidden items-center justify-center" style="backdrop-filter: blur(4px);">
+        <div class="bg-white rounded-2xl shadow-2xl max-w-2xl w-full mx-4 p-8 transform transition-all relative max-h-[90vh] overflow-y-auto">
+            <div class="text-center mb-6">
+                <!-- Icon -->
+                <div class="mx-auto h-20 w-20 bg-gradient-to-r from-primary to-secondary rounded-full flex items-center justify-center mb-6">
+                    <i class="fas fa-gift text-white text-3xl"></i>
+                </div>
+                
+                <!-- Title -->
+                <h2 class="text-2xl font-bold text-gray-900 mb-3">✨ New Feature: Bid with Perks!</h2>
+                
+                <!-- Description -->
+                <p class="text-gray-600 mb-6 leading-relaxed">
+                    You can now make bids with perks instead of just money! Offer concert tickets, dinner, fuel coupons, and more to make your bid stand out.
+                </p>
+            </div>
+            
+            <!-- Instructions -->
+            <div class="text-left mb-6 space-y-4">
+                <div class="bg-gradient-to-r from-purple-50 to-pink-50 rounded-xl p-6 border border-purple-200">
+                    <h3 class="font-semibold text-lg text-gray-900 mb-4 flex items-center">
+                        <i class="fas fa-info-circle text-primary mr-2"></i>
+                        How It Works:
+                    </h3>
+                    <ol class="space-y-3 text-gray-700">
+                        <li class="flex items-start">
+                            <span class="font-bold text-primary mr-2">1.</span>
+                            <span>When posting a bid, choose <strong>"Perks"</strong> instead of <strong>"Money"</strong></span>
+                        </li>
+                        <li class="flex items-start">
+                            <span class="font-bold text-primary mr-2">2.</span>
+                            <span>Add one or more perks like:
+                                <ul class="ml-6 mt-2 space-y-1 list-disc">
+                                    <li>🎵 Concert Tickets</li>
+                                    <li>🍷 Alcohol/Beverages</li>
+                                    <li>🍽️ Lunch/Dinner</li>
+                                    <li>⛽ Fuel Coupons</li>
+                                    <li>🚗 Transportation</li>
+                                    <li>🛍️ Shopping Vouchers</li>
+                                    <li>🎬 Entertainment</li>
+                                    <li>✨ Other (be creative!)</li>
+                                </ul>
+                            </span>
+                        </li>
+                        <li class="flex items-start">
+                            <span class="font-bold text-primary mr-2">3.</span>
+                            <span>For each perk, provide:
+                                <ul class="ml-6 mt-2 space-y-1 list-disc">
+                                    <li>A category (required)</li>
+                                    <li>A description of what you're offering (required)</li>
+                                    <li>Quantity (how many, default is 1)</li>
+                                    <li>Estimated value (optional, helps recipients understand the worth)</li>
+                                </ul>
+                            </span>
+                        </li>
+                        <li class="flex items-start">
+                            <span class="font-bold text-primary mr-2">4.</span>
+                            <span>Click <strong>"Add Another Perk"</strong> to include multiple perks in your bid</span>
+                        </li>
+                        <li class="flex items-start">
+                            <span class="font-bold text-primary mr-2">5.</span>
+                            <span>Female users will see your perks when browsing bids and can accept if interested!</span>
+                        </li>
+                    </ol>
+                </div>
+                
+                <div class="bg-green-50 rounded-xl p-4 border border-green-200">
+                    <p class="text-sm text-gray-700">
+                        <i class="fas fa-lightbulb text-green-500 mr-2"></i>
+                        <strong>Tip:</strong> Perks can make your bid more attractive and memorable. Be creative and offer something unique!
+                    </p>
+                </div>
+            </div>
+            
+            <!-- Button -->
+            <div class="text-center">
+                <button onclick="dismissPerksModal()" class="bg-gradient-to-r from-primary to-secondary text-white px-8 py-3 rounded-xl font-semibold hover:opacity-90 transition-opacity shadow-lg">
+                    Got It! Let's Go
+                </button>
+            </div>
+        </div>
+    </div>
+    {% endif %}
+
     
 
     <!-- Main Content -->
@@ -822,6 +908,42 @@
             }
             // Mark as dismissed for this session only (will show again on next login)
             // We don't set localStorage here, so it will show again next time
+        }
+
+        // Perks Feature Modal Functions
+        function showPerksModal() {
+            // Check if user has already seen this modal
+            const hasSeenPerksModal = localStorage.getItem('mjolobid-perks-modal-seen');
+            if (hasSeenPerksModal === 'true') {
+                return;
+            }
+
+            const modal = document.getElementById('perks-feature-modal');
+            if (modal) {
+                modal.classList.remove('hidden');
+                modal.classList.add('flex');
+                // Prevent body scroll
+                document.body.style.overflow = 'hidden';
+                // Prevent clicking outside to dismiss
+                modal.addEventListener('click', function(e) {
+                    if (e.target === modal) {
+                        e.preventDefault();
+                        e.stopPropagation();
+                    }
+                });
+            }
+        }
+
+        function dismissPerksModal() {
+            const modal = document.getElementById('perks-feature-modal');
+            if (modal) {
+                modal.classList.add('hidden');
+                modal.classList.remove('flex');
+                // Restore body scroll
+                document.body.style.overflow = '';
+            }
+            // Mark as seen permanently
+            localStorage.setItem('mjolobid-perks-modal-seen', 'true');
         }
 
         async function enablePushNotifications() {
