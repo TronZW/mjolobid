@@ -167,8 +167,10 @@ EMAIL_BACKEND = config('EMAIL_BACKEND', default='django.core.mail.backends.smtp.
 EMAIL_HOST = config('EMAIL_HOST', default='smtp.sendgrid.net')
 EMAIL_PORT = config('EMAIL_PORT', default=587, cast=int)
 EMAIL_USE_TLS = config('EMAIL_USE_TLS', default=True, cast=bool)
+EMAIL_USE_SSL = False  # Explicitly set to False for SendGrid (uses TLS, not SSL)
 EMAIL_HOST_USER = config('EMAIL_HOST_USER', default='apikey')  # Literal 'apikey' for SendGrid
 EMAIL_HOST_PASSWORD = config('EMAIL_HOST_PASSWORD', default='')  # Set in environment variables
+EMAIL_TIMEOUT = config('EMAIL_TIMEOUT', default=30, cast=int)  # 30 second timeout for SMTP connections
 DEFAULT_FROM_EMAIL = config('DEFAULT_FROM_EMAIL', default='MjoloBid <noreply@mjolobid.com>')
 
 SERVER_EMAIL = DEFAULT_FROM_EMAIL

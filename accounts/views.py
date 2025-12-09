@@ -56,12 +56,22 @@ def register(request):
                 request.session['pending_verification_password'] = password  # Store plain password for welcome email
                 request.session.modified = True  # Ensure session is saved
                 return redirect('accounts:verify_email')
+            except (ConnectionError, ValueError) as e:
+                # These are user-friendly errors from send_verification_email
+                user.delete()
+                error_msg = str(e)
+                import logging
+                logger = logging.getLogger(__name__)
+                logger.error(f"Registration email error for {user.email}: {error_msg}")
+                messages.error(request, f'❌ Registration failed: {error_msg}. Please try again in a few moments.')
             except Exception as e:
                 # If email sending fails, delete user and show error
                 user.delete()
                 error_msg = str(e)
-                print(f"Registration email error: {e}")
-                messages.error(request, f'❌ Registration failed: Could not send verification email to {form.cleaned_data.get("email", "your email")}. Error: {error_msg}. Please check your email address and try again.')
+                import logging
+                logger = logging.getLogger(__name__)
+                logger.error(f"Unexpected registration email error for {user.email}: {error_msg}")
+                messages.error(request, f'❌ Registration failed: Could not send verification email. Please try again in a few moments. If the problem persists, contact support.')
         else:
             # Form validation failed - show errors
             messages.error(request, '❌ Please correct the errors below and try again.')
@@ -201,10 +211,19 @@ def resend_verification_code(request):
         return JsonResponse({'success': True, 'message': '✅ A new verification code has been sent to your email. Please check your inbox.'})
     except User.DoesNotExist:
         return JsonResponse({'success': False, 'error': 'User account not found. Please register again.'})
+    except (ConnectionError, ValueError) as e:
+        # These are user-friendly errors from send_verification_email
+        error_msg = str(e)
+        import logging
+        logger = logging.getLogger(__name__)
+        logger.error(f"Error resending verification code to {email}: {error_msg}")
+        return JsonResponse({'success': False, 'error': error_msg})
     except Exception as e:
         error_msg = str(e)
-        print(f"Error resending verification code: {e}")
-        return JsonResponse({'success': False, 'error': f'Failed to send verification code: {error_msg}. Please try again.'})
+        import logging
+        logger = logging.getLogger(__name__)
+        logger.error(f"Unexpected error resending verification code to {email}: {error_msg}")
+        return JsonResponse({'success': False, 'error': 'Failed to send verification code. Please try again in a few moments. If the problem persists, contact support.'})
 
 
 def forgot_password(request):
@@ -233,10 +252,19 @@ def forgot_password(request):
             # Don't reveal if email exists or not (security best practice)
             messages.success(request, '✅ If an account exists with that email, a password reset code has been sent. Please check your inbox.')
             return redirect('accounts:login')
+        except (ConnectionError, ValueError) as e:
+            # These are user-friendly errors from send_verification_email
+            error_msg = str(e)
+            import logging
+            logger = logging.getLogger(__name__)
+            logger.error(f"Error sending password reset code to {email}: {error_msg}")
+            messages.error(request, f'❌ {error_msg}')
         except Exception as e:
             error_msg = str(e)
-            print(f"Error sending password reset code: {e}")
-            messages.error(request, f'❌ Failed to send password reset code: {error_msg}. Please try again.')
+            import logging
+            logger = logging.getLogger(__name__)
+            logger.error(f"Unexpected error sending password reset code to {email}: {error_msg}")
+            messages.error(request, f'❌ Failed to send password reset code. Please try again in a few moments. If the problem persists, contact support.')
     
     return render(request, 'accounts/forgot_password.html')
 

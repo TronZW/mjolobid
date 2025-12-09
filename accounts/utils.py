@@ -3,12 +3,16 @@ Utility functions for email verification and password reset
 """
 import random
 import string
+import time
+import logging
 from django.utils import timezone
-from django.core.mail import send_mail
+from django.core.mail import send_mail, EmailMultiAlternatives
 from django.template.loader import render_to_string
 from django.conf import settings
 from django.db import models
 from .models import EmailVerification
+
+logger = logging.getLogger(__name__)
 
 
 def generate_verification_code(length=6):
@@ -17,9 +21,15 @@ def generate_verification_code(length=6):
 
 
 def send_verification_email(email, code, verification_type='REGISTRATION', user=None):
-    """Send verification code email"""
-    from django.template.loader import render_to_string
-    from django.core.mail import EmailMultiAlternatives
+    """Send verification code email with retry logic and improved error handling"""
+    import smtplib
+    import socket
+    
+    # Validate email configuration before attempting to send
+    if not settings.EMAIL_HOST_PASSWORD:
+        error_msg = "Email service is not configured. Please contact support."
+        logger.error(f"Email configuration error: EMAIL_HOST_PASSWORD is not set")
+        raise ValueError(error_msg)
     
     # Create expiration time (15 minutes from now)
     expires_at = timezone.now() + timezone.timedelta(minutes=15)
@@ -57,32 +67,87 @@ def send_verification_email(email, code, verification_type='REGISTRATION', user=
         'verification_type': verification_type,
     }
     
+    # Render email templates
     try:
-        # Render HTML email
         html_message = render_to_string(template_name, context)
         text_message = render_to_string(text_template, context)
-        
-        # Send email
-        send_mail(
-            subject=subject,
-            message=text_message,
-            from_email=settings.DEFAULT_FROM_EMAIL,
-            recipient_list=[email],
-            html_message=html_message,
-            fail_silently=False,
-        )
-        
-        return verification
     except Exception as e:
-        # If email sending fails, delete the verification record
         verification.delete()
-        raise e
+        logger.error(f"Failed to render email templates: {e}")
+        raise ValueError(f"Failed to prepare email: {str(e)}")
+    
+    # Retry logic: attempt to send email up to 3 times
+    max_retries = 3
+    retry_delay = 2  # seconds
+    
+    for attempt in range(1, max_retries + 1):
+        try:
+            # Use EmailMultiAlternatives for better control
+            email_msg = EmailMultiAlternatives(
+                subject=subject,
+                body=text_message,
+                from_email=settings.DEFAULT_FROM_EMAIL,
+                to=[email]
+            )
+            email_msg.attach_alternative(html_message, "text/html")
+            email_msg.send(fail_silently=False)
+            
+            logger.info(f"Verification email sent successfully to {email} (attempt {attempt})")
+            return verification
+            
+        except (smtplib.SMTPException, socket.error, ConnectionError, OSError) as e:
+            error_type = type(e).__name__
+            error_msg = str(e)
+            
+            # Log the error with context
+            logger.warning(
+                f"Email send attempt {attempt}/{max_retries} failed for {email}: "
+                f"{error_type}: {error_msg}"
+            )
+            
+            # If this is the last attempt, provide a user-friendly error message
+            if attempt == max_retries:
+                verification.delete()
+                
+                # Provide specific error messages based on error type
+                if "connection" in error_msg.lower() or "closed" in error_msg.lower():
+                    user_error = (
+                        "Unable to connect to email service. This may be due to: "
+                        "1) Email service configuration issue, 2) Network connectivity problem, "
+                        "or 3) Email service temporarily unavailable. Please try again in a few moments."
+                    )
+                elif "authentication" in error_msg.lower() or "535" in error_msg:
+                    user_error = (
+                        "Email authentication failed. Please contact support to verify "
+                        "email service configuration."
+                    )
+                elif "timeout" in error_msg.lower():
+                    user_error = (
+                        "Email service connection timed out. Please try again in a few moments."
+                    )
+                else:
+                    user_error = (
+                        f"Failed to send email: {error_msg}. "
+                        "Please try again or contact support if the problem persists."
+                    )
+                
+                raise ConnectionError(user_error)
+            
+            # Wait before retrying (exponential backoff)
+            time.sleep(retry_delay * attempt)
+            
+        except Exception as e:
+            # For unexpected errors, don't retry
+            verification.delete()
+            error_msg = str(e)
+            logger.error(f"Unexpected error sending verification email to {email}: {error_msg}")
+            raise ValueError(f"Failed to send email due to an unexpected error: {error_msg}")
 
 
 def send_welcome_email(user, password):
     """Send welcome email with account credentials"""
-    from django.template.loader import render_to_string
-    from django.core.mail import EmailMultiAlternatives
+    import smtplib
+    import socket
     
     subject = 'Welcome to MjoloBid - Your Account Details'
     
@@ -98,17 +163,23 @@ def send_welcome_email(user, password):
         html_message = render_to_string('accounts/emails/welcome.html', context)
         text_message = render_to_string('accounts/emails/welcome.txt', context)
         
-        send_mail(
+        # Use EmailMultiAlternatives for better control
+        email_msg = EmailMultiAlternatives(
             subject=subject,
-            message=text_message,
+            body=text_message,
             from_email=settings.DEFAULT_FROM_EMAIL,
-            recipient_list=[user.email],
-            html_message=html_message,
-            fail_silently=False,
+            to=[user.email]
         )
-    except Exception as e:
+        email_msg.attach_alternative(html_message, "text/html")
+        email_msg.send(fail_silently=False)
+        
+        logger.info(f"Welcome email sent successfully to {user.email}")
+    except (smtplib.SMTPException, socket.error, ConnectionError, OSError) as e:
         # Log error but don't fail registration
-        print(f"Failed to send welcome email: {e}")
+        logger.error(f"Failed to send welcome email to {user.email}: {str(e)}")
+    except Exception as e:
+        # Log unexpected errors
+        logger.error(f"Unexpected error sending welcome email to {user.email}: {str(e)}")
 
 
 def verify_code(email, code, verification_type='REGISTRATION'):
