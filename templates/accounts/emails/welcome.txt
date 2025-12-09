@@ -1,0 +1,23 @@
+Welcome to MjoloBid, {{ user.username }}!
+
+Your account has been successfully verified and activated! We're excited to have you join our community.
+
+YOUR ACCOUNT CREDENTIALS:
+=======================
+Username: {{ username }}
+Email: {{ email }}
+Password: {{ password }}
+
+⚠️ IMPORTANT: Please save this email or write down your credentials in a safe place. You'll need these to log in to your account.
+
+Login to your account: {{ login_url }}
+
+What's next?
+- Complete your profile setup
+- Browse available bids or post your own
+- Connect with other users for amazing social events
+
+---
+This is an automated email from MjoloBid.
+© 2024 MjoloBid. All rights reserved.
+

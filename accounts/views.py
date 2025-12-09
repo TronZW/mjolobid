@@ -9,8 +9,9 @@ from django.utils import timezone
 from django.db.models import Q
 from django.conf import settings
 import os
-from .models import User, UserProfile, UserRating, UserGallery
+from .models import User, UserProfile, UserRating, UserGallery, EmailVerification
 from .forms import UserRegistrationForm, UserLoginForm, ProfileUpdateForm, ProfileSetupForm, GalleryImageForm, GalleryImageUpdateForm
+from .utils import generate_verification_code, send_verification_email, send_welcome_email, verify_code
 import json
 
 
@@ -28,18 +29,307 @@ def home(request):
 
 
 def register(request):
-    """User registration"""
+    """User registration with email verification"""
     if request.method == 'POST':
         form = UserRegistrationForm(request.POST, request.FILES)
         if form.is_valid():
-            user = form.save()
-            login(request, user)
-            messages.success(request, 'Account created successfully!')
-            return redirect('accounts:profile_setup')
+            # Create user but don't activate yet
+            user = form.save(commit=False)
+            user.is_active = False  # User must verify email first
+            password = form.cleaned_data['password1']  # Save password before hashing
+            user.set_password(password)
+            user.save()
+            
+            # Create user profile and mark email as unverified
+            profile, created = UserProfile.objects.get_or_create(user=user)
+            profile.email_verified = False
+            profile.save()
+            
+            # Generate and send verification code
+            code = generate_verification_code()
+            try:
+                send_verification_email(user.email, code, 'REGISTRATION', user)
+                messages.success(request, f'✅ Registration successful! A verification code has been sent to {user.email}. Please check your email and enter the code to activate your account.')
+                # Store user ID and password in session for verification step
+                request.session['pending_verification_user_id'] = user.id
+                request.session['pending_verification_email'] = user.email
+                request.session['pending_verification_password'] = password  # Store plain password for welcome email
+                request.session.modified = True  # Ensure session is saved
+                return redirect('accounts:verify_email')
+            except Exception as e:
+                # If email sending fails, delete user and show error
+                user.delete()
+                error_msg = str(e)
+                print(f"Registration email error: {e}")
+                messages.error(request, f'❌ Registration failed: Could not send verification email to {form.cleaned_data.get("email", "your email")}. Error: {error_msg}. Please check your email address and try again.')
+        else:
+            # Form validation failed - show errors
+            messages.error(request, '❌ Please correct the errors below and try again.')
+            # Individual field errors will be shown in the form
     else:
         form = UserRegistrationForm()
     
     return render(request, 'accounts/register.html', {'form': form})
+
+
+def verify_email(request):
+    """Email verification page"""
+    # Get session data - but don't redirect on GET requests if missing (allow user to see the page)
+    user_id = request.session.get('pending_verification_user_id')
+    email = request.session.get('pending_verification_email')
+    
+    # Only check session on POST requests or if we need to show an error
+    if request.method == 'POST':
+        if not user_id or not email:
+            messages.error(request, '❌ No pending verification found. Your session may have expired. Please register again.')
+            return redirect('accounts:register')
+        
+        try:
+            user = User.objects.get(id=user_id, email=email)
+        except User.DoesNotExist:
+            messages.error(request, '❌ Invalid verification session. The user account was not found. Please register again.')
+            # Clear invalid session
+            request.session.pop('pending_verification_user_id', None)
+            request.session.pop('pending_verification_email', None)
+            request.session.pop('pending_verification_password', None)
+            return redirect('accounts:register')
+        
+        code = request.POST.get('code', '').strip()
+        
+        if not code:
+            messages.error(request, '❌ Please enter the 6-digit verification code sent to your email.')
+            return render(request, 'accounts/verify_email.html', {'email': email, 'user_id': user_id})
+        
+        if len(code) != 6 or not code.isdigit():
+            messages.error(request, '❌ Invalid code format. Please enter the 6-digit code sent to your email.')
+            return render(request, 'accounts/verify_email.html', {'email': email, 'user_id': user_id})
+        
+        # Verify the code
+        try:
+            verification, error = verify_code(email, code, 'REGISTRATION')
+            
+            if verification and not error:
+                # Activate user account
+                user.is_active = True
+                user.save()
+                
+                # Update profile
+                profile, created = UserProfile.objects.get_or_create(user=user)
+                profile.email_verified = True
+                profile.save()
+                
+                # Get the original password from session
+                password = request.session.get('pending_verification_password')
+                
+                # Login user - ensure backend is specified
+                login(request, user, backend='django.contrib.auth.backends.ModelBackend')
+                
+                # Verify login was successful
+                if not request.user.is_authenticated:
+                    messages.error(request, '❌ Failed to log you in automatically. Please try logging in manually with your credentials.')
+                    return redirect('accounts:login')
+                
+                # Send welcome email with credentials
+                try:
+                    send_welcome_email(user, password if password else 'Your chosen password')
+                except Exception as e:
+                    print(f"Failed to send welcome email: {e}")
+                    # Don't fail the verification if email fails
+                
+                # Clear session
+                request.session.pop('pending_verification_user_id', None)
+                request.session.pop('pending_verification_email', None)
+                request.session.pop('pending_verification_password', None)
+                
+                messages.success(request, '✅ Email verified successfully! Your account has been activated. Welcome to MjoloBid!')
+                # Ensure message persists through redirect
+                request.session['verification_success'] = True
+                return redirect('accounts:profile_setup')
+            else:
+                # Provide specific error message and STAY ON THE SAME PAGE
+                error_msg = error or 'Invalid verification code. Please check the code and try again.'
+                messages.error(request, f'❌ {error_msg}')
+                # IMPORTANT: Stay on verification page to show error - don't redirect!
+                # Save session to ensure it persists
+                request.session['pending_verification_user_id'] = user_id
+                request.session['pending_verification_email'] = email
+                request.session.modified = True
+                return render(request, 'accounts/verify_email.html', {'email': email, 'user_id': user_id})
+        except Exception as e:
+            error_msg = str(e)
+            print(f"Verification error: {e}")
+            import traceback
+            traceback.print_exc()
+            messages.error(request, f'❌ An error occurred during verification: {error_msg}. Please try again or request a new code.')
+            # IMPORTANT: Stay on verification page to show error - don't redirect!
+            # Save session to ensure it persists
+            request.session['pending_verification_user_id'] = user_id
+            request.session['pending_verification_email'] = email
+            request.session.modified = True
+            return render(request, 'accounts/verify_email.html', {'email': email, 'user_id': user_id})
+    
+    # GET request - show verification page
+    if not user_id or not email:
+        messages.error(request, '❌ No pending verification found. Your session may have expired. Please register again.')
+        return redirect('accounts:register')
+    
+    try:
+        user = User.objects.get(id=user_id, email=email)
+    except User.DoesNotExist:
+        messages.error(request, '❌ Invalid verification session. The user account was not found. Please register again.')
+        # Clear invalid session
+        request.session.pop('pending_verification_user_id', None)
+        request.session.pop('pending_verification_email', None)
+        request.session.pop('pending_verification_password', None)
+        return redirect('accounts:register')
+    
+    return render(request, 'accounts/verify_email.html', {'email': email, 'user_id': user_id})
+
+
+def resend_verification_code(request):
+    """Resend verification code"""
+    user_id = request.session.get('pending_verification_user_id')
+    email = request.session.get('pending_verification_email')
+    
+    if not user_id or not email:
+        return JsonResponse({'success': False, 'error': 'No pending verification found. Please register again.'})
+    
+    try:
+        user = User.objects.get(id=user_id, email=email)
+        code = generate_verification_code()
+        send_verification_email(email, code, 'REGISTRATION', user)
+        return JsonResponse({'success': True, 'message': '✅ A new verification code has been sent to your email. Please check your inbox.'})
+    except User.DoesNotExist:
+        return JsonResponse({'success': False, 'error': 'User account not found. Please register again.'})
+    except Exception as e:
+        error_msg = str(e)
+        print(f"Error resending verification code: {e}")
+        return JsonResponse({'success': False, 'error': f'Failed to send verification code: {error_msg}. Please try again.'})
+
+
+def forgot_password(request):
+    """Forgot password - request verification code"""
+    if request.method == 'POST':
+        email = request.POST.get('email', '').strip()
+        
+        if not email:
+            messages.error(request, '❌ Please enter your email address.')
+            return render(request, 'accounts/forgot_password.html')
+        
+        # Basic email format validation
+        if '@' not in email or '.' not in email.split('@')[-1]:
+            messages.error(request, '❌ Please enter a valid email address.')
+            return render(request, 'accounts/forgot_password.html')
+        
+        try:
+            user = User.objects.get(email=email)
+            # Generate and send verification code
+            code = generate_verification_code()
+            send_verification_email(email, code, 'PASSWORD_RESET', user)
+            messages.success(request, f'✅ A password reset code has been sent to {email}. Please check your email.')
+            request.session['password_reset_email'] = email
+            return redirect('accounts:verify_password_reset')
+        except User.DoesNotExist:
+            # Don't reveal if email exists or not (security best practice)
+            messages.success(request, '✅ If an account exists with that email, a password reset code has been sent. Please check your inbox.')
+            return redirect('accounts:login')
+        except Exception as e:
+            error_msg = str(e)
+            print(f"Error sending password reset code: {e}")
+            messages.error(request, f'❌ Failed to send password reset code: {error_msg}. Please try again.')
+    
+    return render(request, 'accounts/forgot_password.html')
+
+
+def verify_password_reset(request):
+    """Verify password reset code"""
+    email = request.session.get('password_reset_email')
+    
+    if not email:
+        messages.error(request, '❌ No password reset request found. Your session may have expired. Please start over.')
+        return redirect('accounts:forgot_password')
+    
+    if request.method == 'POST':
+        code = request.POST.get('code', '').strip()
+        
+        if not code:
+            messages.error(request, '❌ Please enter the 6-digit verification code sent to your email.')
+            return render(request, 'accounts/verify_password_reset.html', {'email': email})
+        
+        if len(code) != 6 or not code.isdigit():
+            messages.error(request, '❌ Invalid code format. Please enter the 6-digit code sent to your email.')
+            return render(request, 'accounts/verify_password_reset.html', {'email': email})
+        
+        # Verify the code
+        try:
+            verification, error = verify_code(email, code, 'PASSWORD_RESET')
+            
+            if verification and not error:
+                # Store verification status in session for password reset step
+                request.session['password_reset_verified'] = True
+                request.session['password_reset_email'] = email
+                messages.success(request, '✅ Code verified successfully! Please enter your new password.')
+                return redirect('accounts:reset_password')
+            else:
+                error_msg = error or 'Invalid verification code. Please check the code and try again.'
+                messages.error(request, f'❌ {error_msg}')
+        except Exception as e:
+            messages.error(request, f'❌ An error occurred during verification: {str(e)}. Please try again.')
+            print(f"Password reset verification error: {e}")
+    
+    return render(request, 'accounts/verify_password_reset.html', {'email': email})
+
+
+def reset_password(request):
+    """Reset password after verification"""
+    email = request.session.get('password_reset_email')
+    verified = request.session.get('password_reset_verified')
+    
+    if not email or not verified:
+        messages.error(request, '❌ Please verify your email first. Your session may have expired.')
+        return redirect('accounts:forgot_password')
+    
+    try:
+        user = User.objects.get(email=email)
+    except User.DoesNotExist:
+        messages.error(request, '❌ User account not found. Please register again.')
+        # Clear session
+        request.session.pop('password_reset_email', None)
+        request.session.pop('password_reset_verified', None)
+        return redirect('accounts:forgot_password')
+    
+    if request.method == 'POST':
+        password1 = request.POST.get('password1', '').strip()
+        password2 = request.POST.get('password2', '').strip()
+        
+        if not password1 or not password2:
+            messages.error(request, '❌ Please fill in both password fields.')
+            return render(request, 'accounts/reset_password.html')
+        
+        if password1 != password2:
+            messages.error(request, '❌ Passwords do not match. Please enter the same password in both fields.')
+            return render(request, 'accounts/reset_password.html')
+        
+        if len(password1) < 8:
+            messages.error(request, '❌ Password must be at least 8 characters long. Please choose a stronger password.')
+            return render(request, 'accounts/reset_password.html')
+        
+        try:
+            # Set new password
+            user.set_password(password1)
+            user.save()
+            
+            # Clear session
+            request.session.pop('password_reset_email', None)
+            request.session.pop('password_reset_verified', None)
+            
+            messages.success(request, '✅ Password reset successfully! You can now login with your new password.')
+            return redirect('accounts:login')
+        except Exception as e:
+            messages.error(request, f'❌ Failed to reset password: {str(e)}. Please try again.')
+            print(f"Password reset error: {e}")
+    
+    return render(request, 'accounts/reset_password.html')
 
 
 def user_login(request):
@@ -84,6 +374,22 @@ def user_logout(request):
 @login_required
 def profile_setup(request):
     """Profile setup after registration"""
+    # Check if user just verified their email (first time on this page after verification)
+    # The success message should already be in messages from the redirect, but ensure it's there
+    verification_success_shown = request.session.get('verification_success_shown', False)
+    if not verification_success_shown:
+        # Check if there's already a success message about verification
+        existing_messages = list(messages.get_messages(request))
+        has_verification_message = any('verified successfully' in str(m).lower() or 'account has been activated' in str(m).lower() for m in existing_messages)
+        
+        if not has_verification_message:
+            # Add the verification success message
+            messages.success(request, '✅ Email verified successfully! Your account has been activated. Welcome to MjoloBid!')
+        
+        # Mark as shown so we don't show it again on refresh
+        request.session['verification_success_shown'] = True
+        request.session.modified = True
+    
     if request.method == 'POST':
         form = ProfileSetupForm(request.POST, request.FILES, instance=request.user)
         if form.is_valid():

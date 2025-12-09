@@ -211,3 +211,44 @@ class UserGallery(models.Model):
             return f"{base}{name}"
         
         return url
+
+
+class EmailVerification(models.Model):
+    """Model to store email verification codes"""
+    
+    VERIFICATION_TYPES = [
+        ('REGISTRATION', 'Registration'),
+        ('PASSWORD_RESET', 'Password Reset'),
+    ]
+    
+    email = models.EmailField()
+    code = models.CharField(max_length=6)
+    verification_type = models.CharField(max_length=20, choices=VERIFICATION_TYPES)
+    user = models.ForeignKey(User, on_delete=models.CASCADE, null=True, blank=True, related_name='email_verifications')
+    created_at = models.DateTimeField(auto_now_add=True)
+    expires_at = models.DateTimeField()
+    is_used = models.BooleanField(default=False)
+    attempts = models.IntegerField(default=0)
+    
+    class Meta:
+        ordering = ['-created_at']
+        indexes = [
+            models.Index(fields=['email', 'code', 'verification_type']),
+        ]
+    
+    def __str__(self):
+        return f"{self.email} - {self.code} ({self.verification_type})"
+    
+    def is_expired(self):
+        """Check if verification code has expired"""
+        from django.utils import timezone
+        return timezone.now() > self.expires_at
+    
+    def is_valid(self):
+        """Check if verification code is valid (not used and not expired)"""
+        return not self.is_used and not self.is_expired()
+    
+    def mark_as_used(self):
+        """Mark verification code as used"""
+        self.is_used = True
+        self.save(update_fields=['is_used'])

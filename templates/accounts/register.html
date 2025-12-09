@@ -5,6 +5,20 @@
 {% block content %}
 <div class="min-h-screen bg-gradient-to-br from-purple-50 to-pink-50 py-12 px-4 sm:px-6 lg:px-8">
     <div class="max-w-4xl mx-auto">
+        <!-- Django Messages - Display at the top -->
+        {% if messages %}
+            <div class="mb-6 space-y-3">
+                {% for message in messages %}
+                    <div class="p-4 rounded-xl border-2 {% if message.tags == 'error' %}bg-red-50 border-red-300 text-red-900{% elif message.tags == 'success' %}bg-green-50 border-green-300 text-green-900{% elif message.tags == 'warning' %}bg-yellow-50 border-yellow-300 text-yellow-900{% else %}bg-blue-50 border-blue-300 text-blue-900{% endif %} animate-pulse">
+                        <div class="flex items-center">
+                            <i class="fas {% if message.tags == 'error' %}fa-exclamation-triangle{% elif message.tags == 'success' %}fa-check-circle{% elif message.tags == 'warning' %}fa-exclamation-circle{% else %}fa-info-circle{% endif %} mr-3 text-lg"></i>
+                            <span class="font-semibold">{{ message }}</span>
+                        </div>
+                    </div>
+                {% endfor %}
+            </div>
+        {% endif %}
+        
         <!-- Header -->
         <div class="text-center mb-8">
             <div class="mx-auto h-16 w-16 bg-gradient-to-r from-primary to-secondary rounded-full flex items-center justify-center mb-4">
@@ -398,6 +412,14 @@ document.addEventListener('DOMContentLoaded', function() {
     const today = new Date();
     const maxDate = new Date(today.getFullYear() - 18, today.getMonth(), today.getDate());
     dateInput.max = maxDate.toISOString().split('T')[0];
+    
+    // Auto-scroll to messages if they exist
+    const messagesContainer = document.querySelector('.space-y-3');
+    if (messagesContainer && messagesContainer.children.length > 0) {
+        setTimeout(function() {
+            messagesContainer.scrollIntoView({ behavior: 'smooth', block: 'start' });
+        }, 100);
+    }
 });
 </script>
 {% endblock %}

@@ -1,6 +1,6 @@
 from django.contrib import admin
 from django.contrib.auth.admin import UserAdmin as BaseUserAdmin
-from .models import User, UserProfile, UserRating
+from .models import User, UserProfile, UserRating, EmailVerification
 
 
 @admin.register(User)
@@ -55,3 +55,19 @@ class UserRatingAdmin(admin.ModelAdmin):
     list_filter = ('rating', 'created_at')
     search_fields = ('rated_user__username', 'rating_user__username')
     raw_id_fields = ('rated_user', 'rating_user')
+
+
+@admin.register(EmailVerification)
+class EmailVerificationAdmin(admin.ModelAdmin):
+    """Email Verification admin"""
+    
+    list_display = ('email', 'code', 'verification_type', 'is_used', 'is_expired', 'created_at', 'expires_at')
+    list_filter = ('verification_type', 'is_used', 'created_at')
+    search_fields = ('email', 'code')
+    readonly_fields = ('created_at', 'expires_at', 'is_expired')
+    raw_id_fields = ('user',)
+    
+    def is_expired(self, obj):
+        return obj.is_expired()
+    is_expired.boolean = True
+    is_expired.short_description = 'Expired'

@@ -4,6 +4,20 @@
 
 {% block content %}
 <div class="max-w-2xl mx-auto">
+    <!-- Django Messages - Display at the top -->
+    {% if messages %}
+        <div class="mb-6 space-y-3">
+            {% for message in messages %}
+                <div class="p-4 rounded-xl border-2 {% if message.tags == 'error' %}bg-red-50 border-red-300 text-red-900{% elif message.tags == 'success' %}bg-green-50 border-green-300 text-green-900{% elif message.tags == 'warning' %}bg-yellow-50 border-yellow-300 text-yellow-900{% else %}bg-blue-50 border-blue-300 text-blue-900{% endif %} animate-pulse">
+                    <div class="flex items-center">
+                        <i class="fas {% if message.tags == 'error' %}fa-exclamation-triangle{% elif message.tags == 'success' %}fa-check-circle{% elif message.tags == 'warning' %}fa-exclamation-circle{% else %}fa-info-circle{% endif %} mr-3 text-lg"></i>
+                        <span class="font-semibold">{{ message }}</span>
+                    </div>
+                </div>
+            {% endfor %}
+        </div>
+    {% endif %}
+    
     <div class="text-center mb-8">
         <h1 class="text-3xl font-bold text-gray-900 mb-4">Complete Your Profile</h1>
         <p class="text-gray-600">Add some details to help others get to know you</p>
@@ -129,6 +143,14 @@ document.addEventListener('DOMContentLoaded', function() {
     const input = document.getElementById('{{ form.profile_picture.id_for_label }}');
     if (input) {
         input.addEventListener('change', function() { previewImage(input); });
+    }
+    
+    // Auto-scroll to messages if they exist
+    const messagesContainer = document.querySelector('.space-y-3');
+    if (messagesContainer && messagesContainer.children.length > 0) {
+        setTimeout(function() {
+            messagesContainer.scrollIntoView({ behavior: 'smooth', block: 'start' });
+        }, 100);
     }
 });
 </script>

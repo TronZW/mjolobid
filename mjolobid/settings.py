@@ -162,14 +162,14 @@ MJOLOBID_SETTINGS = {
     'MAX_BID_AMOUNT': 500.00,  # Maximum bid amount
 }
 
-# Email configuration - Gmail SMTP
+# Email configuration - SendGrid SMTP
 EMAIL_BACKEND = config('EMAIL_BACKEND', default='django.core.mail.backends.smtp.EmailBackend')
-EMAIL_HOST = config('EMAIL_HOST', default='smtp.gmail.com')
+EMAIL_HOST = config('EMAIL_HOST', default='smtp.sendgrid.net')
 EMAIL_PORT = config('EMAIL_PORT', default=587, cast=int)
 EMAIL_USE_TLS = config('EMAIL_USE_TLS', default=True, cast=bool)
-EMAIL_HOST_USER = config('EMAIL_HOST_USER', default='mjolobidapp@gmail.com')
-EMAIL_HOST_PASSWORD = config('EMAIL_HOST_PASSWORD', default='uqyyxougzkwwulqr')
-DEFAULT_FROM_EMAIL = config('DEFAULT_FROM_EMAIL', default='MjoloBid <mjolobidapp@gmail.com>')
+EMAIL_HOST_USER = config('EMAIL_HOST_USER', default='apikey')  # Literal 'apikey' for SendGrid
+EMAIL_HOST_PASSWORD = config('EMAIL_HOST_PASSWORD', default='')  # Set in environment variables
+DEFAULT_FROM_EMAIL = config('DEFAULT_FROM_EMAIL', default='MjoloBid <noreply@mjolobid.com>')
 
 SERVER_EMAIL = DEFAULT_FROM_EMAIL
 SITE_URL = config('SITE_URL', default='http://localhost:8000')

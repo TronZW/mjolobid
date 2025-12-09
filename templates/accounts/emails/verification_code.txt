@@ -1,0 +1,14 @@
+MjoloBid - Verify Your Email Address
+
+Thank you for registering with MjoloBid! To complete your registration and activate your account, please verify your email address using the code below:
+
+VERIFICATION CODE: {{ code }}
+
+Important: This code will expire in {{ expires_in_minutes }} minutes. If you didn't request this code, please ignore this email.
+
+Enter this code on the verification page to activate your account.
+
+---
+This is an automated email from MjoloBid.
+© 2024 MjoloBid. All rights reserved.
+
