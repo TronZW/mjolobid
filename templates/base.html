@@ -66,6 +66,9 @@
                         <a href="/dashboard/" class="text-gray-700 hover:text-primary px-3 py-2 rounded-md text-sm font-medium">
                             <i class="fas fa-chart-line mr-1"></i>Dashboard
                         </a>
+                        <a href="{% url 'admin_dashboard:verify_payments' %}" class="text-gray-700 hover:text-primary px-3 py-2 rounded-md text-sm font-medium">
+                            <i class="fas fa-check-circle mr-1"></i>Verification
+                        </a>
                         {% endif %}
                         <a href="{% url 'messaging:conversation_list' %}" class="relative text-gray-700 hover:text-primary px-3 py-2 rounded-md text-sm font-medium">
                             <i class="fas fa-comments mr-1"></i>Messages
@@ -82,9 +85,6 @@
                                 <i class="fas fa-plus mr-1"></i>Post Bid
                             </a>
                         {% elif user.user_type == 'F' %}
-                            <a href="{% url 'bids:browse_bids' %}" class="text-gray-700 hover:text-primary px-3 py-2 rounded-md text-sm font-medium">
-                                <i class="fas fa-search mr-1"></i>Browse Bids
-                            </a>
                             <a href="{% url 'offers:my_offers' %}" class="text-gray-700 hover:text-primary px-3 py-2 rounded-md text-sm font-medium">
                                 <i class="fas fa-gift mr-1"></i>My Offers
                             </a>
@@ -134,6 +134,9 @@
                 <a href="/dashboard/" class="block text-gray-700 hover:text-primary px-3 py-2 rounded-md text-base font-medium">
                     <i class="fas fa-chart-line mr-2"></i>Dashboard
                 </a>
+                <a href="{% url 'admin_dashboard:verify_payments' %}" class="block text-gray-700 hover:text-primary px-3 py-2 rounded-md text-base font-medium">
+                    <i class="fas fa-check-circle mr-2"></i>Verification
+                </a>
                 {% endif %}
                 <a href="{% url 'messaging:conversation_list' %}" class="relative block text-gray-700 hover:text-primary px-3 py-2 rounded-md text-base font-medium">
                     <i class="fas fa-comments mr-2"></i>Messages
@@ -150,9 +153,6 @@
                         <i class="fas fa-plus mr-2"></i>Post Bid
                     </a>
                 {% elif user.user_type == 'F' %}
-                    <a href="{% url 'bids:browse_bids' %}" class="block text-gray-700 hover:text-primary px-3 py-2 rounded-md text-base font-medium">
-                        <i class="fas fa-search mr-2"></i>Browse Bids
-                    </a>
                     <a href="{% url 'offers:my_offers' %}" class="block text-gray-700 hover:text-primary px-3 py-2 rounded-md text-base font-medium">
                         <i class="fas fa-gift mr-2"></i>My Offers
                     </a>

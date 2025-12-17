@@ -7,8 +7,8 @@ from django.views.decorators.http import require_http_methods
 from django.utils import timezone
 from django.conf import settings
 import json
-from .models import PaymentMethod, Transaction, Wallet, EscrowTransaction, Subscription, WithdrawalRequest
-from .forms import PaymentMethodForm, WithdrawalRequestForm
+from .models import PaymentMethod, Transaction, Wallet, EscrowTransaction, Subscription, WithdrawalRequest, ManualPayment
+from .forms import PaymentMethodForm, WithdrawalRequestForm, ManualPaymentForm
 from .services import PaymentService
 
 
@@ -74,41 +74,49 @@ def subscription(request):
         messages.info(request, 'You already have an active subscription.')
         return redirect('bids:browse_bids')
     
-    if request.method == 'POST':
-        # TEMPORARY: Bypass payment logic - just grant access
-        # TODO: Implement payment gateway integration later
-        amount = settings.MJOLOBID_SETTINGS['WOMEN_SUBSCRIPTION_FEE']
-        
-        # Create transaction (for record keeping)
-        transaction = Transaction.objects.create(
-            user=request.user,
-            transaction_type='SUBSCRIPTION',
-            amount=amount,
-            description='Women Access Subscription',
-            status='COMPLETED'  # Mark as completed for now
-        )
-        transaction.processed_at = timezone.now()
-        transaction.save()
-        
-        # Create and activate subscription immediately
-        subscription = Subscription.objects.create(
-            user=request.user,
-            subscription_type='WOMEN_ACCESS',
-            amount=amount,
-            payment_transaction=transaction,
-            is_active=True  # Activate immediately
-        )
-        
-        # Update user subscription status
-        request.user.subscription_active = True
-        request.user.subscription_expires = subscription.end_date
-        request.user.save()
-        
-        messages.success(request, 'Subscription activated successfully!')
-        return redirect('bids:browse_bids')
+    # Check for pending manual payment
+    pending_payment = ManualPayment.objects.filter(
+        user=request.user,
+        transaction_type='SUBSCRIPTION',
+        status='PENDING'
+    ).first()
+    
+    # Check for recently verified payment (to show success message)
+    verified_payment = ManualPayment.objects.filter(
+        user=request.user,
+        transaction_type='SUBSCRIPTION',
+        status='VERIFIED',
+        verified_at__isnull=False
+    ).order_by('-verified_at').first()
+    
+    # Check for recently rejected payment (to show failure message)
+    rejected_payment = ManualPayment.objects.filter(
+        user=request.user,
+        transaction_type='SUBSCRIPTION',
+        status='REJECTED',
+        verified_at__isnull=False
+    ).order_by('-verified_at').first()
+    
+    # Show success message if payment was verified in the last 5 minutes
+    if verified_payment and verified_payment.verified_at:
+        time_since_verification = timezone.now() - verified_payment.verified_at
+        if time_since_verification.total_seconds() < 300:  # 5 minutes
+            messages.success(request, f'Payment verified successfully! Your subscription is now active. You can now accept bids!')
+    
+    # Show error message if payment was rejected in the last 5 minutes
+    if rejected_payment and rejected_payment.verified_at:
+        time_since_rejection = timezone.now() - rejected_payment.verified_at
+        if time_since_rejection.total_seconds() < 300:  # 5 minutes
+            rejection_reason = rejected_payment.admin_notes or 'Payment verification failed. Please check your EcoCash reference and try again.'
+            messages.error(request, f'Payment verification failed: {rejection_reason}')
     
     context = {
         'subscription_fee': settings.MJOLOBID_SETTINGS['WOMEN_SUBSCRIPTION_FEE'],
+        'ecocash_number': getattr(settings, 'ECOCASH_NUMBER', '0775224360'),
+        'ecocash_name': getattr(settings, 'ECOCASH_NAME', 'Michael Shumba'),
+        'pending_payment': pending_payment,
+        'verified_payment': verified_payment,
+        'rejected_payment': rejected_payment,
     }
     
     return render(request, 'payments/subscription.html', context)
@@ -406,3 +414,107 @@ def payment_cancel(request):
             pass
     
     return redirect('payments:wallet')
+
+
+@login_required
+def submit_payment_proof(request):
+    """Submit payment proof for manual verification"""
+    if request.user.user_type != 'F':
+        messages.error(request, 'This page is only for female users.')
+        return redirect('accounts:profile')
+    
+    # Check if user already has active subscription
+    active_subscription = Subscription.objects.filter(
+        user=request.user,
+        subscription_type='WOMEN_ACCESS',
+        is_active=True,
+        end_date__gt=timezone.now()
+    ).first()
+    
+    if active_subscription:
+        messages.info(request, 'You already have an active subscription.')
+        return redirect('bids:browse_bids')
+    
+    # Check for existing pending payment
+    pending_payment = ManualPayment.objects.filter(
+        user=request.user,
+        transaction_type='SUBSCRIPTION',
+        status='PENDING'
+    ).first()
+    
+    if pending_payment:
+        messages.info(request, 'You already have a pending payment verification. Please wait for admin approval.')
+        return redirect('payments:subscription')
+    
+    if request.method == 'POST':
+        form = ManualPaymentForm(request.POST)
+        if form.is_valid():
+            amount = settings.MJOLOBID_SETTINGS['WOMEN_SUBSCRIPTION_FEE']
+            
+            # Create transaction (PENDING status)
+            transaction = Transaction.objects.create(
+                user=request.user,
+                transaction_type='SUBSCRIPTION',
+                amount=amount,
+                description='Women Access Subscription - Manual Payment',
+                status='PENDING'
+            )
+            
+            # Create manual payment
+            manual_payment = form.save(commit=False)
+            manual_payment.user = request.user
+            manual_payment.transaction = transaction
+            manual_payment.transaction_type = 'SUBSCRIPTION'
+            manual_payment.amount = amount
+            manual_payment.status = 'PENDING'
+            manual_payment.save()
+            
+            # Send email notification to admins
+            try:
+                from django.core.mail import send_mail
+                from django.contrib.auth.models import User as AuthUser
+                
+                admin_users = AuthUser.objects.filter(is_staff=True, is_active=True)
+                admin_emails = [admin.email for admin in admin_users if admin.email]
+                
+                if admin_emails:
+                    send_mail(
+                        subject=f'New Payment Verification Request - {request.user.username}',
+                        message=f'''
+A new payment verification request has been submitted:
+
+User: {request.user.username} ({request.user.email})
+Amount: ${amount}
+Transaction Type: Subscription
+EcoCash Reference: {manual_payment.ecocash_reference}
+Sender Name: {manual_payment.sender_name}
+Phone: {manual_payment.sender_phone or 'Not provided'}
+
+Please verify this payment in the admin dashboard.
+Verification should take 3-15 minutes.
+
+Admin Dashboard: {getattr(settings, "SITE_URL", "http://localhost:8000")}/admin-dashboard/verify-payments/
+                        ''',
+                        from_email=getattr(settings, 'DEFAULT_FROM_EMAIL', 'noreply@mjolobid.com'),
+                        recipient_list=admin_emails,
+                        fail_silently=True,
+                    )
+            except Exception as e:
+                # Log error but don't fail the request
+                import logging
+                logger = logging.getLogger(__name__)
+                logger.error(f'Failed to send admin notification email: {str(e)}')
+            
+            messages.success(request, 'Payment proof submitted successfully! Our team will verify your payment within 3-15 minutes. You will receive an email notification once verified.')
+            return redirect('payments:subscription')
+    else:
+        form = ManualPaymentForm()
+    
+    context = {
+        'form': form,
+        'subscription_fee': settings.MJOLOBID_SETTINGS['WOMEN_SUBSCRIPTION_FEE'],
+        'ecocash_number': getattr(settings, 'ECOCASH_NUMBER', '0775224360'),
+        'ecocash_name': getattr(settings, 'ECOCASH_NAME', 'Michael Shumba'),
+    }
+    
+    return render(request, 'payments/submit_payment_proof.html', context)

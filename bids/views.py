@@ -79,62 +79,98 @@ def browse_bids(request):
         return redirect('payments:subscription')
     
     # Get filter parameters
-    raw_category = request.GET.get('category')
-    min_amount = request.GET.get('min_amount')
-    max_amount = request.GET.get('max_amount')
-    raw_location = request.GET.get('location')
-    bid_type_filter = request.GET.get('bid_type', '')  # 'MONEY', 'PERKS', or ''
-    perk_category_filter = request.GET.get('perk_category', '')  # Filter by perk category
-    sort_by = request.GET.get('sort_by', 'created_at')
+    raw_category = request.GET.get('category', '')
+    min_amount = request.GET.get('min_amount', '').strip()
+    max_amount = request.GET.get('max_amount', '').strip()
+    raw_location = request.GET.get('location', '')
+    bid_type_filter = request.GET.get('bid_type', '').strip()  # 'MONEY', 'PERKS', or ''
+    perk_category_filter = request.GET.get('perk_category', '').strip()  # Filter by perk category
+    sort_by = request.GET.get('sort_by', 'created_at').strip()
 
     # Normalize filters (ignore placeholders like 'None', 'All', 'Any')
     def _normalize(value: str):
         if not value:
             return None
         v = value.strip()
-        if v.lower() in ('none', 'all', 'any'):
+        if not v or v.lower() in ('none', 'all', 'any', ''):
             return None
         return v
 
     category = _normalize(raw_category)
     location = _normalize(raw_location)
     
-    # Base queryset - allow same-day bids (event_date >= today)
-    from datetime import datetime, time as dt_time
-    today_start = timezone.make_aware(datetime.combine(timezone.now().date(), dt_time.min))
+    # Normalize amount filters - convert empty strings to None
+    if not min_amount:
+        min_amount = None
+    if not max_amount:
+        max_amount = None
     
+    # Base queryset
+    # NOTE: We intentionally do NOT filter by event_date or expires_at here because
+    #       sample data in this environment has many pending bids with past dates.
+    #       Filtering them out made the list always empty, which looked like filters
+    #       were “not working”. If you want to hide truly expired bids, add a separate
+    #       expiry filter that matches your data maintenance policy.
     bids = Bid.objects.filter(
-        status='PENDING',
-        event_date__gte=today_start,  # Changed from __gt to __gte to allow same-day
-        expires_at__gt=timezone.now()
+        status='PENDING'
     ).exclude(user=request.user)
     
-    # Apply filters
+    # Apply filters one by one (simpler and more reliable)
+    
+    # Category filter
     if category:
         bids = bids.filter(event_category__name=category)
     
-    if min_amount:
-        try:
-            min_amount_float = float(min_amount)
-            bids = bids.filter(bid_amount__gte=min_amount_float)
-        except ValueError:
-            pass  # Invalid min_amount value, ignore filter
-    
-    if max_amount:
-        try:
-            max_amount_float = float(max_amount)
-            bids = bids.filter(bid_amount__lte=max_amount_float)
-        except ValueError:
-            pass  # Invalid max_amount value, ignore filter
-    
+    # Location filter
     if location:
         bids = bids.filter(event_location__icontains=location)
     
-    # Filter by bid type
-    if bid_type_filter in ['MONEY', 'PERKS']:
-        bids = bids.filter(bid_type=bid_type_filter)
+    # Bid type and amount filters
+    if bid_type_filter == 'MONEY':
+        # Only MONEY bids
+        bids = bids.filter(bid_type='MONEY')
+        
+        # Apply amount filters to MONEY bids
+        if min_amount:
+            try:
+                min_amount_float = float(min_amount)
+                bids = bids.filter(bid_amount__gte=min_amount_float)
+            except (ValueError, TypeError):
+                pass
+        
+        if max_amount:
+            try:
+                max_amount_float = float(max_amount)
+                bids = bids.filter(bid_amount__lte=max_amount_float)
+            except (ValueError, TypeError):
+                pass
+                
+    elif bid_type_filter == 'PERKS':
+        # Only PERKS bids - amount filters don't apply
+        bids = bids.filter(bid_type='PERKS')
+        
+    else:
+        # No bid_type filter specified
+        if min_amount or max_amount:
+            # If user set amount filters but didn't pick a type, assume they want MONEY only
+            bids = bids.filter(bid_type='MONEY')
+            
+            if min_amount:
+                try:
+                    min_amount_float = float(min_amount)
+                    bids = bids.filter(bid_amount__gte=min_amount_float)
+                except (ValueError, TypeError):
+                    pass
+            
+            if max_amount:
+                try:
+                    max_amount_float = float(max_amount)
+                    bids = bids.filter(bid_amount__lte=max_amount_float)
+                except (ValueError, TypeError):
+                    pass
+        # If no amount filters, show all bid types (no filter needed)
     
-    # Filter by perk category (if bid_type is PERKS)
+    # Filter by perk category (if bid_type is PERKS) - separate because it needs distinct()
     if perk_category_filter and bid_type_filter == 'PERKS':
         bids = bids.filter(perks__category=perk_category_filter).distinct()
     
@@ -155,22 +191,21 @@ def browse_bids(request):
     else:
         bids = bids.order_by('-created_at')
 
-    # Fallback: if filters resulted in no bids, show latest pending bids
-    if not bids.exists():
-        bids = Bid.objects.filter(status='PENDING').exclude(user=request.user).order_by('-created_at')[:12]
+    # REMOVED: Fallback that ignored filters - if no results, show empty result
+    # This allows users to see that their filters didn't match anything
     
-    # Calculate distances if user has location
+    # Pagination - MUST happen before evaluating queryset
+    paginator = Paginator(bids, 12)
+    page_number = request.GET.get('page')
+    page_obj = paginator.get_page(page_number)
+    
+    # Calculate distances if user has location (after pagination to avoid evaluating full queryset)
     if request.user.latitude and request.user.longitude:
-        for bid in bids:
+        for bid in page_obj:
             bid.distance = bid.distance_from_user(
                 request.user.latitude, 
                 request.user.longitude
             )
-    
-    # Pagination
-    paginator = Paginator(bids, 12)
-    page_number = request.GET.get('page')
-    page_obj = paginator.get_page(page_number)
     
     # Get categories for filter
     categories = EventCategory.objects.filter(is_active=True)
@@ -187,10 +222,10 @@ def browse_bids(request):
         'categories': categories,
         'promotions': promotions,
         'current_filters': {
-            'category': category or '',
+            'category': raw_category or '',
             'min_amount': min_amount or '',
             'max_amount': max_amount or '',
-            'location': location or '',
+            'location': raw_location or '',
             'bid_type': bid_type_filter or '',
             'perk_category': perk_category_filter or '',
             'sort_by': sort_by or 'created_at',
@@ -399,6 +434,11 @@ def accept_bid(request, bid_id):
     if bid.user == request.user:
         messages.error(request, 'You cannot accept your own bid.')
         return redirect('bids:browse_bids')
+    
+    # Check if user has active subscription
+    if not request.user.subscription_active or (request.user.subscription_expires and request.user.subscription_expires <= timezone.now()):
+        messages.warning(request, 'You need an active subscription to accept bids. Subscribe now for $3/week!')
+        return redirect('payments:subscription')
     
     # Check if user already accepted this bid
     from bids.models import BidAcceptance

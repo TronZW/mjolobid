@@ -9,16 +9,40 @@
     
 </div>
 
+<!-- Active Filters Display (Debug) -->
+{% if current_filters.category or current_filters.bid_type or current_filters.min_amount or current_filters.max_amount or current_filters.location %}
+<div class="bg-blue-50 border border-blue-200 rounded-lg p-4 mb-4">
+    <p class="text-sm text-blue-800 font-semibold mb-2">Active Filters:</p>
+    <div class="flex flex-wrap gap-2">
+        {% if current_filters.category %}
+        <span class="bg-blue-200 text-blue-800 px-3 py-1 rounded-full text-xs">Category: {{ current_filters.category }}</span>
+        {% endif %}
+        {% if current_filters.bid_type %}
+        <span class="bg-blue-200 text-blue-800 px-3 py-1 rounded-full text-xs">Type: {{ current_filters.bid_type }}</span>
+        {% endif %}
+        {% if current_filters.min_amount %}
+        <span class="bg-blue-200 text-blue-800 px-3 py-1 rounded-full text-xs">Min: ${{ current_filters.min_amount }}</span>
+        {% endif %}
+        {% if current_filters.max_amount %}
+        <span class="bg-blue-200 text-blue-800 px-3 py-1 rounded-full text-xs">Max: ${{ current_filters.max_amount }}</span>
+        {% endif %}
+        {% if current_filters.location %}
+        <span class="bg-blue-200 text-blue-800 px-3 py-1 rounded-full text-xs">Location: {{ current_filters.location }}</span>
+        {% endif %}
+    </div>
+</div>
+{% endif %}
+
 <!-- Filters -->
 <div class="bg-white rounded-lg shadow-lg p-6 mb-8">
-    <form method="GET" class="grid grid-cols-1 md:grid-cols-6 gap-4" id="filter-form">
+    <form method="GET" action="{% url 'bids:browse_bids' %}" class="grid grid-cols-1 md:grid-cols-6 gap-4" id="filter-form">
         <div>
             <label class="block text-sm font-medium text-gray-700 mb-2">Event Category</label>
             <select name="category" class="w-full border border-gray-300 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-primary">
                 <option value="">All Categories</option>
-                {% for category in categories %}
-                    <option value="{{ category.name }}" {% if current_filters.category == category.name %}selected{% endif %}>
-                        {{ category.icon }} {{ category.name }}
+                {% for cat in categories %}
+                    <option value="{{ cat.name }}" {% if current_filters.category == cat.name %}selected{% endif %}>
+                        {{ cat.icon }} {{ cat.name }}
                     </option>
                 {% endfor %}
             </select>
@@ -78,7 +102,10 @@
             </select>
         </div>
         
-        <div class="md:col-span-6 flex justify-end">
+        <div class="md:col-span-6 flex justify-end space-x-3">
+            <a href="{% url 'bids:browse_bids' %}" class="bg-gray-200 text-gray-700 px-6 py-2 rounded-lg hover:bg-gray-300 transition-colors">
+                <i class="fas fa-times mr-2"></i>Clear Filters
+            </a>
             <button type="submit" class="bg-primary text-white px-6 py-2 rounded-lg hover:bg-purple-700 transition-colors">
                 <i class="fas fa-search mr-2"></i>Apply Filters
             </button>
@@ -192,7 +219,7 @@
     <div class="mt-8 flex justify-center">
         <nav class="flex space-x-2">
             {% if page_obj.has_previous %}
-                <a href="?page={{ page_obj.previous_page_number }}{% for key, value in current_filters.items %}{% if value %}&{{ key }}={{ value }}{% endif %}{% endfor %}" 
+                <a href="?{% for key, value in current_filters.items %}{% if value %}{{ key }}={{ value|urlencode }}&{% endif %}{% endfor %}page={{ page_obj.previous_page_number }}" 
                    class="px-3 py-2 border border-gray-300 rounded-lg text-gray-700 hover:bg-gray-50">
                     <i class="fas fa-chevron-left"></i>
                 </a>
@@ -202,13 +229,13 @@
                 {% if page_obj.number == num %}
                     <span class="px-3 py-2 bg-primary text-white rounded-lg">{{ num }}</span>
                 {% elif num > page_obj.number|add:'-3' and num < page_obj.number|add:'3' %}
-                    <a href="?page={{ num }}{% for key, value in current_filters.items %}{% if value %}&{{ key }}={{ value }}{% endif %}{% endfor %}" 
+                    <a href="?{% for key, value in current_filters.items %}{% if value %}{{ key }}={{ value|urlencode }}&{% endif %}{% endfor %}page={{ num }}" 
                        class="px-3 py-2 border border-gray-300 rounded-lg text-gray-700 hover:bg-gray-50">{{ num }}</a>
                 {% endif %}
             {% endfor %}
             
             {% if page_obj.has_next %}
-                <a href="?page={{ page_obj.next_page_number }}{% for key, value in current_filters.items %}{% if value %}&{{ key }}={{ value }}{% endif %}{% endfor %}" 
+                <a href="?{% for key, value in current_filters.items %}{% if value %}{{ key }}={{ value|urlencode }}&{% endif %}{% endfor %}page={{ page_obj.next_page_number }}" 
                    class="px-3 py-2 border border-gray-300 rounded-lg text-gray-700 hover:bg-gray-50">
                     <i class="fas fa-chevron-right"></i>
                 </a>

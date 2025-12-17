@@ -1,12 +1,13 @@
-from django.shortcuts import render
+from django.shortcuts import render, redirect, get_object_or_404
 from django.contrib.auth.decorators import login_required, user_passes_test
 from django.http import JsonResponse
 from django.utils import timezone
 from django.db.models import Count, Sum, Q
 from django.db.models.functions import TruncDay, TruncWeek
+from django.contrib import messages
 from accounts.models import User
 from bids.models import Bid, EventPromotion
-from payments.models import Transaction, Wallet
+from payments.models import Transaction, Wallet, ManualPayment, Subscription
 from datetime import datetime, timedelta
 
 
@@ -335,3 +336,195 @@ def api_metrics(request):
         'weekly_revenue': float(weekly_revenue),
         'timestamp': now.isoformat(),
     })
+
+
+@login_required
+@user_passes_test(is_admin)
+def verify_payments(request):
+    """Admin view to verify manual payments"""
+    status_filter = request.GET.get('status', 'PENDING')
+    
+    payments = ManualPayment.objects.all()
+    
+    if status_filter:
+        payments = payments.filter(status=status_filter)
+    
+    payments = payments.order_by('-created_at')
+    
+    # Get counts for tabs
+    pending_count = ManualPayment.objects.filter(status='PENDING').count()
+    verified_count = ManualPayment.objects.filter(status='VERIFIED').count()
+    rejected_count = ManualPayment.objects.filter(status='REJECTED').count()
+    
+    context = {
+        'payments': payments,
+        'status_filter': status_filter,
+        'pending_count': pending_count,
+        'verified_count': verified_count,
+        'rejected_count': rejected_count,
+    }
+    
+    return render(request, 'admin_dashboard/verify_payments.html', context)
+
+
+@login_required
+@user_passes_test(is_admin)
+def verify_payment_action(request, payment_id):
+    """Handle payment verification action (verify or reject)"""
+    if request.method != 'POST':
+        return JsonResponse({'success': False, 'error': 'Invalid request method'})
+    
+    payment = get_object_or_404(ManualPayment, id=payment_id)
+    action = request.POST.get('action')  # 'verify' or 'reject'
+    admin_notes = request.POST.get('admin_notes', '')
+    
+    if action == 'verify':
+        # Verify the payment
+        payment.status = 'VERIFIED'
+        payment.verified_by = request.user
+        payment.verified_at = timezone.now()
+        if admin_notes:
+            payment.admin_notes = admin_notes
+        payment.save()
+        
+        # Update transaction
+        if payment.transaction:
+            payment.transaction.status = 'COMPLETED'
+            payment.transaction.processed_at = timezone.now()
+            payment.transaction.save()
+        
+        # Activate subscription if it's a subscription payment
+        if payment.transaction_type == 'SUBSCRIPTION':
+            # Check if subscription already exists
+            subscription = Subscription.objects.filter(
+                user=payment.user,
+                payment_transaction=payment.transaction
+            ).first()
+            
+            if not subscription:
+                # Create subscription
+                subscription = Subscription.objects.create(
+                    user=payment.user,
+                    subscription_type='WOMEN_ACCESS',
+                    amount=payment.amount,
+                    payment_transaction=payment.transaction,
+                    is_active=True
+                )
+            else:
+                subscription.is_active = True
+                subscription.save()
+            
+            # Update user subscription status
+            payment.user.subscription_active = True
+            payment.user.subscription_expires = subscription.end_date
+            payment.user.save()
+        
+        # Send in-app notification to user
+        try:
+            from notifications.utils import send_notification
+            send_notification(
+                user=payment.user,
+                title='Payment Verified - Subscription Activated!',
+                message=f'Your payment of ${payment.amount} has been verified. Your subscription is now active and you can accept bids!',
+                notification_type='PAYMENT_RECEIVED',
+                related_object_type='transaction',
+                related_object_id=payment.transaction.id if payment.transaction else None
+            )
+        except Exception as e:
+            import logging
+            logger = logging.getLogger(__name__)
+            logger.error(f'Failed to send notification: {str(e)}')
+        
+        # Send success email to user
+        try:
+            from django.core.mail import send_mail
+            from django.conf import settings
+            
+            send_mail(
+                subject='Payment Verified - Subscription Activated!',
+                message=f'''
+Hello {payment.user.username},
+
+Great news! Your payment of ${payment.amount} has been verified and your subscription is now active.
+
+Transaction Details:
+- Amount: ${payment.amount}
+- EcoCash Reference: {payment.ecocash_reference}
+- Verified At: {payment.verified_at.strftime("%Y-%m-%d %H:%M")}
+
+You can now accept bids on MjoloBid!
+
+Thank you for subscribing.
+MjoloBid Team
+                ''',
+                from_email=getattr(settings, 'DEFAULT_FROM_EMAIL', 'noreply@mjolobid.com'),
+                recipient_list=[payment.user.email],
+                fail_silently=True,
+            )
+        except Exception as e:
+            import logging
+            logger = logging.getLogger(__name__)
+            logger.error(f'Failed to send verification success email: {str(e)}')
+        
+        messages.success(request, f'Payment verified successfully! Subscription activated for {payment.user.username}.')
+        
+    elif action == 'reject':
+        # Reject the payment
+        payment.status = 'REJECTED'
+        payment.verified_by = request.user
+        payment.verified_at = timezone.now()
+        payment.admin_notes = admin_notes or 'Payment verification failed'
+        payment.save()
+        
+        # Send in-app notification to user
+        try:
+            from notifications.utils import send_notification
+            send_notification(
+                user=payment.user,
+                title='Payment Verification Failed',
+                message=f'Your payment verification was unsuccessful. Reason: {payment.admin_notes or "Please check your EcoCash reference and try again."}',
+                notification_type='PAYMENT_SENT',
+                related_object_type='transaction',
+                related_object_id=payment.transaction.id if payment.transaction else None
+            )
+        except Exception as e:
+            import logging
+            logger = logging.getLogger(__name__)
+            logger.error(f'Failed to send notification: {str(e)}')
+        
+        # Send rejection email to user
+        try:
+            from django.core.mail import send_mail
+            from django.conf import settings
+            
+            send_mail(
+                subject='Payment Verification Failed',
+                message=f'''
+Hello {payment.user.username},
+
+Unfortunately, your payment verification could not be completed.
+
+Transaction Details:
+- Amount: ${payment.amount}
+- EcoCash Reference: {payment.ecocash_reference}
+
+Reason: {payment.admin_notes or 'Payment verification failed. Please check your EcoCash reference number and try again.'}
+
+If you believe this is an error, please contact support with your EcoCash reference number.
+
+MjoloBid Team
+                ''',
+                from_email=getattr(settings, 'DEFAULT_FROM_EMAIL', 'noreply@mjolobid.com'),
+                recipient_list=[payment.user.email],
+                fail_silently=True,
+            )
+        except Exception as e:
+            import logging
+            logger = logging.getLogger(__name__)
+            logger.error(f'Failed to send rejection email: {str(e)}')
+        
+        messages.warning(request, f'Payment rejected for {payment.user.username}.')
+    else:
+        return JsonResponse({'success': False, 'error': 'Invalid action'})
+    
+    return redirect('admin_dashboard:verify_payments')

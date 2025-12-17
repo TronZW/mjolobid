@@ -16,11 +16,29 @@
             <p class="text-gray-600">Get access to browse and accept bids from men looking for social event companions</p>
         </div>
         
+        {% if pending_payment %}
+        <div class="bg-yellow-50 border border-yellow-200 rounded-lg p-6 mb-8">
+            <div class="flex items-center mb-4">
+                <i class="fas fa-clock text-yellow-600 text-2xl mr-3"></i>
+                <h3 class="text-lg font-semibold text-yellow-900">Payment Verification Pending</h3>
+            </div>
+            <p class="text-yellow-800 mb-2">
+                Your payment proof has been submitted and is being verified by our team.
+            </p>
+            <p class="text-yellow-700 text-sm">
+                <strong>EcoCash Reference:</strong> {{ pending_payment.ecocash_reference }}<br>
+                <strong>Submitted:</strong> {{ pending_payment.created_at|date:"M d, Y H:i" }}
+            </p>
+            <p class="text-yellow-700 text-sm mt-2">
+                Verification typically takes 3-15 minutes. You will receive an email notification once verified.
+            </p>
+        </div>
+        {% elif not verified_payment or not verified_payment.verified_at %}
         <div class="bg-gradient-to-r from-pink-500 to-purple-600 text-white rounded-lg p-6 mb-8">
             <div class="text-center">
-                <div class="text-4xl font-bold mb-2">$3</div>
-                <div class="text-lg opacity-90">One-time access fee</div>
-                <div class="text-sm opacity-75 mt-2">No recurring charges</div>
+                <div class="text-4xl font-bold mb-2">${{ subscription_fee }}</div>
+                <div class="text-lg opacity-90">Per Week</div>
+                <div class="text-sm opacity-75 mt-2">Subscribe to accept bids</div>
             </div>
         </div>
         
@@ -43,17 +61,32 @@
             </div>
         </div>
         
-        <form method="POST" id="subscription-form">
-            {% csrf_token %}
-            
-            <!-- Submit Button -->
-            <button type="submit" class="w-full bg-gradient-to-r from-primary to-secondary text-white px-6 py-4 rounded-lg font-semibold hover:opacity-90 transition-opacity shadow-lg">
-                <i class="fas fa-check-circle mr-2"></i>Activate Subscription - ${{ subscription_fee }}
-            </button>
-            <p class="text-xs text-gray-500 mt-2 text-center">
-                Click to activate your subscription and start browsing bids
-            </p>
-        </form>
+        <!-- Payment Instructions -->
+        <div class="bg-blue-50 border border-blue-200 rounded-lg p-6 mb-6">
+            <h3 class="text-lg font-semibold text-blue-900 mb-4">
+                <i class="fas fa-info-circle mr-2"></i>How to Subscribe
+            </h3>
+            <ol class="list-decimal list-inside space-y-3 text-blue-800">
+                <li>Send <strong>${{ subscription_fee }}</strong> via EcoCash to:</li>
+                <li class="ml-4">
+                    <strong>Number:</strong> <span class="font-mono text-lg">{{ ecocash_number }}</span><br>
+                    <strong>Name:</strong> {{ ecocash_name }}
+                </li>
+                <li>After payment, you'll receive a TXN ID (transaction reference)</li>
+                <li>Click the button below to submit your payment proof</li>
+                <li>Enter your name and the TXN ID you received</li>
+                <li>Our team will verify your payment (3-15 minutes)</li>
+                <li>You'll receive an email when your subscription is activated!</li>
+            </ol>
+        </div>
+        
+        <a href="{% url 'payments:submit_payment_proof' %}" class="block w-full bg-gradient-to-r from-primary to-secondary text-white px-6 py-4 rounded-lg font-semibold hover:opacity-90 transition-opacity shadow-lg text-center">
+            <i class="fas fa-paper-plane mr-2"></i>Submit Payment Proof
+        </a>
+        <p class="text-xs text-gray-500 mt-2 text-center">
+            Click after you've made the EcoCash payment
+        </p>
+        {% endif %}
         
         <div class="mt-6 text-center">
             <p class="text-sm text-gray-500">

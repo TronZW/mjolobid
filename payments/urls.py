@@ -19,4 +19,6 @@ urlpatterns = [
     # Payment return/cancel URLs
     path('return/', views.payment_return, name='payment_return'),
     path('cancel/', views.payment_cancel, name='payment_cancel'),
+    # Manual payment verification
+    path('submit-proof/', views.submit_payment_proof, name='submit_payment_proof'),
 ]

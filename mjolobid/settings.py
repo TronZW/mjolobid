@@ -157,10 +157,14 @@ STRIPE_SECRET_KEY = config('STRIPE_SECRET_KEY', default='')
 # App specific settings
 MJOLOBID_SETTINGS = {
     'COMMISSION_RATE': 0.15,  # 15% commission
-    'WOMEN_SUBSCRIPTION_FEE': 3.00,  # $3 subscription fee
+    'WOMEN_SUBSCRIPTION_FEE': 3.00,  # $3 subscription fee per week
     'MIN_BID_AMOUNT': 5.00,  # Minimum bid amount
     'MAX_BID_AMOUNT': 500.00,  # Maximum bid amount
 }
+
+# Manual Payment Settings
+ECOCASH_NUMBER = config('ECOCASH_NUMBER', default='0775224360')
+ECOCASH_NAME = config('ECOCASH_NAME', default='Michael Shumba')
 
 # Email configuration - SendGrid SMTP
 EMAIL_BACKEND = config('EMAIL_BACKEND', default='django.core.mail.backends.smtp.EmailBackend')

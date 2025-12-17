@@ -263,3 +263,42 @@ class WithdrawalRequest(models.Model):
     
     def __str__(self):
         return f"Withdrawal ${self.amount} - {self.user.username}"
+
+
+class ManualPayment(models.Model):
+    """Manual payment verification for EcoCash payments"""
+    
+    STATUS_CHOICES = [
+        ('PENDING', 'Pending Verification'),
+        ('VERIFIED', 'Verified'),
+        ('REJECTED', 'Rejected'),
+    ]
+    
+    # User and transaction info
+    user = models.ForeignKey(User, on_delete=models.CASCADE, related_name='manual_payments')
+    transaction = models.ForeignKey(Transaction, on_delete=models.SET_NULL, null=True, blank=True, related_name='manual_payment')
+    transaction_type = models.CharField(max_length=20, choices=Transaction.TRANSACTION_TYPE_CHOICES)
+    amount = models.DecimalField(max_digits=10, decimal_places=2)
+    
+    # Payment proof details
+    sender_name = models.CharField(max_length=200, help_text="Name of person who sent the payment")
+    ecocash_reference = models.CharField(max_length=50, help_text="EcoCash transaction reference (TXN ID)")
+    sender_phone = models.CharField(max_length=15, blank=True, help_text="Phone number that sent payment")
+    
+    # Verification
+    status = models.CharField(max_length=20, choices=STATUS_CHOICES, default='PENDING')
+    verified_by = models.ForeignKey(User, on_delete=models.SET_NULL, null=True, blank=True, related_name='verified_payments')
+    verified_at = models.DateTimeField(null=True, blank=True)
+    admin_notes = models.TextField(blank=True, help_text="Admin notes (especially if rejected)")
+    
+    # Timestamps
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+    
+    class Meta:
+        ordering = ['-created_at']
+        verbose_name = 'Manual Payment'
+        verbose_name_plural = 'Manual Payments'
+    
+    def __str__(self):
+        return f"{self.user.username} - ${self.amount} - {self.get_status_display()}"

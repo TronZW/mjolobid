@@ -1,5 +1,5 @@
 from django.contrib import admin
-from .models import PaymentMethod, Transaction, Wallet, EscrowTransaction, Subscription, WithdrawalRequest
+from .models import PaymentMethod, Transaction, Wallet, EscrowTransaction, Subscription, WithdrawalRequest, ManualPayment
 
 
 @admin.register(PaymentMethod)
@@ -50,3 +50,26 @@ class WithdrawalRequestAdmin(admin.ModelAdmin):
     list_filter = ('status', 'created_at')
     search_fields = ('user__username',)
     raw_id_fields = ('user', 'payment_method', 'transaction', 'processed_by')
+
+
+@admin.register(ManualPayment)
+class ManualPaymentAdmin(admin.ModelAdmin):
+    list_display = ('user', 'amount', 'transaction_type', 'ecocash_reference', 'sender_name', 'status', 'created_at', 'verified_by')
+    list_filter = ('status', 'transaction_type', 'created_at')
+    search_fields = ('user__username', 'ecocash_reference', 'sender_name', 'sender_phone')
+    raw_id_fields = ('user', 'transaction', 'verified_by')
+    readonly_fields = ('created_at', 'updated_at')
+    fieldsets = (
+        ('Payment Information', {
+            'fields': ('user', 'transaction', 'transaction_type', 'amount', 'status')
+        }),
+        ('Payment Proof', {
+            'fields': ('sender_name', 'ecocash_reference', 'sender_phone')
+        }),
+        ('Verification', {
+            'fields': ('verified_by', 'verified_at', 'admin_notes')
+        }),
+        ('Timestamps', {
+            'fields': ('created_at', 'updated_at')
+        }),
+    )
