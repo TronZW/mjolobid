@@ -113,7 +113,7 @@ def subscription(request):
     context = {
         'subscription_fee': settings.MJOLOBID_SETTINGS['WOMEN_SUBSCRIPTION_FEE'],
         'ecocash_number': getattr(settings, 'ECOCASH_NUMBER', '0775224360'),
-        'ecocash_name': getattr(settings, 'ECOCASH_NAME', 'Michael Shumba'),
+        'ecocash_name': getattr(settings, 'ECOCASH_NAME', 'Michael S Muhamba'),
         'pending_payment': pending_payment,
         'verified_payment': verified_payment,
         'rejected_payment': rejected_payment,
@@ -514,7 +514,7 @@ Admin Dashboard: {getattr(settings, "SITE_URL", "http://localhost:8000")}/admin-
         'form': form,
         'subscription_fee': settings.MJOLOBID_SETTINGS['WOMEN_SUBSCRIPTION_FEE'],
         'ecocash_number': getattr(settings, 'ECOCASH_NUMBER', '0775224360'),
-        'ecocash_name': getattr(settings, 'ECOCASH_NAME', 'Michael Shumba'),
+        'ecocash_name': getattr(settings, 'ECOCASH_NAME', 'Michael S Muhamba'),
     }
     
     return render(request, 'payments/submit_payment_proof.html', context)

@@ -164,7 +164,7 @@ MJOLOBID_SETTINGS = {
 
 # Manual Payment Settings
 ECOCASH_NUMBER = config('ECOCASH_NUMBER', default='0775224360')
-ECOCASH_NAME = config('ECOCASH_NAME', default='Michael Shumba')
+ECOCASH_NAME = config('ECOCASH_NAME', default='Michael S Muhamba')
 
 # Email configuration - SendGrid SMTP
 EMAIL_BACKEND = config('EMAIL_BACKEND', default='django.core.mail.backends.smtp.EmailBackend')
