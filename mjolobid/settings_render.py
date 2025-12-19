@@ -15,7 +15,12 @@ SECRET_KEY = config('SECRET_KEY', default='django-insecure-change-this-in-produc
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = False
 
-ALLOWED_HOSTS = ['*']
+# Hosts allowed in production (custom domain + Render subdomain)
+ALLOWED_HOSTS = [
+    'mjolobid.com',
+    'www.mjolobid.com',
+    'mjolobid.onrender.com',
+]
 
 # Application definition - Only essential apps
 INSTALLED_APPS = [
@@ -145,9 +150,11 @@ REST_FRAMEWORK = {
     ],
 }
 
-# CORS settings
+# CORS settings (frontends allowed to call this API)
 CORS_ALLOWED_ORIGINS = [
-    "https://your-app-name.onrender.com",
+    "https://mjolobid.com",
+    "https://www.mjolobid.com",
+    "https://mjolobid.onrender.com",  # keep Render URL working
 ]
 
 # Security settings
@@ -172,7 +179,8 @@ EMAIL_TIMEOUT = config('EMAIL_TIMEOUT', default=30, cast=int)  # 30 second timeo
 DEFAULT_FROM_EMAIL = config('DEFAULT_FROM_EMAIL', default='MjoloBid <noreply@mjolobid.com>')
 
 SERVER_EMAIL = DEFAULT_FROM_EMAIL
-SITE_URL = config('SITE_URL', default='https://mjolobid.onrender.com')
+# Primary site URL (can be overridden via SITE_URL env var on Render)
+SITE_URL = config('SITE_URL', default='https://mjolobid.com')
 
 # Payment Gateway Settings
 # EcoCash Configuration

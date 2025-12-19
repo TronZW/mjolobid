@@ -44,7 +44,7 @@ def create_quick_superuser():
         print(f"Username: {username}")
         print(f"Email: {email}")
         print(f"Password: {password}")
-        print("\n🔗 Admin Panel: https://mjolobid.onrender.com/admin/")
+        print("\n🔗 Admin Panel: https://mjolobid.com/admin/")
         print("⚠️  Remember to change the password after first login!")
         
     except Exception as e:

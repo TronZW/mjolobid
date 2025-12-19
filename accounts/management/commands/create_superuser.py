@@ -33,7 +33,7 @@ class Command(BaseCommand):
             self.stdout.write(f'Username: {username}')
             self.stdout.write(f'Email: {email}')
             self.stdout.write(f'Password: {password}')
-            self.stdout.write('\n🔗 Admin Panel: https://mjolobid.onrender.com/admin/')
+            self.stdout.write('\n🔗 Admin Panel: https://mjolobid.com/admin/')
             self.stdout.write('⚠️  Remember to change the password after first login!')
             
         except Exception as e:
