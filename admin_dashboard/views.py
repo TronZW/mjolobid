@@ -9,6 +9,7 @@ from accounts.models import User
 from bids.models import Bid, EventPromotion
 from payments.models import Transaction, Wallet, ManualPayment, Subscription
 from datetime import datetime, timedelta
+from decimal import Decimal
 
 
 def is_admin(user):
@@ -418,6 +419,65 @@ def verify_payment_action(request, payment_id):
             payment.user.subscription_active = True
             payment.user.subscription_expires = subscription.end_date
             payment.user.save()
+
+            # --- Affiliate referral bonus logic ---
+            # If this is a female user who was referred by someone, and this is
+            # a qualifying subscription ($3 Women Access), award a $0.30 bonus.
+            try:
+                referred_user = payment.user
+                referrer = referred_user.referred_by
+                amount = Decimal(str(payment.amount or 0))
+
+                if (
+                    referrer
+                    and referred_user.user_type == 'F'
+                    and amount >= Decimal('3.00')
+                ):
+                    # Avoid double-paying for the same referred user
+                    already_paid = Transaction.objects.filter(
+                        user=referrer,
+                        transaction_type='REFERRAL_BONUS',
+                        metadata__referred_user_id=referred_user.id,
+                    ).exists()
+
+                    if not already_paid:
+                        bonus_amount = Decimal('0.30')
+                        bonus_txn = Transaction.objects.create(
+                            user=referrer,
+                            transaction_type='REFERRAL_BONUS',
+                            amount=bonus_amount,
+                            description=f'Referral bonus for {referred_user.username} subscription',
+                            status='COMPLETED',
+                            metadata={
+                                'referred_user_id': referred_user.id,
+                                'referred_username': referred_user.username,
+                                'subscription_transaction_id': payment.transaction.id if payment.transaction else None,
+                            },
+                        )
+
+                        # Update referrer stats
+                        referrer.referral_earnings += bonus_amount
+                        referrer.total_referrals += 1
+                        referrer.save(update_fields=['referral_earnings', 'total_referrals'])
+
+                        # Notify referrer
+                        try:
+                            from notifications.utils import send_notification
+
+                            send_notification(
+                                user=referrer,
+                                title='Referral Bonus Earned!',
+                                message=f'You earned ${bonus_amount} because {referred_user.username} subscribed for Women Access.',
+                                notification_type='REFERRAL_BONUS',
+                                related_object_type='transaction',
+                                related_object_id=bonus_txn.id,
+                            )
+                        except Exception:
+                            # Do not break payment flow if notification fails
+                            pass
+            except Exception:
+                # Do not break payment flow for any affiliate errors
+                pass
         
         # Send in-app notification to user
         try:

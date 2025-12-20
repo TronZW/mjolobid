@@ -30,6 +30,12 @@ def home(request):
 
 def register(request):
     """User registration with email verification"""
+    # Capture referral code from query string and store in session so it survives validation errors
+    ref_code = request.GET.get('ref')
+    if ref_code:
+        request.session['referral_code'] = ref_code
+        request.session.modified = True
+
     if request.method == 'POST':
         form = UserRegistrationForm(request.POST, request.FILES)
         if form.is_valid():
@@ -38,6 +44,18 @@ def register(request):
             user.is_active = False  # User must verify email first
             password = form.cleaned_data['password1']  # Save password before hashing
             user.set_password(password)
+
+            # Attach referrer if present and this is a female user
+            try:
+                stored_ref = request.session.get('referral_code') or request.GET.get('ref')
+                if stored_ref and user.user_type == 'F':
+                    referrer = User.objects.filter(referral_code=stored_ref).first()
+                    if referrer and referrer != user:
+                        user.referred_by = referrer
+            except Exception:
+                # Never break registration because of referral issues
+                pass
+
             user.save()
             
             # Create user profile and mark email as unverified
