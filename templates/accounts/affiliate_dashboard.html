@@ -98,7 +98,7 @@
             
             <div class="bg-gray-50 rounded-lg p-4 mb-4">
                 <div class="flex items-center justify-between">
-                    <input type="text" id="referral-link" value="https://mjolobid.com/register?ref={{ referral_code }}" 
+                    <input type="text" id="referral-link" value="https://mjolobid.com/accounts/register/?ref={{ referral_code }}" 
                            class="flex-1 bg-transparent text-sm font-mono" readonly>
                     <button onclick="copyReferralLink()" class="bg-primary text-white px-4 py-2 rounded-lg hover:bg-purple-700 transition-colors ml-2">
                         <i class="fas fa-copy mr-2"></i>Copy
@@ -234,7 +234,7 @@
     }
     
     function shareOnFacebook() {
-        const url = `https://www.facebook.com/sharer/sharer.php?u=${encodeURIComponent('https://mjolobid.com/register?ref={{ referral_code }}')}`;
+        const url = `https://www.facebook.com/sharer/sharer.php?u=${encodeURIComponent('https://mjolobid.com/accounts/register/?ref={{ referral_code }}')}`;
         window.open(url, '_blank');
     }
     

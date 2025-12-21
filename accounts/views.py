@@ -33,8 +33,17 @@ def register(request):
     # Capture referral code from query string and store in session so it survives validation errors
     ref_code = request.GET.get('ref')
     if ref_code:
-        request.session['referral_code'] = ref_code
-        request.session.modified = True
+        try:
+            # Clean and validate referral code
+            ref_code = str(ref_code).strip().upper()
+            if ref_code and len(ref_code) <= 10:  # Validate length
+                request.session['referral_code'] = ref_code
+                request.session.modified = True
+        except Exception as e:
+            # If session modification fails, we'll still try to get it from GET params later
+            import logging
+            logger = logging.getLogger(__name__)
+            logger.warning(f"Failed to store referral code in session: {str(e)}")
 
     if request.method == 'POST':
         form = UserRegistrationForm(request.POST, request.FILES)
@@ -49,11 +58,17 @@ def register(request):
             try:
                 stored_ref = request.session.get('referral_code') or request.GET.get('ref')
                 if stored_ref and user.user_type == 'F':
-                    referrer = User.objects.filter(referral_code=stored_ref).first()
-                    if referrer and referrer != user:
-                        user.referred_by = referrer
-            except Exception:
+                    # Clean the referral code
+                    stored_ref = str(stored_ref).strip().upper()
+                    if stored_ref:
+                        referrer = User.objects.filter(referral_code=stored_ref).first()
+                        if referrer and referrer != user:
+                            user.referred_by = referrer
+            except Exception as e:
                 # Never break registration because of referral issues
+                import logging
+                logger = logging.getLogger(__name__)
+                logger.warning(f"Referral code processing failed: {str(e)}")
                 pass
 
             user.save()
