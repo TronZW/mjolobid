@@ -106,6 +106,20 @@ class User(AbstractUser):
         if self.last_seen:
             return (timezone.now() - self.last_seen).total_seconds() < 300
         return False
+    
+    def get_whatsapp_number(self):
+        """Format phone number for WhatsApp links (removes +, spaces, and converts 0 to 263)"""
+        if not self.phone_number:
+            return None
+        # Remove +, spaces, dashes, and parentheses
+        number = ''.join(c for c in self.phone_number if c.isdigit())
+        # If starts with 0, replace with 263 (Zimbabwe country code)
+        if number.startswith('0') and len(number) > 1:
+            number = '263' + number[1:]
+        # If starts with +263, remove the +
+        elif number.startswith('263'):
+            pass  # Already correct
+        return number
 
 
 class UserProfile(models.Model):

@@ -184,6 +184,18 @@
                         {% if bid.user.profile.occupation %}
                             <p class="text-gray-700 mb-2"><strong>Occupation:</strong> {{ bid.user.profile.occupation }}</p>
                         {% endif %}
+                        {% if request.user.user_type == 'F' and bid.user.phone_number %}
+                            {% if bid.status == 'ACCEPTED' or request.user == bid.accepted_by %}
+                                <p class="text-gray-700 mb-2">
+                                    <strong>Phone:</strong> 
+                                    <a href="https://wa.me/{{ bid.user.get_whatsapp_number }}" 
+                                       target="_blank" 
+                                       class="text-green-600 hover:text-green-700 font-medium inline-flex items-center">
+                                        <i class="fab fa-whatsapp mr-1"></i>{{ bid.user.phone_number }}
+                                    </a>
+                                </p>
+                            {% endif %}
+                        {% endif %}
                     </div>
                     <div>
                         {% if bid.user.profile.average_rating > 0 %}
@@ -242,7 +254,15 @@
                             <i class="fas fa-check-circle mr-2"></i>
                             Match Selected
                         </div>
-                        <p class="text-sm text-gray-600">This bid's match is {{ bid.accepted_by.username }}.</p>
+                        <p class="text-sm text-gray-600 mb-4">This bid's match is {{ bid.accepted_by.username }}.</p>
+                        {% if request.user.user_type == 'F' and request.user == bid.accepted_by and bid.user.phone_number %}
+                            <a href="https://wa.me/{{ bid.user.get_whatsapp_number }}" 
+                               target="_blank"
+                               class="block w-full bg-green-500 text-white py-3 px-4 rounded-lg text-center hover:bg-green-600 transition-colors mb-2">
+                                <i class="fab fa-whatsapp mr-2"></i>Contact on WhatsApp
+                            </a>
+                            <p class="text-xs text-gray-500">{{ bid.user.phone_number }}</p>
+                        {% endif %}
                     </div>
                 {% elif bid.has_pending_acceptances %}
                     <div class="text-center">

@@ -83,6 +83,16 @@
                             {% endif %}
                         </span>
                     </div>
+                    {% if user.user_type == 'F' and bid.user.phone_number %}
+                    <div class="flex items-center text-sm text-gray-600">
+                        <i class="fab fa-whatsapp mr-2 text-green-500"></i>
+                        <a href="https://wa.me/{{ bid.user.get_whatsapp_number }}" 
+                           target="_blank" 
+                           class="text-green-600 hover:text-green-700 font-medium">
+                            {{ bid.user.phone_number }}
+                        </a>
+                    </div>
+                    {% endif %}
                 </div>
                 
                 <!-- Status and Actions -->
@@ -174,6 +184,17 @@
             <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mt-4 text-sm text-gray-700">
                 <div><i class="fas fa-calendar-alt mr-2 text-blue-500"></i>{{ acc.bid.event_date|date:"M d, Y g:i A" }}</div>
                 <div><i class="fas fa-map-marker-alt mr-2 text-blue-500"></i>{{ acc.bid.event_location }}</div>
+                {% if acc.bid.user.phone_number %}
+                <div class="md:col-span-2">
+                    <i class="fab fa-whatsapp mr-2 text-green-500"></i>
+                    <span class="text-gray-600">Contact: </span>
+                    <a href="https://wa.me/{{ acc.bid.user.get_whatsapp_number }}" 
+                       target="_blank" 
+                       class="text-green-600 hover:text-green-700 font-medium">
+                        {{ acc.bid.user.phone_number }}
+                    </a>
+                </div>
+                {% endif %}
             </div>
 
             <div class="mt-4 flex items-center justify-between">
@@ -185,6 +206,13 @@
                        class="inline-flex items-center px-3 py-1.5 rounded-lg text-xs font-semibold bg-blue-500 text-white hover:bg-blue-600 transition-colors">
                         <i class="fas fa-comment mr-1"></i>Message Poster
                     </a>
+                    {% if acc.bid.user.phone_number %}
+                    <a href="https://wa.me/{{ acc.bid.user.get_whatsapp_number }}" 
+                       target="_blank"
+                       class="inline-flex items-center px-3 py-1.5 rounded-lg text-xs font-semibold bg-green-500 text-white hover:bg-green-600 transition-colors">
+                        <i class="fab fa-whatsapp mr-1"></i>WhatsApp
+                    </a>
+                    {% endif %}
                     <a href="{% url 'bids:bid_detail' acc.bid.id %}" class="text-primary hover:text-purple-700 font-medium">
                         View details <i class="fas fa-arrow-right ml-1"></i>
                     </a>
