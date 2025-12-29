@@ -588,3 +588,47 @@ MjoloBid Team
         return JsonResponse({'success': False, 'error': 'Invalid action'})
     
     return redirect('admin_dashboard:verify_payments')
+
+
+@login_required
+@user_passes_test(is_admin)
+def profiles(request):
+    """Admin profiles page - list all users with their details"""
+    from django.core.paginator import Paginator
+    
+    # Get all users ordered by date joined (newest first)
+    users = User.objects.all().order_by('-date_joined')
+    
+    # Get filter parameters
+    search_query = request.GET.get('search', '').strip()
+    gender_filter = request.GET.get('gender', '').strip()
+    user_type_filter = request.GET.get('user_type', '').strip()
+    
+    # Apply filters
+    if search_query:
+        users = users.filter(
+            Q(username__icontains=search_query) |
+            Q(email__icontains=search_query) |
+            Q(phone_number__icontains=search_query)
+        )
+    
+    if gender_filter:
+        users = users.filter(gender=gender_filter)
+    
+    if user_type_filter:
+        users = users.filter(user_type=user_type_filter)
+    
+    # Pagination
+    paginator = Paginator(users, 50)  # 50 users per page
+    page_number = request.GET.get('page')
+    page_obj = paginator.get_page(page_number)
+    
+    context = {
+        'page_obj': page_obj,
+        'search_query': search_query,
+        'gender_filter': gender_filter,
+        'user_type_filter': user_type_filter,
+        'total_users': users.count(),
+    }
+    
+    return render(request, 'admin_dashboard/profiles.html', context)

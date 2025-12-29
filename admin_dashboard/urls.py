@@ -11,4 +11,5 @@ urlpatterns = [
     path('api/metrics/', views.api_metrics, name='api_metrics'),
     path('verify-payments/', views.verify_payments, name='verify_payments'),
     path('verify-payment/<int:payment_id>/', views.verify_payment_action, name='verify_payment_action'),
+    path('profiles/', views.profiles, name='profiles'),
 ]

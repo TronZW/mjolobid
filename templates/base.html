@@ -66,6 +66,9 @@
                         <a href="/dashboard/" class="text-gray-700 hover:text-primary px-3 py-2 rounded-md text-sm font-medium">
                             <i class="fas fa-chart-line mr-1"></i>Dashboard
                         </a>
+                        <a href="{% url 'admin_dashboard:profiles' %}" class="text-gray-700 hover:text-primary px-3 py-2 rounded-md text-sm font-medium">
+                            <i class="fas fa-users mr-1"></i>Profiles
+                        </a>
                         <a href="{% url 'admin_dashboard:verify_payments' %}" class="text-gray-700 hover:text-primary px-3 py-2 rounded-md text-sm font-medium">
                             <i class="fas fa-check-circle mr-1"></i>Verification
                         </a>
@@ -133,6 +136,9 @@
                 {% if user.is_staff or user.is_superuser %}
                 <a href="/dashboard/" class="block text-gray-700 hover:text-primary px-3 py-2 rounded-md text-base font-medium">
                     <i class="fas fa-chart-line mr-2"></i>Dashboard
+                </a>
+                <a href="{% url 'admin_dashboard:profiles' %}" class="block text-gray-700 hover:text-primary px-3 py-2 rounded-md text-base font-medium">
+                    <i class="fas fa-users mr-2"></i>Profiles
                 </a>
                 <a href="{% url 'admin_dashboard:verify_payments' %}" class="block text-gray-700 hover:text-primary px-3 py-2 rounded-md text-base font-medium">
                     <i class="fas fa-check-circle mr-2"></i>Verification
