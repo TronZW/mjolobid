@@ -260,44 +260,53 @@ def resend_verification_code(request):
 
 
 def forgot_password(request):
-    """Forgot password - request verification code"""
+    """Forgot password - verify username and phone number"""
     if request.method == 'POST':
-        email = request.POST.get('email', '').strip()
+        username = request.POST.get('username', '').strip()
+        phone_number = request.POST.get('phone_number', '').strip()
         
-        if not email:
-            messages.error(request, '❌ Please enter your email address.')
+        if not username:
+            messages.error(request, '❌ Please enter your username.')
             return render(request, 'accounts/forgot_password.html')
         
-        # Basic email format validation
-        if '@' not in email or '.' not in email.split('@')[-1]:
-            messages.error(request, '❌ Please enter a valid email address.')
+        if not phone_number:
+            messages.error(request, '❌ Please enter your phone number.')
+            return render(request, 'accounts/forgot_password.html')
+        
+        # Basic phone number validation (remove spaces, dashes, etc. for comparison)
+        phone_clean = ''.join(c for c in phone_number if c.isdigit())
+        
+        if not phone_clean:
+            messages.error(request, '❌ Please enter a valid phone number.')
             return render(request, 'accounts/forgot_password.html')
         
         try:
-            user = User.objects.get(email=email)
-            # Generate and send verification code
-            code = generate_verification_code()
-            send_verification_email(email, code, 'PASSWORD_RESET', user)
-            messages.success(request, f'✅ A password reset code has been sent to {email}. Please check your email.')
-            request.session['password_reset_email'] = email
-            return redirect('accounts:verify_password_reset')
+            # First, find user by username
+            user = User.objects.get(username=username)
+            
+            # Then verify phone number matches (handle different formats)
+            user_phone_clean = ''.join(c for c in user.phone_number if c.isdigit())
+            
+            # Compare cleaned phone numbers
+            if phone_clean != user_phone_clean:
+                # Don't reveal if account exists (security best practice)
+                messages.error(request, '❌ The username and phone number do not match any account. Please check your credentials and try again.')
+                return render(request, 'accounts/forgot_password.html')
+            
+            # Store user ID in session for password reset step
+            request.session['password_reset_user_id'] = user.id
+            request.session['password_reset_verified'] = True
+            messages.success(request, '✅ Credentials verified! Please enter your new password.')
+            return redirect('accounts:reset_password')
         except User.DoesNotExist:
-            # Don't reveal if email exists or not (security best practice)
-            messages.success(request, '✅ If an account exists with that email, a password reset code has been sent. Please check your inbox.')
-            return redirect('accounts:login')
-        except (ConnectionError, ValueError) as e:
-            # These are user-friendly errors from send_verification_email
-            error_msg = str(e)
-            import logging
-            logger = logging.getLogger(__name__)
-            logger.error(f"Error sending password reset code to {email}: {error_msg}")
-            messages.error(request, f'❌ {error_msg}')
+            # Don't reveal if account exists (security best practice)
+            messages.error(request, '❌ The username and phone number do not match any account. Please check your credentials and try again.')
         except Exception as e:
             error_msg = str(e)
             import logging
             logger = logging.getLogger(__name__)
-            logger.error(f"Unexpected error sending password reset code to {email}: {error_msg}")
-            messages.error(request, f'❌ Failed to send password reset code. Please try again in a few moments. If the problem persists, contact support.')
+            logger.error(f"Unexpected error in forgot password: {error_msg}")
+            messages.error(request, '❌ An error occurred. Please try again.')
     
     return render(request, 'accounts/forgot_password.html')
 
@@ -343,19 +352,19 @@ def verify_password_reset(request):
 
 def reset_password(request):
     """Reset password after verification"""
-    email = request.session.get('password_reset_email')
+    user_id = request.session.get('password_reset_user_id')
     verified = request.session.get('password_reset_verified')
     
-    if not email or not verified:
-        messages.error(request, '❌ Please verify your email first. Your session may have expired.')
+    if not user_id or not verified:
+        messages.error(request, '❌ Please verify your credentials first. Your session may have expired.')
         return redirect('accounts:forgot_password')
     
     try:
-        user = User.objects.get(email=email)
+        user = User.objects.get(id=user_id)
     except User.DoesNotExist:
-        messages.error(request, '❌ User account not found. Please register again.')
+        messages.error(request, '❌ User account not found. Please start over.')
         # Clear session
-        request.session.pop('password_reset_email', None)
+        request.session.pop('password_reset_user_id', None)
         request.session.pop('password_reset_verified', None)
         return redirect('accounts:forgot_password')
     
@@ -381,7 +390,7 @@ def reset_password(request):
             user.save()
             
             # Clear session
-            request.session.pop('password_reset_email', None)
+            request.session.pop('password_reset_user_id', None)
             request.session.pop('password_reset_verified', None)
             
             messages.success(request, '✅ Password reset successfully! You can now login with your new password.')
