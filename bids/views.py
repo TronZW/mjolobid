@@ -437,7 +437,7 @@ def accept_bid(request, bid_id):
     
     # Check if user has active subscription
     if not request.user.subscription_active or (request.user.subscription_expires and request.user.subscription_expires <= timezone.now()):
-        messages.warning(request, 'You need an active subscription to accept bids. Subscribe now for $3/week!')
+        messages.warning(request, 'You need an active subscription to accept bids. Subscribe now for $7/2 weeks!')
         return redirect('payments:subscription')
     
     # Check if user already accepted this bid

@@ -213,7 +213,7 @@ STRIPE_WEBHOOK_SECRET = config('STRIPE_WEBHOOK_SECRET', default='')
 # App specific settings
 MJOLOBID_SETTINGS = {
     'COMMISSION_RATE': 0.15,  # 15% commission
-    'WOMEN_SUBSCRIPTION_FEE': 3.00,  # $3 subscription fee
+    'WOMEN_SUBSCRIPTION_FEE': 7.00,  # $7 subscription fee per 2 weeks
     'MIN_BID_AMOUNT': 5.00,  # Minimum bid amount
     'MAX_BID_AMOUNT': 500.00,  # Maximum bid amount
 }

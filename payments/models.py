@@ -230,7 +230,7 @@ class Subscription(models.Model):
     def save(self, *args, **kwargs):
         if not self.end_date:
             if self.subscription_type == 'WOMEN_ACCESS':
-                self.end_date = self.start_date + timezone.timedelta(days=30)
+                self.end_date = self.start_date + timezone.timedelta(days=14)  # 2 weeks
             else:
                 self.end_date = self.start_date + timezone.timedelta(days=30)
         super().save(*args, **kwargs)

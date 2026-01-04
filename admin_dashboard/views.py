@@ -422,7 +422,7 @@ def verify_payment_action(request, payment_id):
 
             # --- Affiliate referral bonus logic ---
             # If this is a female user who was referred by someone, and this is
-            # a qualifying subscription ($3 Women Access), award a $0.30 bonus.
+            # a qualifying subscription ($7 Women Access for 2 weeks), award a $0.30 bonus.
             try:
                 referred_user = payment.user
                 referrer = referred_user.referred_by
