@@ -48,9 +48,10 @@ def register(request):
     if request.method == 'POST':
         form = UserRegistrationForm(request.POST, request.FILES)
         if form.is_valid():
-            # Create user but don't activate yet
+            # TEMPORARY: Bypass email verification so users can register while email service is down
+            # Create and immediately activate user
             user = form.save(commit=False)
-            user.is_active = False  # User must verify email first
+            user.is_active = True  # Allow login without email verification
             password = form.cleaned_data['password1']  # Save password before hashing
             user.set_password(password)
 
@@ -73,38 +74,16 @@ def register(request):
 
             user.save()
             
-            # Create user profile and mark email as unverified
+            # Create user profile and mark email as verified since we're skipping email step
             profile, created = UserProfile.objects.get_or_create(user=user)
-            profile.email_verified = False
+            profile.email_verified = True
             profile.save()
-            
-            # Generate and send verification code
-            code = generate_verification_code()
-            try:
-                send_verification_email(user.email, code, 'REGISTRATION', user)
-                messages.success(request, f'✅ Registration successful! A verification code has been sent to {user.email}. Please check your email and enter the code to activate your account.')
-                # Store user ID and password in session for verification step
-                request.session['pending_verification_user_id'] = user.id
-                request.session['pending_verification_email'] = user.email
-                request.session['pending_verification_password'] = password  # Store plain password for welcome email
-                request.session.modified = True  # Ensure session is saved
-                return redirect('accounts:verify_email')
-            except (ConnectionError, ValueError) as e:
-                # These are user-friendly errors from send_verification_email
-                user.delete()
-                error_msg = str(e)
-                import logging
-                logger = logging.getLogger(__name__)
-                logger.error(f"Registration email error for {user.email}: {error_msg}")
-                messages.error(request, f'❌ Registration failed: {error_msg}. Please try again in a few moments.')
-            except Exception as e:
-                # If email sending fails, delete user and show error
-                user.delete()
-                error_msg = str(e)
-                import logging
-                logger = logging.getLogger(__name__)
-                logger.error(f"Unexpected registration email error for {user.email}: {error_msg}")
-                messages.error(request, f'❌ Registration failed: Could not send verification email. Please try again in a few moments. If the problem persists, contact support.')
+
+            # Log the user in immediately
+            login(request, user, backend='django.contrib.auth.backends.ModelBackend')
+
+            messages.success(request, '✅ Registration successful! Your account has been created and activated without email verification.')
+            return redirect('accounts:profile_setup')
         else:
             # Form validation failed - show errors
             messages.error(request, '❌ Please correct the errors below and try again.')
