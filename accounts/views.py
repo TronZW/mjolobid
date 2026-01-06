@@ -386,9 +386,34 @@ def user_login(request):
     if request.method == 'POST':
         form = UserLoginForm(request.POST)
         if form.is_valid():
-            username = form.cleaned_data['username']
+            identifier = form.cleaned_data['username']  # can be username or phone number
             password = form.cleaned_data['password']
-            user = authenticate(request, username=username, password=password)
+
+            # First, try authenticating using the identifier as a username
+            user = authenticate(request, username=identifier, password=password)
+
+            # If that fails, try to treat the identifier as a phone number
+            if user is None:
+                try:
+                    from .models import User as UserModel
+                    # Try exact phone number match first
+                    candidate = UserModel.objects.filter(phone_number=identifier).first()
+
+                    # If not found, try a cleaned numeric comparison (handles spaces/dashes)
+                    if not candidate:
+                        phone_clean = ''.join(c for c in identifier if c.isdigit())
+                        if phone_clean:
+                            for u in UserModel.objects.exclude(phone_number__isnull=True):
+                                user_phone_clean = ''.join(ch for ch in u.phone_number if ch.isdigit())
+                                if user_phone_clean == phone_clean:
+                                    candidate = u
+                                    break
+
+                    if candidate:
+                        user = authenticate(request, username=candidate.username, password=password)
+                except Exception:
+                    # Fail silently and fall back to default error message
+                    pass
             
             if user is not None:
                 login(request, user)
