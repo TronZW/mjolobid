@@ -38,11 +38,14 @@
             Join Zimbabwe's premier social marketplace. Find companions for clubs, parties, concerts, and more. 
             Safe, secure, and fun experiences await.
         </p>
-        <div class="flex flex-col sm:flex-row gap-4 justify-center">
+        <div class="flex flex-col items-center gap-4">
             <a href="{% url 'accounts:register' %}" class="bg-gradient-to-r from-primary to-secondary text-white px-8 py-4 rounded-lg text-lg font-semibold hover:opacity-90 transition-opacity">
-                <i class="fas fa-rocket mr-2"></i>Start Your Journey
+                <i class="fas fa-user-plus mr-2"></i>Sign Up
             </a>
-            <a href="#how-it-works" class="border-2 border-primary text-primary px-8 py-4 rounded-lg text-lg font-semibold hover:bg-primary hover:text-white transition-colors">
+            <p class="text-gray-600 text-sm">
+                Already have an account? <a href="{% url 'accounts:login' %}" class="text-primary font-semibold hover:underline">Log in</a>
+            </p>
+            <a href="#how-it-works" class="border-2 border-primary text-primary px-8 py-4 rounded-lg text-lg font-semibold hover:bg-primary hover:text-white transition-colors mt-2">
                 <i class="fas fa-play mr-2"></i>How It Works
             </a>
         </div>

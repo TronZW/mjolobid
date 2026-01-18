@@ -16,7 +16,7 @@
                 <i class="fas fa-mobile-alt mr-2"></i>Payment Instructions
             </h3>
             <div class="text-blue-800 space-y-2">
-                <p><strong>Step 1:</strong> Send <strong>${{ subscription_fee }}</strong> via EcoCash to:</p>
+                <p><strong>Step 1:</strong> Send <strong>${{ subscription_fee|floatformat:0 }}</strong> via EcoCash to:</p>
                 <div class="bg-white rounded p-3 ml-4">
                     <p class="font-mono text-lg font-bold">{{ ecocash_number }}</p>
                     <p class="text-sm">{{ ecocash_name }}</p>

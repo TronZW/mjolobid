@@ -117,6 +117,7 @@ def subscription(request):
         'pending_payment': pending_payment,
         'verified_payment': verified_payment,
         'rejected_payment': rejected_payment,
+        'active_subscription': active_subscription,
     }
     
     return render(request, 'payments/subscription.html', context)
